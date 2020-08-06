@@ -25,6 +25,9 @@ class SetupMetaData:
     direct_dataroot = Path("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Data/")
     direct_resultsroot = Path("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Results/")
 
+    # relevant triggers
+    trig_cuestart_cuediff = np.array(([121, 122], [123, 124]))
+
     # initialise
     def __init__(self, attntrained):
         self.attntrained = attntrained
@@ -128,22 +131,48 @@ if (analyseEEGprepost):
             filesizes.append(filesfound.stat().st_size)
             possiblefiles.append(filesfound)
 
-        file2useIDX = np.argmax(filesizes)
+        file2useIDX = np.argmax(filesizes) # get the biggest file (there are often smaller shorter accidental recordings)
         file2use = possiblefiles[file2useIDX]
 
-        # load EEG gile
-        eeg_data = mne.io.read_raw_brainvision(file2use)
-        # print(eeg_data)
-        # print(eeg_data.info)
+        # load EEG file
+        raw = mne.io.read_raw_brainvision(file2use, preload=True)
+        eeg_data = raw.copy()
+        eeg_data.drop_channels('TRIG') # don't include the trigger channel in the main EEG data
+        raw.pick_channels(['TRIG']) # do save the trigger channel though
+
+        # print relevant info
+        print(eeg_data.info)
+        print(raw.info)
 
         # get triggers
-        triggerchannel = eeg_data['TRIG', :]
+        triggerchannel = raw['TRIG', :]
+        # plt.plot(triggerchannel[1], triggerchannel[0].T) # plot
 
-        plt.plot(triggerchannel[1], triggerchannel[0].T) # plot
-
-        triggerchannel_squeeze = np.squeeze(triggerchannel[0])*1e6
+        triggerchannel_squeeze = np.squeeze(triggerchannel[0])
         tmp = np.hstack([0, np.diff(triggerchannel_squeeze)])
         trig_latency = np.squeeze(np.where(tmp>0)) # find latencies of changes
-        trig_val = triggerchannel_squeeze[trig_latency] # get the values of triggers at these points
+        trig_val = triggerchannel_squeeze[trig_latency]*1e6 # get the values of triggers at these points (multiply because the loading shrinks the data values for some reason)
 
-        plt.stem(trig_latency, trig_val)
+        plt.stem(trig_latency, trig_val) # plot
+
+        # Filter Data
+        # eeg_data_filt = mne.filter.notch_filter(eeg_data, settings.samplingfreq, freqs=50, notch_widths=1)
+
+        dat2filt = eeg_data[np.arange(9), :]
+        dat2filt2 = dat2filt[0]*1e6 # multiply because the loading shrinks the data values for some reason
+        eeg_filt = mne.filter.filter_data(dat2filt2, settings.samplingfreq, l_freq = 1, h_freq = 45, h_trans_bandwidth =0.1)
+
+        # h = mne.filter.create_filter(dat2filt2, settings.samplingfreq, l_freq = 1, h_freq = 45, h_trans_bandwidth =0.1)
+        # mne.viz.plot_filter(h,  settings.samplingfreq)
+
+        plt.plot(dat2filt[1], dat2filt2[6,:].T)
+        plt.plot(dat2filt[1], eeg_filt[6,:].T)
+
+        # Epoch for the four attention conditions
+        for cuetype in np.arange(2):
+            for level in np.arange(2):
+                condition_trigs = settings.trig_cuestart_cuediff[cuetype][level]
+
+                idx = np.where(trig_val, condition_trigs)
+                condition_latency = trig_latency[idx]
+
