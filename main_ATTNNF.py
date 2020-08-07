@@ -82,17 +82,17 @@ class BIDS_FileNaming:
         self.filename_vissearch = self.casestring + '_vissearch*'
         self.filename_nback = self.casestring + 'nback*'
 
-def get_timing_variables(timelimits,samplingfreq):
-    timelimits_data = timelimits * samplingfreq
-
-    num_seconds = timelimits[1] - timelimits[0]
-    num_datapoints =  timelimits_data[1] -  timelimits_data[0]
-
-    timepoints = np.arange(timelimits[0], timelimits[1] - 1 / samplingfreq, 1 / samplingfreq) # Time (in seconds) of each sample in epoch relative to trigger
-    frequencypoints = np.arange(0, samplingfreq - 1 / num_seconds, 1 / num_seconds) # frequency (in Hz) of each sample in epoch after fourier transform
-
-    zeropoint = np.argmin(np.abs(timepoints - 0))
-    return timelimits_data, timepoints, frequencypoints, zeropoint
+# def get_timing_variables(timelimits,samplingfreq):
+#     timelimits_data = timelimits * samplingfreq
+#
+#     num_seconds = timelimits[1] - timelimits[0]
+#     num_datapoints =  timelimits_data[1] -  timelimits_data[0]
+#
+#     timepoints = np.arange(timelimits[0], timelimits[1] - 1 / samplingfreq, 1 / samplingfreq) # Time (in seconds) of each sample in epoch relative to trigger
+#     frequencypoints = np.arange(0, samplingfreq - 1 / num_seconds, 1 / num_seconds) # frequency (in Hz) of each sample in epoch after fourier transform
+#
+#     zeropoint = np.argmin(np.abs(timepoints - 0))
+#     return timelimits_data, timepoints, frequencypoints, zeropoint
 
 def get_eeg_data(bids):
     # decide which EEG file to use
@@ -107,9 +107,7 @@ def get_eeg_data(bids):
 
     # load EEG file
     raw = mne.io.read_raw_brainvision(file2use, preload=True, scale=1e6)
-    # eeg_data = raw.copy()
-    # eeg_data.drop_channels('TRIG')  # don't include the trigger channel in the main EEG data
-    # raw.pick_channels(['TRIG'])  # do save the trigger channel though
+    print(raw.info)
 
     # pick events
     events = mne.find_events(raw, stim_channel="TRIG")
@@ -117,28 +115,7 @@ def get_eeg_data(bids):
     print('Found %s events, first five:' % len(events))
     print(events[:5])
 
-    # # print relevant info
-    # print(eeg_data.info)
-    # print(raw.info)
-    #
-    # # get triggers
-    # triggerchannel = raw['TRIG', :]
-    # # plt.plot(triggerchannel[1], triggerchannel[0].T) # plot
-    #
-    # triggerchannel_squeeze = np.squeeze(triggerchannel[0])
-    # tmp = np.hstack([0, np.diff(triggerchannel_squeeze)])
-    # trig_latency = np.squeeze(np.where(tmp > 0))  # find latencies of changes
-    # trig_val = triggerchannel_squeeze[
-    #                trig_latency]  # get the values of triggers at these points
-    #
-    # # convert triggers to numpy arrays for convenience
-    # trig_latency = np.array(trig_latency)
-    # trig_val = np.round(np.array(trig_val))
-    #
-    # plt.figure()
-    # plt.stem(trig_latency, trig_val)  # plot
-
-    return eeg_data, trig_latency, trig_val
+    return raw, events
 
 # setup generic settings
 attntrained = 0 # ["Feature", "Space"]
@@ -158,8 +135,8 @@ if (analyseEEGprepost):
     settings = settings.get_settings_EEG_prepost()
 
     # get timing settings
-    timelimits_data, timepoints, frequencypoints, zeropoint = get_timing_variables(settings.timelimits,settings.samplingfreq)
-    timelimits_data_zp, timepoints_zp, frequencypoints_zp, zeropoint_zp = get_timing_variables(settings.timelimits_zeropad,settings.samplingfreq)
+    # timelimits_data, timepoints, frequencypoints, zeropoint = get_timing_variables(settings.timelimits,settings.samplingfreq)
+    # timelimits_data_zp, timepoints_zp, frequencypoints_zp, zeropoint_zp = get_timing_variables(settings.timelimits_zeropad,settings.samplingfreq)
 
     # iterate through test days
     for day_count, day_val in enumerate(settings.daysuse):
@@ -168,45 +145,67 @@ if (analyseEEGprepost):
         print(bids.casestring)
 
         # get EEG data
-        eeg_data, trig_latency, trig_val = get_eeg_data(bids)
+        raw, events = get_eeg_data(bids)
 
         # Filter Data
+        raw.filter(l_freq=1, h_freq=45, h_trans_bandwidth=0.1)
+
+        # Epoch to events of interest
+        # trig.cuestart(attended space[\, /],
+        #               attended feature[black, white]
+        event_id = {'Space/Left_diag': 121, 'Space/Right_digh': 122,
+                    'Feat/Black': 123, 'Feat/White': 124}
+
+        epochs = mne.Epochs(raw, events, event_id=event_id, tmin=settings.timelimits[0], tmax=settings.timelimits[1],
+                            baseline=(0, 1 / settings.samplingfreq), picks=np.arange(settings.num_electrodes),
+                            reject=dict(eeg=500), detrend=1)
+        # drop bad channels (too large)
+        epochs.drop_bad()
+        epochs.plot_drop_log()
+
+        # separate out
+        epochs_FeatBlack = epochs['Feat/Black']
+        epochs_FeatBlack.plot()
+
+
         # h = mne.filter.create_filter(dat2filt2, settings.samplingfreq, l_freq = 1, h_freq = 45, h_trans_bandwidth =0.1)
         # mne.viz.plot_filter(h,  settings.samplingfreq)
-        dat2filt = eeg_data[np.arange(settings.num_electrodes), :] # get EEG data - outputs 2d array - D1 = timing of samples in seconds, D2 = data, arranged channels x time
-        dat2filt2 = dat2filt[0]
-        eeg_filt = mne.filter.filter_data(dat2filt2, settings.samplingfreq, l_freq = 1, h_freq = 45, h_trans_bandwidth =0.1)
-
-        # Plot filtered data
-        plt.figure()
-        plt.plot(dat2filt[1], dat2filt2[6,:].T)
-        plt.plot(dat2filt[1], eeg_filt[6,:].T)
+        # dat2filt = raw[np.arange(settings.num_electrodes), :] # get EEG data - outputs 2d array - D1 = timing of samples in seconds, D2 = data, arranged channels x time
+        # dat2filt2 = dat2filt[0]
+        # eeg_filt = mne.filter.filter_data(dat2filt2, settings.samplingfreq, l_freq = 1, h_freq = 45, h_trans_bandwidth =0.1)
+        #
+        # # Plot filtered data
+        # plt.figure()
+        # plt.plot(dat2filt[1], dat2filt2[6,:].T)
+        # plt.plot(dat2filt[1], eeg_filt[6,:].T)
 
         # Epoch for the four attention conditions
-        for cuetype in np.arange(2):
-            for level in np.arange(2):
-                # get trigger aligning to condition
-                condition_trigs = settings.trig_cuestart_cuediff[cuetype][level]
+        # for cuetype in np.arange(2):
+        #     for level in np.arange(2):
+        #         # get trigger aligning to condition
+        #         condition_trigs = settings.trig_cuestart_cuediff[cuetype][level]
+                # question to get me started tomorrow:
+                # can I dictionary the triggers I'm interested in and epoch them all at the same time?
 
-                # get timings alinging to condition trigger
-                idx = np.where(trig_val == condition_trigs)
-                condition_latency = trig_latency[idx]
-                num_trials = len(condition_latency)
-                print(num_trials)
-
-                # define starting and stopping points for each epoch
-                start = condition_latency + timelimits_data[0]
-                stop = condition_latency + timelimits_data[1]
-
-                start_zp = condition_latency + timelimits_data_zp[0]
-                stop_zp = condition_latency + timelimits_data_zp[1]
-
-                # preallocate
-                epochs = np.empty((len(timepoints), settings.num_electrodes, num_trials))
-                epochs_zp = np.empty((len(timepoints_zp), settings.num_electrodes, num_trials))
-                epochs[:] = np.nan
-                epochs_zp[:] = np.nan
-
-                # loop through trials to get data
-                for trial in np.arange(num_trials):
-                    tmp_data = eeg_filt[:,start[trial]:stop[trial]]
+                # # get timings alinging to condition trigger
+                # idx = np.where(trig_val == condition_trigs)
+                # condition_latency = trig_latency[idx]
+                # num_trials = len(condition_latency)
+                # print(num_trials)
+                #
+                # # define starting and stopping points for each epoch
+                # start = condition_latency + timelimits_data[0]
+                # stop = condition_latency + timelimits_data[1]
+                #
+                # start_zp = condition_latency + timelimits_data_zp[0]
+                # stop_zp = condition_latency + timelimits_data_zp[1]
+                #
+                # # preallocate
+                # epochs = np.empty((len(timepoints), settings.num_electrodes, num_trials))
+                # epochs_zp = np.empty((len(timepoints_zp), settings.num_electrodes, num_trials))
+                # epochs[:] = np.nan
+                # epochs_zp[:] = np.nan
+                #
+                # # loop through trials to get data
+                # for trial in np.arange(num_trials):
+                #     tmp_data = eeg_filt[:,start[trial]:stop[trial]]
