@@ -66,72 +66,27 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
         # average across trials
         erps_days = np.squeeze(np.nanmean(epochs_days, axis=0))
         erps_days_wave = np.squeeze(np.nanmean(epochs_days, axis=0))
+        timepoints_zp = epochs.times
 
         # Get SSVEPs
-        fftdat, fftdat_epochs, freq = helper.getSSVEPs(erps_days, epochs_days, epochs, settings)
+        fftdat, fftdat_epochs, freq = helper.getSSVEPs(erps_days, epochs_days, epochs, settings, bids)
         fftdat_epochs = np.nanmean(fftdat_epochs, axis=0) # average across trials to get the same shape
 
         SSVEPs_prepost, SSVEPs_prepost_channelmean, BEST = helper.getSSVEPS_conditions(settings, fftdat, freq)
         SSVEPs_prepost_epochs, SSVEPs_prepost_channelmean_epochs, BEST_epochs = helper.getSSVEPS_conditions(settings, fftdat_epochs, freq)
 
-        # calculate wavelet results
-
-        # get wavelet data
-        # freqs = np.reshape(settings.hz_attn, -1)
-        # ncycles = freqs
-        # wave_space_left = mne.time_frequency.tfr_morlet(epochs['Space/Left_diag'].average(), freqs, ncycles, return_itc=False)
-        # wave_space_left.plot(picks=np.arange(9),vmin=-500, vmax=500, cmap='viridis')
-
         # get wavelets
-        # get ssveps for space condition, sorted to represent attended vs. unattended
-        erps_days_wave = erps_days.transpose(4, 0, 1, 2, 3)  # [day, chans,time,cuetype, level]
-
-        cuetype = 0  # space
-        left_diag, right_diag = 0, 1
-
-        spacewavelets = np.empty((len(epochs.times), settings.num_days, settings.num_attd_unattd, settings.num_levels))
-        for level_count, level in enumerate(
-                ['Left_diag', 'Right_diag']):  # cycle through space trials on which the left and right diag were cued
-            if (level == 'Left_diag'):  # when left diag cued
-
-                freqs2use = settings.hz_attn[left_diag, :]
-                attended_wavelets = np.mean(mne.time_frequency.tfr_array_morlet(erps_days_wave[:, :, :, cuetype, level_count],
-                                                                        settings.samplingfreq, freqs=freqs2use,
-                                                                        n_cycles=freqs2use, output='power'), axis=2 )# average across left_diag frequencies at both features (black, white)
-                freqs2use = settings.hz_attn[right_diag, :]
-                unattended_wavelets = np.mean(mne.time_frequency.tfr_array_morlet(erps_days_wave[:, :, :, cuetype, level_count],
-                                                        settings.samplingfreq, freqs=freqs2use,
-                                                        n_cycles=freqs2use, output='power'),axis=2)  # average across right_diag frequencies at both features (black, white)
-
-            if (level == 'Right_diag'):  # whien right diag cued
-
-                freqs2use = settings.hz_attn[right_diag, :]
-                attended_wavelets = np.mean(mne.time_frequency.tfr_array_morlet(erps_days_wave[:, :, :, cuetype, level_count],
-                                                                        settings.samplingfreq, freqs=freqs2use,
-                                                                        n_cycles=freqs2use, output='power'), axis=2 )# average across left_diag frequencies at both features (black, white)
-                freqs2use = settings.hz_attn[left_diag, :]
-                unattended_wavelets = np.mean(mne.time_frequency.tfr_array_morlet(erps_days_wave[:, :, :, cuetype, level_count],
-                                                        settings.samplingfreq, freqs=freqs2use,
-                                                        n_cycles=freqs2use, output='power'),axis=2)  # average across right_diag frequencies at both features (black, white)
-
-            for day_count in np.arange(settings.num_days): # average across best electrodes
-                spacewavelets[:,day_count,0,level_count] = np.mean(attended_wavelets[day_count,BEST[:, day_count, cuetype].astype(int),:], axis=0) # attended freqs
-                spacewavelets[:, day_count, 1, level_count] = np.mean(unattended_wavelets[day_count, BEST[:, day_count, cuetype].astype(int), :], axis=0) # unattended freqs
-
-
-        # plot wavelet data
-        plt.figure()
-        datplot = np.mean(spacewavelets, axis = 3)
-        plt.plot(epochs.times, datplot[:,0,:])
-        plt.xlim(-1,6)
+        wavelets_prepost = helper.get_wavelets_prepost(erps_days_wave, settings, epochs,BEST, bids)
 
         # plot topos
         # TODO: add topoplotting
 
         # Plot SSVEP results
         ERPstring = 'ERP'
-        helper.plotResultsPrePost_subjects(SSVEPs_prepost_channelmean, settings, ERPstring)
+        helper.plotResultsPrePost_subjects(SSVEPs_prepost_channelmean, settings, ERPstring, bids)
 
         ERPstring = 'Single Trial'
-        helper.plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_epochs, settings, ERPstring)
+        helper.plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_epochs, settings, ERPstring, bids)
         # when we return - check single trial SSVEP amplitudes. figure out if this script is wrong or if the matlab script is.
+
+        np.savez(bids.direct_results / Path(bids.substring + "EEG_pre_post_results.npy"), SSVEPs_prepost_channelmean, SSVEPs_prepost_channelmean_epochs, wavelets_prepost, timepoints_zp, erps_days_wave, fftdat, fftdat_epochs, freq)
