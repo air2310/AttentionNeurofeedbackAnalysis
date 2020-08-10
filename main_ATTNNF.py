@@ -3,7 +3,6 @@ import numpy as np
 from pathlib import Path
 import mne
 import matplotlib.pyplot as plt
-from scipy.fft import fft, fftfreq, fftshift
 import Analysis_Code.helperfunctions_ATTNNF as helper
 
 # setup generic settings
@@ -25,17 +24,16 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
         # timelimits_data, timepoints, frequencypoints, zeropoint = get_timing_variables(settings.timelimits,settings.samplingfreq)
         timelimits_data_zp, timepoints_zp, frequencypoints_zp, zeropoint_zp = helper.get_timing_variables(settings.timelimits_zeropad,settings.samplingfreq)
 
-
         # preallocate
         num_epochs = (settings.num_trials) / 4
-        epochs_days = np.empty(( int(num_epochs), settings.num_electrodes, len(timepoints_zp) + 1, settings.num_levels, settings.num_attnstates,
+        epochs_days = np.empty(( int(num_epochs), settings.num_electrodes, len(timepoints_zp) + 1,  settings.num_attnstates, settings.num_levels,
                               settings.num_days))
 
         epochs_days[:] = np.nan
 
-
         # iterate through test days to get data
         for day_count, day_val in enumerate(settings.daysuse):
+            # TODO: save daily plots for events, drop logs, ERPs and FFTs
             # get file names
             bids = helper.BIDS_FileNaming(sub_val, settings, day_val)
             print(bids.casestring)
@@ -47,8 +45,8 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
             raw.filter(l_freq=1, h_freq=45, h_trans_bandwidth=0.1)
 
             # Epoch to events of interest
-            event_id = {'Space/Left_diag': 121, 'Space/Right_diag': 122,
-                        'Feat/Black': 123, 'Feat/White': 124} # will be different triggers for training days
+            event_id = {'Feat/Black': 121, 'Feat/White': 122,
+                        'Space/Left_diag': 123, 'Space/Right_diag': 124} # will be different triggers for training days
 
             epochs = mne.Epochs(raw, events, event_id=event_id, tmin=settings.timelimits_zeropad[0], tmax=settings.timelimits_zeropad[1],
                                 baseline=(0, 1 / settings.samplingfreq), picks=np.arange(settings.num_electrodes),
@@ -59,141 +57,81 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
             epochs.plot_drop_log()
             # epochs2 = epochs.equalize_event_counts(event_id, method='mintime')
 
-            # for fft - get data for each  condition
+            # get data for each  condition
             epochs_days[0:sum(elem == [] for elem in epochs['Space/Left_diag'].drop_log), :, :, 0, 0, day_count] = epochs['Space/Left_diag'].get_data()
             epochs_days[0:sum(elem == [] for elem in epochs['Space/Right_diag'].drop_log), :, :, 0, 1, day_count] = epochs['Space/Right_diag'].get_data()
             epochs_days[0:sum(elem == [] for elem in epochs['Feat/Black'].drop_log), :, :, 1, 0, day_count] = epochs['Feat/Black'].get_data()
             epochs_days[0:sum(elem == [] for elem in epochs['Feat/White'].drop_log), :, :, 1, 1, day_count] = epochs['Feat/White'].get_data()
 
-            # ERPs and wavelets
-            # erp_space_right = epochs['Space/Left_diag'].average()
-            # erp_space_right = epochs['Space/Right_diag'].average()
-            # erp_feat_black = epochs['Feat/Black'].average()
-            # erp_feat_white = epochs['Feat/White'].average()
-            #
-            # erp_space_left.plot()
-            # erp_space_right.plot()
-            # erp_feat_black.plot()
-            # erp_feat_white.plot()
-            # get wavelet data
-            # freqs = np.reshape(settings.hz_attn, -1)
-            # ncycles = freqs
-            # wave_space_left = mne.time_frequency.tfr_morlet(epochs['Space/Left_diag'].average(), freqs, ncycles, return_itc=False)
-            # wave_space_left.plot(picks=np.arange(9),vmin=-500, vmax=500, cmap='viridis')
-
-
-        # average
+        # average across trials
         erps_days = np.squeeze(np.nanmean(epochs_days, axis=0))
+        erps_days_wave = np.squeeze(np.nanmean(epochs_days, axis=0))
 
         # Get SSVEPs
-        fftdat, fftdat_epochs = helper.getSSVEPs(erps_days, epochs_days, epochs, settings)
+        fftdat, fftdat_epochs, freq = helper.getSSVEPs(erps_days, epochs_days, epochs, settings)
+        fftdat_epochs = np.nanmean(fftdat_epochs, axis=0) # average across trials to get the same shape
 
-        # get indices for frequencies of interest
-        hz_attn_index = np.empty((settings.num_spaces, settings.num_features))
-        for space_count, space in enumerate(['Left_diag', 'Right_diag']):
-            for feat_count, feat in enumerate(['Black', 'White']):
-                hz_attn_index[space_count, feat_count] = np.argmin(np.abs(freq - settings.hz_attn[space_count, feat_count]))
+        SSVEPs_prepost, SSVEPs_prepost_channelmean, BEST = helper.getSSVEPS_conditions(settings, fftdat, freq)
+        SSVEPs_prepost_epochs, SSVEPs_prepost_channelmean_epochs, BEST_epochs = helper.getSSVEPS_conditions(settings, fftdat_epochs, freq)
 
+        # calculate wavelet results
 
+        # get wavelet data
+        # freqs = np.reshape(settings.hz_attn, -1)
+        # ncycles = freqs
+        # wave_space_left = mne.time_frequency.tfr_morlet(epochs['Space/Left_diag'].average(), freqs, ncycles, return_itc=False)
+        # wave_space_left.plot(picks=np.arange(9),vmin=-500, vmax=500, cmap='viridis')
+
+        # get wavelets
         # get ssveps for space condition, sorted to represent attended vs. unattended
+        erps_days_wave = erps_days.transpose(4, 0, 1, 2, 3)  # [day, chans,time,cuetype, level]
+
         cuetype = 0  # space
         left_diag, right_diag = 0, 1
 
-        spaceSSVEPs = np.empty((settings.num_electrodes, settings.num_days, settings.num_attd_unattd, settings.num_levels))
-        for level_count, level in enumerate(['Left_diag', 'Right_diag']):
-            if (level == 'Left_diag'):
-                attendedSSVEPs = np.mean(fftdat[:, hz_attn_index[left_diag, :].astype(int), cuetype, level_count, :], axis=1)  # average across left_diag frequencies at both feature positions
-                unattendedSSVEPs = np.mean(fftdat[:, hz_attn_index[right_diag, :].astype(int), cuetype, level_count, :], axis=1)  # average across right_diag frequencies at both feature positions
+        spacewavelets = np.empty((len(epochs.times), settings.num_days, settings.num_attd_unattd, settings.num_levels))
+        for level_count, level in enumerate(
+                ['Left_diag', 'Right_diag']):  # cycle through space trials on which the left and right diag were cued
+            if (level == 'Left_diag'):  # when left diag cued
 
-            if (level == 'Right_diag'):
-                attendedSSVEPs = np.mean(fftdat[:, hz_attn_index[right_diag, :].astype(int), cuetype, level_count, :], axis=1)  # average across right_diag frequencies at both feature positions
-                unattendedSSVEPs = np.mean(fftdat[:, hz_attn_index[left_diag, :].astype(int), cuetype, level_count, :], axis=1)  # average across left_diag frequencies at both feature positions
+                freqs2use = settings.hz_attn[left_diag, :]
+                attended_wavelets = np.mean(mne.time_frequency.tfr_array_morlet(erps_days_wave[:, :, :, cuetype, level_count],
+                                                                        settings.samplingfreq, freqs=freqs2use,
+                                                                        n_cycles=freqs2use, output='power'), axis=2 )# average across left_diag frequencies at both features (black, white)
+                freqs2use = settings.hz_attn[right_diag, :]
+                unattended_wavelets = np.mean(mne.time_frequency.tfr_array_morlet(erps_days_wave[:, :, :, cuetype, level_count],
+                                                        settings.samplingfreq, freqs=freqs2use,
+                                                        n_cycles=freqs2use, output='power'),axis=2)  # average across right_diag frequencies at both features (black, white)
 
-            spaceSSVEPs[:, :, 0, level_count] = attendedSSVEPs
-            spaceSSVEPs[:, :, 1, level_count] = unattendedSSVEPs
+            if (level == 'Right_diag'):  # whien right diag cued
 
+                freqs2use = settings.hz_attn[right_diag, :]
+                attended_wavelets = np.mean(mne.time_frequency.tfr_array_morlet(erps_days_wave[:, :, :, cuetype, level_count],
+                                                                        settings.samplingfreq, freqs=freqs2use,
+                                                                        n_cycles=freqs2use, output='power'), axis=2 )# average across left_diag frequencies at both features (black, white)
+                freqs2use = settings.hz_attn[left_diag, :]
+                unattended_wavelets = np.mean(mne.time_frequency.tfr_array_morlet(erps_days_wave[:, :, :, cuetype, level_count],
+                                                        settings.samplingfreq, freqs=freqs2use,
+                                                        n_cycles=freqs2use, output='power'),axis=2)  # average across right_diag frequencies at both features (black, white)
 
-        # get ssveps for feature condition, sorted to represent attended vs. unattended
-        cuetype = 1 # feature
-        black, white = 0, 1
-        featureSSVEPs = np.empty((settings.num_electrodes, settings.num_days, settings.num_attd_unattd, settings.num_levels))
-        for level_count, level in enumerate(['Black', 'White']):
-            print(level_count, level)
-            if (level == 'Black'):
-                attendedSSVEPs =   np.mean(fftdat[:, hz_attn_index[:, black].astype(int), cuetype, level_count, :], axis = 1) # average across black frequencies at both spatial positions
-                unattendedSSVEPs = np.mean(fftdat[:, hz_attn_index[:, white].astype(int), cuetype, level_count, :], axis = 1) # average across white frequencies at both spatial positions
-
-            if (level == 'White'):
-                attendedSSVEPs =   np.mean(fftdat[:, hz_attn_index[:, white].astype(int), cuetype, level_count, :], axis = 1) # average across white frequencies at both spatial positions
-                unattendedSSVEPs = np.mean(fftdat[:, hz_attn_index[:, black].astype(int), cuetype, level_count, :], axis = 1) # average across black frequencies at both spatial positions
-
-            featureSSVEPs[:, :, 0, level_count] = attendedSSVEPs
-            featureSSVEPs[:, :, 1, level_count] = unattendedSSVEPs
+            for day_count in np.arange(settings.num_days): # average across best electrodes
+                spacewavelets[:,day_count,0,level_count] = np.mean(attended_wavelets[day_count,BEST[:, day_count, cuetype].astype(int),:], axis=0) # attended freqs
+                spacewavelets[:, day_count, 1, level_count] = np.mean(unattended_wavelets[day_count, BEST[:, day_count, cuetype].astype(int), :], axis=0) # unattended freqs
 
 
-        # average across cue types and store the SSVEPs alltogether for plotting and further analysis
-        SSVEPs_prepost = np.empty((settings.num_electrodes, settings.num_days, settings.num_attd_unattd, settings.num_attnstates))
-        SSVEPs_prepost[:, :, :, 0] = np.mean(spaceSSVEPs, axis=3)
-        SSVEPs_prepost[:, :, :, 1] = np.mean(featureSSVEPs, axis=3)
+        # plot wavelet data
+        plt.figure()
+        datplot = np.mean(spacewavelets, axis = 3)
+        plt.plot(epochs.times, datplot[:,0,:])
+        plt.xlim(-1,6)
 
         # plot topos
-        # TODO* add topoplotting
-        # TODO : fix plots all over the place
-        # TODO: Multiple errors can be wrapped inside an exception.
+        # TODO: add topoplotting
 
-        # get best electrodes to use
-        BEST = np.empty((settings.num_best, settings.num_days, settings.num_attnstates))
-        SSVEPs_prepost_mean = np.empty((settings.num_attd_unattd, settings.num_days, settings.num_attnstates))
-        for day_count, day_val in enumerate(settings.daysuse):
-            for attn_count, attn_val in enumerate(settings.string_attntrained):
-                tmp = np.mean(SSVEPs_prepost[:,day_count,:,attn_count], axis=1)
-                BEST[:,day_count, attn_count] = tmp.argsort()[-settings.num_best:]
+        # Plot SSVEP results
+        ERPstring = 'ERP'
+        helper.plotResultsPrePost_subjects(SSVEPs_prepost_channelmean, settings, ERPstring)
 
-                SSVEPs_prepost_mean[:,day_count, attn_count] = np.mean(SSVEPs_prepost[BEST[:,day_count, attn_count].astype(int), day_count, :, attn_count], axis=0)
-
-        # get mean SSVEPs
-
-
-        # plot results
-        fig, (ax1, ax2) = plt.subplots(1, 2)
-
-        labels = settings.string_attd_unattd
-        x = np.arange(len(labels))
-        width = 0.35
-
-        for attn in np.arange(settings.num_attnstates):
-            if (attn==0):axuse = ax1
-            if (attn==1):axuse = ax2
-
-            axuse.bar(x - width/2, SSVEPs_prepost_mean[:,0, attn], width, label=settings.string_prepost[0]) # Pretrain
-            axuse.bar(x + width / 2, SSVEPs_prepost_mean[:,1, attn], width, label=settings.string_prepost[1]) # Posttrain
-
-            # Add some text for labels, title and custom x-axis tick labels, etc.
-            axuse.set_ylabel('SSVEP amp (µV)')
-            axuse.set_title(settings.string_cuetype[attn])
-            axuse.set_xticks(x)
-            axuse.set_xticklabels(labels)
-            axuse.legend()
-
-        # next step - compute differences and plot
-
-        fig = plt.figure()
-        labels = settings.string_prepost
-        x = np.arange(len(labels))
-        width = 0.35
-
-        attn = 0
-        datplot = SSVEPs_prepost_mean[0,:, attn] - SSVEPs_prepost_mean[1,:, attn]
-        plt.bar(x - width/2, datplot, width, label=settings.string_attntrained[attn]) # 'space'
-
-        attn = 1
-        datplot = SSVEPs_prepost_mean[0, :, attn] - SSVEPs_prepost_mean[1, :, attn]
-        plt.bar(x + width / 2, datplot, width, label=settings.string_attntrained[attn])  # 'feature'
-
-        plt.ylabel('Delta SSVEP amp (µV)')
-        plt.title(settings.string_cuetype[attn])
-        plt.xticks(x)
-        # plt.xticklabels(labels)
-        plt.legend()
-
+        ERPstring = 'Single Trial'
+        helper.plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_epochs, settings, ERPstring)
         # when we return - check single trial SSVEP amplitudes. figure out if this script is wrong or if the matlab script is.
