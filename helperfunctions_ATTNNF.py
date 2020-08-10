@@ -125,3 +125,58 @@ def get_eeg_data(bids):
     print(events[:5])
 
     return raw, events
+
+def getSSVEPs(erps_days, epochs_days, epochs, settings):
+    # for fft - zeropad
+    zerotimes = np.where(
+        np.logical_or(epochs.times < settings.timelimits[0], epochs.times > settings.timelimits[1]))
+    erps_days[:, zerotimes, :, :, :] = 0
+    epochs_days[:, :, zerotimes, :, :, :] = 0
+
+    # for fft - fft
+    fftdat = np.abs(fft(erps_days, axis=1)) / len(epochs.times)
+    fftdat_epochs = np.abs(fft(epochs_days, axis=2)) / len(epochs.times)
+
+    ## plot ERP FFT spectrum
+    # to do: make subplots for days, set titles and x and y lablels, set ylim to be comparable, get rid of zero line, save
+
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    freq = fftfreq(len(epochs.times), d=1 / settings.samplingfreq)  # get frequency bins
+    chanmeanfft = np.mean(fftdat, axis=0)
+
+    for day_count in np.arange(2):
+        if (day_count == 0): axuse = ax1
+        if (day_count == 1): axuse = ax2
+        axuse.plot(freq, chanmeanfft[:, 0, 0, day_count].T, '-', label='Space/Left_diag')  # 'Space/Left_diag'
+        axuse.plot(freq, chanmeanfft[:, 0, 1, day_count].T, '-', label='Space/Right_diag')  # 'Space/Right_diag'
+        axuse.plot(freq, chanmeanfft[:, 1, 0, day_count].T, '-', label='Feat/Black')  # 'Feat/Black'
+        axuse.plot(freq, chanmeanfft[:, 1, 1, day_count].T, '-', label='Feat/White')  # 'Feat/White'
+
+        axuse.set_xlim(2, 20)
+        axuse.set_ylim(0, .7)
+        axuse.set_title(settings.string_prepost[day_count])
+        axuse.legend()
+
+    fig.suptitle('ERP FFT Spectrum')
+
+    # plot single trial FFT spectrum
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    freq = fftfreq(len(epochs.times), d=1 / settings.samplingfreq)  # get frequency bins
+    chanmeanfft = np.nanmean(np.mean(fftdat_epochs, axis=1), axis=0)
+
+    for day_count in np.arange(2):
+        if (day_count == 0): axuse = ax1
+        if (day_count == 1): axuse = ax2
+        axuse.plot(freq, chanmeanfft[:, 0, 0, day_count].T, '-', label='Space/Left_diag')  # 'Space/Left_diag'
+        axuse.plot(freq, chanmeanfft[:, 0, 1, day_count].T, '-', label='Space/Right_diag')  # 'Space/Right_diag'
+        axuse.plot(freq, chanmeanfft[:, 1, 0, day_count].T, '-', label='Feat/Black')  # 'Feat/Black'
+        axuse.plot(freq, chanmeanfft[:, 1, 1, day_count].T, '-', label='Feat/White')  # 'Feat/White'
+
+        axuse.set_xlim(2, 20)
+        axuse.set_ylim(0, 1)
+        axuse.set_title(settings.string_prepost[day_count])
+        axuse.legend()
+
+    fig.suptitle('single Trial FFT Spectrum')
+
+    return fftdat, fftdat_epochs

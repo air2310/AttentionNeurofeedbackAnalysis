@@ -27,8 +27,8 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
 
 
         # preallocate
-        num_epochs = settings.num_trials/4
-        epochs_days = np.empty(( settings.num_electrodes, len(timepoints_zp) + 1, settings.num_levels, settings.num_attnstates,
+        num_epochs = (settings.num_trials) / 4
+        epochs_days = np.empty(( int(num_epochs), settings.num_electrodes, len(timepoints_zp) + 1, settings.num_levels, settings.num_attnstates,
                               settings.num_days))
 
         epochs_days[:] = np.nan
@@ -52,7 +52,7 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
 
             epochs = mne.Epochs(raw, events, event_id=event_id, tmin=settings.timelimits_zeropad[0], tmax=settings.timelimits_zeropad[1],
                                 baseline=(0, 1 / settings.samplingfreq), picks=np.arange(settings.num_electrodes),
-                                reject=dict(eeg=400), detrend=1)
+                                reject=dict(eeg=400), detrend=1) #
 
             # drop bad channels
             epochs.drop_bad()
@@ -60,10 +60,10 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
             # epochs2 = epochs.equalize_event_counts(event_id, method='mintime')
 
             # for fft - get data for each  condition
-            erps_days[:, :, 0, 0, day_count] = np.squeeze(np.mean(epochs['Space/Left_diag'].get_data(), axis=0))
-            erps_days[:, :, 0, 1, day_count] = np.squeeze(np.mean(epochs['Space/Right_diag'].get_data(), axis=0))
-            erps_days[:, :, 1, 0, day_count] = np.squeeze(np.mean(epochs['Feat/Black'].get_data(), axis=0))
-            erps_days[:, :, 1, 1, day_count] = np.squeeze(np.mean(epochs['Feat/White'].get_data(), axis=0))
+            epochs_days[0:sum(elem == [] for elem in epochs['Space/Left_diag'].drop_log), :, :, 0, 0, day_count] = epochs['Space/Left_diag'].get_data()
+            epochs_days[0:sum(elem == [] for elem in epochs['Space/Right_diag'].drop_log), :, :, 0, 1, day_count] = epochs['Space/Right_diag'].get_data()
+            epochs_days[0:sum(elem == [] for elem in epochs['Feat/Black'].drop_log), :, :, 1, 0, day_count] = epochs['Feat/Black'].get_data()
+            epochs_days[0:sum(elem == [] for elem in epochs['Feat/White'].drop_log), :, :, 1, 1, day_count] = epochs['Feat/White'].get_data()
 
             # ERPs and wavelets
             # erp_space_right = epochs['Space/Left_diag'].average()
@@ -82,26 +82,11 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
             # wave_space_left.plot(picks=np.arange(9),vmin=-500, vmax=500, cmap='viridis')
 
 
-        # for fft - zeropad
-        zerotimes = np.where(
-            np.logical_or(epochs.times < settings.timelimits[0], epochs.times > settings.timelimits[1]))
-        erps_days[:, zerotimes, :, :, :] = 0
+        # average
+        erps_days = np.squeeze(np.nanmean(epochs_days, axis=0))
 
-        # for fft - fft
-        fftdat = np.abs(fft(erps_days, axis=1)) / len(epochs.times)
-
-        # for fft - plot data
-        # to do: make subplots for days, set titles and x and y lablels, set ylim to be comparable, get rid of zero line, save
-        plt.figure()
-        freq = fftfreq(len(epochs.times), d=1 / settings.samplingfreq)  # get frequency bins
-        chanmeanfft = np.mean(fftdat, axis=0)
-        plt.plot(freq, chanmeanfft[ :, 0, 0, 0].T,'-', label='Space/Left_diag') # 'Space/Left_diag'
-        plt.plot(freq, chanmeanfft[ :, 0, 1, 0].T,'-' , label='Space/Right_diag') # 'Space/Right_diag'
-        plt.plot(freq, chanmeanfft[ :, 1, 0, 0].T,'-' , label='Feat/Black') # 'Feat/Black'
-        plt.plot(freq, chanmeanfft[ :, 1, 1, 0].T,'-' , label='Feat/White') # 'Feat/White'
-        plt.legend()
-        plt.title('day 1')
-        plt.xlim(2, 20)
+        # Get SSVEPs
+        fftdat, fftdat_epochs = helper.getSSVEPs(erps_days, epochs_days, epochs, settings)
 
         # get indices for frequencies of interest
         hz_attn_index = np.empty((settings.num_spaces, settings.num_features))
