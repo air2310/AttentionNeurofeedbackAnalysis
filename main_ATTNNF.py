@@ -188,7 +188,10 @@ if (collateEEGprepost):
 
     # save attentional selectivity for stats
     ssvep_selectivity_prepost = SSVEPs_prepost_group[0, :, :, :] - SSVEPs_prepost_group[1, :, :, :]
-    np.save(bids.direct_results_group / Path("group_ssvep_selectivity_prepost.npy"), ssvep_selectivity_prepost)
+    # day, attntype
+
+    tmp = np.reshape(ssvep_selectivity_prepost, (4,settings.num_subs)) # day 1-space, day 1 - feature, day 4 - space, day 4 - feature
+    np.save(bids.direct_results_group / Path("group_ssvep_selectivity_prepost.npy"), tmp)
     # TODO: get wserror
     # plot error around wavelets
 

@@ -1,15 +1,16 @@
 library(BayesFactor)
 library(R.matlab)
 library(ggplot2)
+library(RcppCNPy)
 
 # Settings ----------------------------------------------------------------
 
 # run options
 
-options.traintype = 1 # Feature or Space
+options.traintype = 2 # Feature or Space
 
 # task options
-options.task = 1 # 1 = Motion Detection, 2 = Visual Search
+options.task = 1 # 1 = Motion Detection,
 options.TestTrain = 1 # 1 = test, 2 = train
 
 # analysis options
@@ -26,20 +27,21 @@ strings.traintype = c("Feature", "Space")
 # Directories -------------------------------------------------------------
 
 # set root directories
-direct.Root = "Z:/" # VISATTNNF-Q1357/
+direct.Root = "//data.qbi.uq.edu.au/VISATTNNF-Q1357/"
 direct.resultsRoot = paste(direct.Root, "Results/", sep = "")
-direct.results = paste(direct.resultsRoot, "Train", strings.traintype[options.traintype], "/ALL/", sep = "")
+direct.resultsGroup = paste(direct.Root, "Results/group", sep = "")
+direct.resultsGroup = paste(direct.resultsRoot, "Train",strings.traintype[options.traintype], "/group",sep = "")
 
 # set filenames
 
-filename.bids.results = paste( "SelectivityResults", sep = "")
+filename.bids.results = paste( "group_ssvep_selectivity_prepost.npy", sep = "") # day 1-space, day 1 - feature, day 4 - space, day 4 - feature
 
-
+results <- npyLoad( paste( direct.resultsGroup, "/",  filename.bids.results, sep = ""))
 # Get Data ----------------------------------------------------------------
 
-file.ls = list.files(path=direct.results, pattern=glob2rx(paste( filename.bids.results, "*.mat", sep = "")))
-
-DATA_ALL = readMat(paste(direct.results, tail(file.ls, n=1), sep = ""))
+#file.ls = list.files(path=direct.resultsGroup, pattern=glob2rx(paste( filename.bids.results, "*.npy", sep = "")))
+#
+#DATA_ALL = readMat(paste(direct.results, tail(file.ls, n=1), sep = ""))
 
 # assign dat
 SELECTIVITY = DATA_ALL$Selectivity.ALL

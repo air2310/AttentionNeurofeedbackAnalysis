@@ -13,7 +13,7 @@ options.traintype = 1 # Feature or Space
 if (options.traintype == 1) {
   subnumbers = c(1, 2 , 4, 8, 9, 18, 21, 23, 41, 47 )
 } else {
-  subnumbers = c(10, 11, 19, 22, 28, 29, 43, 45)
+  subnumbers = c(10, 11, 19, 22, 28, 29, 43, 45, 46, 49)
 }
 # Settings ----------------------------------------------------------------
 
