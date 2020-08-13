@@ -2,6 +2,7 @@ import numpy as np
 from pathlib import Path
 import mne
 
+
 def get_eeg_data(bids, day_count):
     import mne
     import matplotlib.pyplot as plt
@@ -50,6 +51,8 @@ def get_eeg_data(bids, day_count):
         raw.info['bads'] = ['Iz']
     if (np.logical_and(bids.substring == 'sub-10', day_count == 1)):
         raw.info['bads'] = ['Oz']
+    if (np.logical_and(bids.substring == 'sub-47', day_count == 0)):
+        raw.info['bads'] = ['PO8']
 
     plt.show()
     # tmp = input('check the eeg data')

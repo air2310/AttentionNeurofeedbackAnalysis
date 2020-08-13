@@ -7,9 +7,17 @@ import Analysis_Code.helperfunctions_ATTNNF as helper
 import Analysis_Code.functions_getEEGprepost as geegpp
 
 # notes
-# use signal to noise instead?!
-# integrate behavioural analyses
-# find a way to normalise day by day SSVEP amplitudes?
+# integrate behavioural analyses with python
+# find a way to normalise day by day SSVEP amplitudes? # use signal to noise instead?!
+# correlate behaviour with ssvep selectivity
+# look at differences between classifiable and unclassifiable peeps.
+# check prepost differences in nback and visual search tasks
+# add errorbars and standard ylims to wavelet plots
+# add subject scatterpoints to behavioural results
+# switch to within subjects error across plots
+# analyse behaviour during training - across the three days.
+# figure out topoplotting
+
 
 # Decide which analyses to do
 analyseEEGprepost = False # analyse EEG Pre Vs. Post Training
@@ -178,6 +186,9 @@ if (collateEEGprepost):
     fig.suptitle(titlestring)
     plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
 
+    # save attentional selectivity for stats
+    ssvep_selectivity_prepost = SSVEPs_prepost_group[0, :, :, :] - SSVEPs_prepost_group[1, :, :, :]
+    np.save(bids.direct_results_group / Path("group_ssvep_selectivity_prepost.npy"), ssvep_selectivity_prepost)
     # TODO: get wserror
     # plot error around wavelets
 
