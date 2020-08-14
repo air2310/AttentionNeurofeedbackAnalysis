@@ -18,7 +18,6 @@ import Analysis_Code.functions_getEEGprepost as geegpp
 # analyse behaviour during training - across the three days.
 # figure out topoplotting
 
-
 # Decide which analyses to do
 analyseEEGprepost = False # analyse EEG Pre Vs. Post Training
 collateEEGprepost = True # Collate EEG Pre Vs. Post Training across subjects

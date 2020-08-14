@@ -53,6 +53,9 @@ def get_eeg_data(bids, day_count):
         raw.info['bads'] = ['Oz']
     if (np.logical_and(bids.substring == 'sub-47', day_count == 0)):
         raw.info['bads'] = ['PO8']
+    if (np.logical_and(bids.substring == 'sub-53', day_count == 0)):
+        raw.info['bads'] = ['Iz']
+        # sub 52 day 4- particularly noisy everywhere...
 
     plt.show()
     # tmp = input('check the eeg data')
