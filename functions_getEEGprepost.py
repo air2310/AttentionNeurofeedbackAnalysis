@@ -38,7 +38,7 @@ def get_eeg_data(bids, day_count):
 
     # pick events
     events = mne.find_events(raw, stim_channel="TRIG")
-    mne.viz.plot_events(events, raw.info['sfreq'], raw.first_samp)
+    # mne.viz.plot_events(events, raw.info['sfreq'], raw.first_samp)
     print('Found %s events, first five:' % len(events))
     print(events[:5])
 
@@ -57,7 +57,7 @@ def get_eeg_data(bids, day_count):
         raw.info['bads'] = ['Iz']
         # sub 52 day 4- particularly noisy everywhere...
 
-    plt.show()
+    # plt.show()
     # tmp = input('check the eeg data')
 
     eeg_data = raw.copy().pick_types(eeg=True, exclude=['TRIG'])
@@ -68,7 +68,7 @@ def get_eeg_data(bids, day_count):
     eeg_data_interp.filter(l_freq=1, h_freq=45, h_trans_bandwidth=0.1)
 
     #plot results
-    eeg_data_interp.plot(remove_dc=False, scalings=dict(eeg=50))
+    # eeg_data_interp.plot(remove_dc=False, scalings=dict(eeg=50))
 
     return raw, events, eeg_data_interp
 
@@ -101,7 +101,7 @@ def getSSVEPs(erps_days, epochs_days, epochs, settings, bids):
         axuse.plot(freq, chanmeanfft[:, 1, 1, day_count].T, '-', label='Feat/White', color=settings.yellow)  # 'Feat/White'
 
         axuse.set_xlim(2, 20)
-        axuse.set_ylim(0, .5)
+        # axuse.set_ylim(0, .5)
         axuse.set_title(settings.string_prepost[day_count])
         axuse.legend()
 
@@ -132,6 +132,22 @@ def getSSVEPs(erps_days, epochs_days, epochs, settings, bids):
     plt.savefig(bids.direct_results / Path(titlestring + '.png'), format='png')
 
     return fftdat, fftdat_epochs, freq
+
+def getfft_sigtonoise(settings, epochs, fftdat, freq):
+
+    # get SNR fft
+    numsnr = 10
+    extradatapoints = (numsnr*2 + 1)
+    snrtmp = np.empty((settings.num_electrodes, len(epochs.times)+extradatapoints , settings.num_attnstates, settings.num_levels, settings.num_days, extradatapoints ))
+    snrtmp[:] = np.NAN
+
+    for i in np.arange(extradatapoints):
+        if (i != numsnr):
+            snrtmp[:, i:-(extradatapoints - i), :, :, :, i] = fftdat
+
+    snr = fftdat / np.nanmean(snrtmp[:,numsnr:-(extradatapoints - numsnr),:,:,:,:], axis=5)
+
+    return snr
 
 def getSSVEPS_conditions(settings, fftdat, freq):
     # get indices for frequencies of interest
@@ -436,8 +452,11 @@ def plotGroupSSVEPsprepost(SSVEPs_prepost_group, bids, ERPstring, settings):
     for day in np.arange(settings.num_days):
         ax.bar(xpos[day], M[day, :], yerr=E[day, :], width=width, label=settings.string_prepost[day],
                facecolor=colors[day])
-        ax.plot(xpos[day] + np.random.random((settings.num_subs, settings.num_attnstates)) * width * 0.5 - width * 0.5 / 2,
-                diffdat[day, :, :].T, '.', alpha=0.3, color='k')
+        # ax.plot(xpos[day] + np.random.random((settings.num_subs, settings.num_attnstates)) * width * 0.5 - width * 0.5 / 2,
+        #         diffdat[day, :, :].T, '.', alpha=0.3, color='k')
+
+    ax.plot(xpos[:, 0], diffdat[:, 0, :], '-', alpha=0.3, color='k')
+    ax.plot(xpos[:, 1], diffdat[:, 1, :], '-', alpha=0.3, color='k')
 
     # day = 1
     # plt.bar(x + width / 2, M[day,:], yerr=E[day,:], width=width, label=settings.string_prepost[day], facecolor=settings.orange)  # 'feature'

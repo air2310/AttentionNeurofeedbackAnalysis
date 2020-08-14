@@ -67,7 +67,7 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
 
             # drop bad channels
             epochs.drop_bad()
-            epochs.plot_drop_log()
+            # epochs.plot_drop_log()
             # epochs2 = epochs.equalize_event_counts(event_id, method='mintime')
 
             # visualise topo
@@ -84,12 +84,21 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
         erps_days_wave = np.squeeze(np.nanmean(epochs_days, axis=0))
         timepoints_zp = epochs.times
 
-        # Get SSVEPs
+        # # Get SSVEPs
         fftdat, fftdat_epochs, freq = geegpp.getSSVEPs(erps_days, epochs_days, epochs, settings, bids)
         fftdat_epochs = np.nanmean(fftdat_epochs, axis=0) # average across trials to get the same shape for single trial SSVEPs
 
+        # get signal to noise
+        fftdat_snr = geegpp.getfft_sigtonoise(settings, epochs, fftdat, freq)
+        fftdat_snr_epochs = geegpp.getfft_sigtonoise(settings, epochs, fftdat_epochs, freq)
+
+        # get ssvep amplitudes
         SSVEPs_prepost, SSVEPs_prepost_channelmean, BEST = geegpp.getSSVEPS_conditions(settings, fftdat, freq) # trial average
         SSVEPs_prepost_epochs, SSVEPs_prepost_channelmean_epochs, BEST_epochs = geegpp.getSSVEPS_conditions(settings, fftdat_epochs, freq) # single trial
+
+        # get ssvep amplitudes SNR
+        SSVEPs_prepost_snr, SSVEPs_prepost_channelmean_snr, BEST_snr = geegpp.getSSVEPS_conditions(settings, fftdat_snr, freq)  # trial average
+        SSVEPs_prepost_epochs_snr, SSVEPs_prepost_channelmean_epochs_snr, BEST_epochs_snr = geegpp.getSSVEPS_conditions(settings,fftdat_snr_epochs,freq)  # single trial
 
         # get wavelets
         wavelets_prepost = geegpp.get_wavelets_prepost(erps_days_wave, settings, epochs,BEST, bids)
@@ -103,9 +112,24 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
 
         ERPstring = 'Single Trial'
         geegpp.plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_epochs, settings, ERPstring, bids)
+
+        ERPstring = 'ERP SNR'
+        geegpp.plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_snr, settings, ERPstring, bids)
+
+        ERPstring = 'Single Trial SNR'
+        geegpp.plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_epochs_snr, settings, ERPstring, bids)
+
         # TODO: figure out if this script is wrong or if the matlab script is.
 
-        np.savez(bids.direct_results / Path(bids.substring + "EEG_pre_post_results"), SSVEPs_prepost_channelmean=SSVEPs_prepost_channelmean, SSVEPs_prepost_channelmean_epochs=SSVEPs_prepost_channelmean_epochs, wavelets_prepost=wavelets_prepost, timepoints_zp=timepoints_zp, erps_days_wave=erps_days_wave, fftdat=fftdat, fftdat_epochs=fftdat_epochs, freq=freq)
+        np.savez(bids.direct_results / Path(bids.substring + "EEG_pre_post_results"),
+                 SSVEPs_prepost_channelmean_epochs_snr = SSVEPs_prepost_channelmean_epochs_snr,
+                 SSVEPs_prepost_channelmean_snr=SSVEPs_prepost_channelmean_snr,
+                 SSVEPs_prepost_channelmean_epochs=SSVEPs_prepost_channelmean_epochs,
+                 SSVEPs_prepost_channelmean=SSVEPs_prepost_channelmean,
+                 wavelets_prepost=wavelets_prepost,
+                 timepoints_zp=timepoints_zp,
+                 erps_days_wave=erps_days_wave,
+                 fftdat=fftdat, fftdat_epochs=fftdat_epochs, freq=freq)
 
 # Collate EEG prepost
 if (collateEEGprepost):
@@ -178,6 +202,7 @@ if (collateEEGprepost):
             axuse.set_xlim(-1, 6)
             axuse.set_xlabel('Time (s)')
             axuse.set_ylabel('MCA')
+            axuse.set_ylim(0, 700)
             axuse.legend()
             axuse.set_title(settings.string_cuetype[attn] + ' ' + settings.string_prepost[dayuse])
 
@@ -186,7 +211,7 @@ if (collateEEGprepost):
     plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
 
     # save attentional selectivity for stats
-    ssvep_selectivity_prepost = SSVEPs_prepost_group[0, :, :, :] - SSVEPs_prepost_group[1, :, :, :]
+    ssvep_selectivity_prepost = SSVEPs_epochs_prepost_group[0, :, :, :] - SSVEPs_epochs_prepost_group[1, :, :, :]
     # day, attntype
 
     tmp = np.reshape(ssvep_selectivity_prepost, (4,settings.num_subs)) # day 1-space, day 1 - feature, day 4 - space, day 4 - feature

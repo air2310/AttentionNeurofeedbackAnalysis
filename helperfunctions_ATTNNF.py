@@ -44,12 +44,12 @@ class SetupMetaData:
 
         # get correct subject indices
         if (self.attntrained == 0): # Space
-            self.subsIDX = np.array(([52]))
+            self.subsIDX = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53]))
             self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53]))
             self.subsIDXall = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53]))
 
         else: # Feature
-            self.subsIDX = np.array(([ 47 ])) # 1, 2,
+            self.subsIDX = np.array(([  2, 4, 8, 9, 18, 21, 23, 41, 47])) # 1, 2,
             self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47]))
             self.subsIDXall = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47 ]))
         self.num_subs = len(self.subsIDXcollate)
