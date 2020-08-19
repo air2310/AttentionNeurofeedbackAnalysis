@@ -121,22 +121,9 @@ def within_subjects_error(x):
     returns: error - within subjects error for each condition
     '''
     rows, cols = x.shape
-    subject_mean =
+    subject_mean = np.nanmean(x, axis=1)
+    grand_mean = np.nanmean(subject_mean, axis=0)
 
-
+    x_2 = x - (np.tile(subject_mean, [ cols,1]).T - grand_mean)
+    error = np.nanstd(x_2) / np.sqrt(rows)
     return error
-    # function[ebars] = ws_bars(x)
-    #
-    # % within    subjects    error    bars    % assumessubject as row and condition as column
-    #
-    # [rows, cols] = size(x);
-    #
-    # sub_mean = nanmean(x, 2); % disp(sub_mean);
-    # grand_mean = nanmean(sub_mean, 1);
-    #
-    # x = x - (repmat(sub_mean, 1, cols) - grand_mean);
-    #
-    # ebars = nanstd(x) / sqrt(rows); % nanstd
-
-
-

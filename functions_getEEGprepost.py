@@ -306,6 +306,11 @@ def get_wavelets_prepost(erps_days, settings, epochs, BEST, bids):
 
     return wavelets_prepost
 
+
+
+
+
+
 def plotResultsPrePost_subjects(SSVEPs_prepost_mean, settings, ERPstring, bids):
     import matplotlib.pyplot as plt
     from pathlib import Path
@@ -404,8 +409,16 @@ def plotGroupFFTSpectrum(fftdat_ave, bids, ERPstring, settings, freq):
 def plotGroupSSVEPsprepost(SSVEPs_prepost_group, bids, ERPstring, settings):
     import matplotlib.pyplot as plt
     from pathlib import Path
+    import Analysis_Code.helperfunctions_ATTNNF as helper
+
     M = np.mean(SSVEPs_prepost_group, axis=3)
-    E = np.std(SSVEPs_prepost_group, axis=3) / settings.num_subs
+
+    E = np.empty((settings.num_attnstates, settings.num_days, settings.num_attnstates))
+    for attn in np.arange(settings.num_attnstates):
+        for day in np.arange(settings.num_days):
+            E[:,day, attn] = helper.within_subjects_error(SSVEPs_prepost_group[:,day,attn,:].T)
+
+    # E = np.std(SSVEPs_prepost_group, axis=3) / settings.num_subs
 
     # plot results
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
@@ -439,7 +452,12 @@ def plotGroupSSVEPsprepost(SSVEPs_prepost_group, bids, ERPstring, settings):
     # compute SSVEP differences and plot
     diffdat = SSVEPs_prepost_group[0, :, :, :] - SSVEPs_prepost_group[1, :, :, :]
     M = np.mean(diffdat, axis=2)
-    E = np.std(diffdat, axis=2) / settings.num_subs
+    # E = np.std(diffdat, axis=2) / settings.num_subs
+
+    E = np.empty(( settings.num_days, settings.num_attnstates))
+    for day in np.arange(settings.num_days):
+        E[day, :] = helper.within_subjects_error(diffdat[day,:,:].T)
+
 
     fig, ax = plt.subplots(figsize=(5, 5))
 

@@ -7,21 +7,23 @@ import Analysis_Code.helperfunctions_ATTNNF as helper
 import Analysis_Code.functions_getEEGprepost as geegpp
 
 # TODO:
-# switch to within subjects error across plots
+# switch to within subjects error for wavelet plot
 # add subject scatterpoints to behavioural results
-
 # integrate behavioural analyses with python
+# figure out topoplotting
+
 # correlate behaviour with ssvep selectivity
 # look at differences between classifiable and unclassifiable participants.
 # check prepost differences in nback and visual search tasks
 # analyse feedback - how long in each state? how does it correspond to behaviour?
 
 # analyse behaviour and EEG during training - across the three days.
-# figure out topoplotting
+
 
 # Decide which analyses to do
 analyseEEGprepost = False # analyse EEG Pre Vs. Post Training
-collateEEGprepost = True # Collate EEG Pre Vs. Post Training across subjects
+collateEEGprepost = False # Collate EEG Pre Vs. Post Training across subjects
+analyseEEG_duringNF = True
 
 # setup generic settings
 attntrained = 0 # ["Space", "Feature"]
@@ -31,7 +33,6 @@ print("Analysing Data for condition train: " + settings.string_attntrained[setti
 
 # iterate through subjects for individual subject analyses
 for sub_count, sub_val in enumerate(settings.subsIDX):
-
     if (analyseEEGprepost):
         print('analysing SSVEP amplitudes pre Vs. post training')
 
@@ -131,6 +132,8 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
                  timepoints_zp=timepoints_zp,
                  erps_days_wave=erps_days_wave,
                  fftdat=fftdat, fftdat_epochs=fftdat_epochs, freq=freq)
+
+    if (analyseEEG_duringNF):
 
 # Collate EEG prepost
 if (collateEEGprepost):
