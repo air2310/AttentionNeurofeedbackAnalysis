@@ -55,14 +55,14 @@ class SetupMetaData:
         self.num_subs = len(self.subsIDXcollate)
 
 
-    def get_settings_EEG_prepost(self):
+    def get_settings_EEG_prepost(self): # settings specific to pre vs post training EEG analysis
         # Task Settings
         self.testtrain = 0 # 0 = test, 1 = train
         self.task = 0 # 0 = motion descrim, 1 = visual search, 2 = n-back
         self.num_days = 2
         self.daysuse = [1, 4]
         self.num_trials = 192
-        # self.daysuse = [1]
+        self.num_conditions = 4
 
         # EEG settings
         self.samplingfreq = 1200
@@ -114,4 +114,29 @@ def get_timing_variables(timelimits,samplingfreq):
 
     zeropoint = np.argmin(np.abs(timepoints - 0))
     return timelimits_data, timepoints, frequencypoints, zeropoint
+
+def within_subjects_error(x):
+    ''' calculate within subjects error for x
+    arguments: x - assumes subjects as rows and conditions as columns
+    returns: error - within subjects error for each condition
+    '''
+    rows, cols = x.shape
+    subject_mean =
+
+
+    return error
+    # function[ebars] = ws_bars(x)
+    #
+    # % within    subjects    error    bars    % assumessubject as row and condition as column
+    #
+    # [rows, cols] = size(x);
+    #
+    # sub_mean = nanmean(x, 2); % disp(sub_mean);
+    # grand_mean = nanmean(sub_mean, 1);
+    #
+    # x = x - (repmat(sub_mean, 1, cols) - grand_mean);
+    #
+    # ebars = nanstd(x) / sqrt(rows); % nanstd
+
+
 

@@ -28,7 +28,7 @@ def get_eeg_data(bids, day_count):
                'PO7': [-52.6, -94.0, -34.0],
                'PO8': [47.8, -95.3, 20.8] }
 
-    montageuse = mne.channels.make_dig_montage(ch_pos=montage, lpa=[-82.5, -19.2, -46], nasion=[0, 83.2, -38.3], rpa=[82.2, -19.2, -46])
+    montageuse = mne.channels.make_dig_montage(ch_pos=montage, lpa=[-82.5, -19.2, -46], nasion=[0, 83.2, -38.3], rpa=[82.2, -19.2, -46]) # based on mne help file on setting 10-20 montage
 
     # load EEG file
     raw = mne.io.read_raw_brainvision(file2use, preload=True, scale=1e6)
@@ -38,7 +38,7 @@ def get_eeg_data(bids, day_count):
 
     # pick events
     events = mne.find_events(raw, stim_channel="TRIG")
-    # mne.viz.plot_events(events, raw.info['sfreq'], raw.first_samp)
+    mne.viz.plot_events(events, raw.info['sfreq'], raw.first_samp)
     print('Found %s events, first five:' % len(events))
     print(events[:5])
 
@@ -55,7 +55,7 @@ def get_eeg_data(bids, day_count):
         raw.info['bads'] = ['PO8']
     if (np.logical_and(bids.substring == 'sub-53', day_count == 0)):
         raw.info['bads'] = ['Iz']
-        # sub 52 day 4- particularly noisy everywhere...
+    # sub 52 day 4- particularly noisy everywhere...
 
     # plt.show()
     # tmp = input('check the eeg data')
@@ -68,7 +68,7 @@ def get_eeg_data(bids, day_count):
     eeg_data_interp.filter(l_freq=1, h_freq=45, h_trans_bandwidth=0.1)
 
     #plot results
-    # eeg_data_interp.plot(remove_dc=False, scalings=dict(eeg=50))
+    eeg_data_interp.plot(remove_dc=False, scalings=dict(eeg=50))
 
     return raw, events, eeg_data_interp
 
@@ -86,7 +86,6 @@ def getSSVEPs(erps_days, epochs_days, epochs, settings, bids):
     fftdat_epochs = np.abs(fft(epochs_days, axis=2)) / len(epochs.times)
 
     ## plot ERP FFT spectrum
-    # to do: make subplots for days, set titles and x and y lablels, set ylim to be comparable, get rid of zero line, save
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
     freq = fftfreq(len(epochs.times), d=1 / settings.samplingfreq)  # get frequency bins

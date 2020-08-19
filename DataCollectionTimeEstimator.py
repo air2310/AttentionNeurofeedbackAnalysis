@@ -1,11 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+from pathlib import Path
 
 mean_subsweek = 5
 max_subsweek = 8
 
-min_substotal = 40
+min_substotal = 50
 max_substotal = 80
 
 subs_collected = 22
@@ -21,10 +21,6 @@ Weeksall = np.empty((n_simulations))
 
 subcount_all = np.round(np.random.randn(n_simulations)*SD_subsneeded + mean_subsneeded)
 # subcount_all = np.round(np.random.rand(n_simulations)*range_subsneeded + min_subsneeded) # uniform dist
-
-# plot number of subs needed hist
-plt.figure()
-plt.hist(subcount_all, bins = len(np.unique(subcount_all)))
 
 # simulate
 
@@ -45,7 +41,22 @@ for simulation in np.arange(n_simulations):
             collecting = False
 
 
-plt.figure()
-plt.hist(Weeksall, bins = len(np.unique(Weeksall)))
-plt.xlabel('Number of weeks needed')
-plt.ylabel('Probability')
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(10, 5))
+ax1.hist(Weeksall, bins = len(np.unique(Weeksall)))
+ax1.set_xlabel('Number of weeks needed')
+ax1.set_title('Weeks to go estimates')
+
+# plot number of subs needed hist
+ax2.hist(subcount_all + subs_collected, bins = len(np.unique(subcount_all)))
+ax2.set_xlabel('number of participants')
+ax2.set_title('Total participants estimate')
+
+tmp = np.round(np.random.randn(1000) + mean_subsweek)
+tmp[tmp < 0] = 0
+tmp[tmp > max_subsweek] = max_subsweek
+ax3.hist(tmp, bins = len(np.unique(tmp)))
+ax3.set_xlabel('number of participants/ week')
+ax3.set_title('weekly participant count')
+
+direct_resultsroot = Path("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Results/")
+plt.savefig(direct_resultsroot / Path("datacollectiontimeline" + '.png'), format='png')

@@ -6,16 +6,17 @@ import matplotlib.pyplot as plt
 import Analysis_Code.helperfunctions_ATTNNF as helper
 import Analysis_Code.functions_getEEGprepost as geegpp
 
-# notes
-# integrate behavioural analyses with python
-# find a way to normalise day by day SSVEP amplitudes? # use signal to noise instead?!
-# correlate behaviour with ssvep selectivity
-# look at differences between classifiable and unclassifiable peeps.
-# check prepost differences in nback and visual search tasks
-# add errorbars and standard ylims to wavelet plots
-# add subject scatterpoints to behavioural results
+# TODO:
 # switch to within subjects error across plots
-# analyse behaviour during training - across the three days.
+# add subject scatterpoints to behavioural results
+
+# integrate behavioural analyses with python
+# correlate behaviour with ssvep selectivity
+# look at differences between classifiable and unclassifiable participants.
+# check prepost differences in nback and visual search tasks
+# analyse feedback - how long in each state? how does it correspond to behaviour?
+
+# analyse behaviour and EEG during training - across the three days.
 # figure out topoplotting
 
 # Decide which analyses to do
@@ -42,7 +43,7 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
         timelimits_data_zp, timepoints_zp, frequencypoints_zp, zeropoint_zp = helper.get_timing_variables(settings.timelimits_zeropad,settings.samplingfreq)
 
         # preallocate
-        num_epochs = (settings.num_trials) / 4
+        num_epochs = settings.num_trials / settings.num_conditions
         epochs_days = np.empty(( int(num_epochs), settings.num_electrodes, len(timepoints_zp) + 1,  settings.num_attnstates, settings.num_levels,
                               settings.num_days))
         epochs_days[:] = np.nan
@@ -190,19 +191,35 @@ if (collateEEGprepost):
             if (dayuse == 0): axuse = ax1[attn]
             if (dayuse == 1): axuse = ax2[attn]
             if (attn == 0):
+                axuse.fill_between(timepoints_use,
+                                   wavelets_prepost_ave[:, dayuse, 0, attn] - wavelets_prepost_std[:, dayuse, 0, attn],
+                                   wavelets_prepost_ave[:, dayuse, 0, attn] + wavelets_prepost_std[:, dayuse, 0, attn], alpha=0.3, facecolor=settings.medteal)
                 axuse.plot(timepoints_use, wavelets_prepost_ave[:, dayuse, 0, attn], color=settings.medteal,
                            label=settings.string_attd_unattd[0])
+
+                axuse.fill_between(timepoints_use,
+                                   wavelets_prepost_ave[:, dayuse, 1, attn] - wavelets_prepost_std[:, dayuse, 1, attn],
+                                   wavelets_prepost_ave[:, dayuse, 1, attn] + wavelets_prepost_std[:, dayuse, 1, attn], alpha=0.3, facecolor=settings.medteal)
                 axuse.plot(timepoints_use, wavelets_prepost_ave[:, dayuse, 1, attn], color=settings.lightteal,
                            label=settings.string_attd_unattd[1])
             else:
+                axuse.fill_between(timepoints_use,
+                                   wavelets_prepost_ave[:, dayuse, 0, attn] - wavelets_prepost_std[:, dayuse, 0, attn],
+                                   wavelets_prepost_ave[:, dayuse, 0, attn] + wavelets_prepost_std[:, dayuse, 0, attn],
+                                   alpha=0.3, facecolor=settings.orange)
                 axuse.plot(timepoints_use, wavelets_prepost_ave[:, dayuse, 0, attn], color=settings.orange,
                            label=settings.string_attd_unattd[0])
+
+                axuse.fill_between(timepoints_use,
+                                   wavelets_prepost_ave[:, dayuse, 1, attn] - wavelets_prepost_std[:, dayuse, 1, attn],
+                                   wavelets_prepost_ave[:, dayuse, 1, attn] + wavelets_prepost_std[:, dayuse, 1, attn],
+                                   alpha=0.3, facecolor=settings.yellow)
                 axuse.plot(timepoints_use, wavelets_prepost_ave[:, dayuse, 1, attn], color=settings.yellow,
                            label=settings.string_attd_unattd[1])
             axuse.set_xlim(-1, 6)
             axuse.set_xlabel('Time (s)')
             axuse.set_ylabel('MCA')
-            axuse.set_ylim(0, 700)
+            axuse.set_ylim(100, 1000)
             axuse.legend()
             axuse.set_title(settings.string_cuetype[attn] + ' ' + settings.string_prepost[dayuse])
 
@@ -210,12 +227,17 @@ if (collateEEGprepost):
     fig.suptitle(titlestring)
     plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
 
-    # save attentional selectivity for stats
+    # save attentional selectivity for stats - single trial
     ssvep_selectivity_prepost = SSVEPs_epochs_prepost_group[0, :, :, :] - SSVEPs_epochs_prepost_group[1, :, :, :]
-    # day, attntype
-
     tmp = np.reshape(ssvep_selectivity_prepost, (4,settings.num_subs)) # day 1-space, day 1 - feature, day 4 - space, day 4 - feature
+    np.save(bids.direct_results_group / Path("group_ssvep_selectivity_prepost_epochs.npy"), tmp)
+
+    # save attentional selectivity for stats
+    ssvep_selectivity_prepost = SSVEPs_prepost_group[0, :, :, :] - SSVEPs_epochs_prepost_group[1, :, :, :]
+    tmp = np.reshape(ssvep_selectivity_prepost,
+                     (4, settings.num_subs))  # day 1-space, day 1 - feature, day 4 - space, day 4 - feature
     np.save(bids.direct_results_group / Path("group_ssvep_selectivity_prepost.npy"), tmp)
+
     # TODO: get wserror
     # plot error around wavelets
 
