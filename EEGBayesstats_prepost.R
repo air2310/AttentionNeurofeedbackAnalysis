@@ -7,7 +7,8 @@ library(RcppCNPy)
 
 # run options
 
-options.traintype = 2 # Feature or Space
+options.traintype = 1 # Feature or Space
+options.singletrial = 2 # ERP, single trial
 
 # task options
 options.task = 1 # 1 = Motion Detection,
@@ -30,6 +31,7 @@ strings.day = c("day-1", "day-4")
 strings.task = c("AttnNFMotion",  "AttnNFVisualSearch");
 strings.TestTrain = c("Test", "Train");
 strings.traintype = c("Feature", "Space")
+strings.singletrial = c("", "_epochs")
 
 # Directories -------------------------------------------------------------
 
@@ -41,7 +43,7 @@ direct.resultsGroup = paste(direct.resultsRoot, "Train",strings.traintype[option
 
 # set filenames
 
-filename.bids.results = paste( "group_ssvep_selectivity_prepost.npy", sep = "") # day 1-space, day 1 - feature, day 4 - space, day 4 - feature
+filename.bids.results = paste( "group_ssvep_selectivity_prepost", strings.singletrial[options.singletrial], ".npy", sep = "") # day 1-space, day 1 - feature, day 4 - space, day 4 - feature
 results <- npyLoad( paste( direct.resultsGroup, "/",  filename.bids.results, sep = ""))
 
 # Assign to dataframe: day 1-space, day 1 - feature, day 4 - space, day 4 - feature
@@ -108,7 +110,7 @@ plotdat = melt(BAYESPLOT, id = "subjects" )
 i <- ggplot(plotdat , aes( x=subjects, y=value, color=variable))
 i <- i + geom_line() + geom_point()
 
-tit = paste("Train ", strings.traintype[options.traintype], " Bayes Factor by Subject Number")
+tit = paste("Train ", strings.traintype[options.traintype], " Bayes Factor by Subject Number", strings.singletrial[options.singletrial])
 i <- i + ggtitle( tit ) + theme(plot.title = element_text(hjust = 0.5))
 
 i <- i + scale_y_continuous(trans='log2')

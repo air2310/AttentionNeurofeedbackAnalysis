@@ -3,75 +3,6 @@ from pathlib import Path
 import mne
 
 
-def get_eeg_data(bids, day_count):
-    import mne
-    import matplotlib.pyplot as plt
-    # decide which EEG file to use
-    possiblefiles = []
-    filesizes = []
-    for filesfound in bids.direct_data_eeg.glob(bids.filename_eeg + "*.eeg"):
-        filesizes.append(filesfound.stat().st_size)
-
-    for filesfound in bids.direct_data_eeg.glob(bids.filename_eeg + "*.vhdr"):
-        possiblefiles.append(filesfound)
-
-    file2useIDX = np.argmax(filesizes)  # get the biggest file (there are often smaller shorter accidental recordings)
-    file2use = possiblefiles[file2useIDX]
-
-    montage = {'Iz': [-28.6, -109.8, -28.0],
-               'Oz': [-28.2, -107.8, 8.5],
-               'POz': [-18.2, -97.5, 44.6],
-               'O1': [52.7, -94.0, -34.1],
-               'O2': [0.1, -110.1, 14.0],
-               'PO3': [-46.4, -95.2, 20.7],
-               'PO4': [19.1, -97.6, 44.5],
-               'PO7': [-52.6, -94.0, -34.0],
-               'PO8': [47.8, -95.3, 20.8] }
-
-    montageuse = mne.channels.make_dig_montage(ch_pos=montage, lpa=[-82.5, -19.2, -46], nasion=[0, 83.2, -38.3], rpa=[82.2, -19.2, -46]) # based on mne help file on setting 10-20 montage
-
-    # load EEG file
-    raw = mne.io.read_raw_brainvision(file2use, preload=True, scale=1e6)
-    print(raw.info)
-
-    # raw.plot(remove_dc = False, scalings=dict(eeg=50))
-
-    # pick events
-    events = mne.find_events(raw, stim_channel="TRIG")
-    mne.viz.plot_events(events, raw.info['sfreq'], raw.first_samp)
-    print('Found %s events, first five:' % len(events))
-    print(events[:5])
-
-    # set bad chans
-    if (np.logical_and(bids.substring == 'sub-02', day_count == 0)):
-        raw.info['bads'] = ['O1']
-    if (np.logical_and(bids.substring == 'sub-09', day_count == 0)):
-        raw.info['bads'] = ['PO4']
-    if (np.logical_and(bids.substring == 'sub-23', day_count == 0)):
-        raw.info['bads'] = ['Iz']
-    if (np.logical_and(bids.substring == 'sub-10', day_count == 1)):
-        raw.info['bads'] = ['Oz']
-    if (np.logical_and(bids.substring == 'sub-47', day_count == 0)):
-        raw.info['bads'] = ['PO8']
-    if (np.logical_and(bids.substring == 'sub-53', day_count == 0)):
-        raw.info['bads'] = ['Iz']
-    # sub 52 day 4- particularly noisy everywhere...
-
-    # plt.show()
-    # tmp = input('check the eeg data')
-
-    eeg_data = raw.copy().pick_types(eeg=True, exclude=['TRIG'])
-    eeg_data.info.set_montage(montageuse)
-    eeg_data_interp = eeg_data.copy().interpolate_bads(reset_bads=False)
-
-    # Filter Data
-    eeg_data_interp.filter(l_freq=1, h_freq=45, h_trans_bandwidth=0.1)
-
-    #plot results
-    eeg_data_interp.plot(remove_dc=False, scalings=dict(eeg=50))
-
-    return raw, events, eeg_data_interp
-
 def getSSVEPs(erps_days, epochs_days, epochs, settings, bids):
     from scipy.fft import fft, fftfreq, fftshift
     import matplotlib.pyplot as plt
@@ -305,10 +236,6 @@ def get_wavelets_prepost(erps_days, settings, epochs, BEST, bids):
     plt.savefig(bids.direct_results / Path(titlestring + '.png'), format='png')
 
     return wavelets_prepost
-
-
-
-
 
 
 def plotResultsPrePost_subjects(SSVEPs_prepost_mean, settings, ERPstring, bids):

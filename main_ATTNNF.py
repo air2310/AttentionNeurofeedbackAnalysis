@@ -5,6 +5,8 @@ import mne
 import matplotlib.pyplot as plt
 import Analysis_Code.helperfunctions_ATTNNF as helper
 import Analysis_Code.functions_getEEGprepost as geegpp
+import Analysis_Code.functions_getEEG_duringNF as geegdnf
+
 
 # TODO:
 # switch to within subjects error for wavelet plot
@@ -22,11 +24,12 @@ import Analysis_Code.functions_getEEGprepost as geegpp
 
 # Decide which analyses to do
 analyseEEGprepost = False # analyse EEG Pre Vs. Post Training
-collateEEGprepost = False # Collate EEG Pre Vs. Post Training across subjects
-analyseEEG_duringNF = True
+analyseEEG_duringNF = False # analyse EEG during Neurofeedback
+
+collateEEGprepost = True # Collate EEG Pre Vs. Post Training across subjects
 
 # setup generic settings
-attntrained = 0 # ["Space", "Feature"]
+attntrained = 1 # ["Space", "Feature"]
 settings = helper.SetupMetaData(attntrained)
 
 print("Analysing Data for condition train: " + settings.string_attntrained[settings.attntrained])
@@ -57,7 +60,7 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
             print(bids.casestring)
 
             # get EEG data
-            raw, events, eeg_data_interp = geegpp.get_eeg_data(bids, day_count)
+            raw, events, eeg_data_interp = helper.get_eeg_data(bids, day_count, settings)
 
             # Epoch to events of interest
             event_id = {'Feat/Black': 121, 'Feat/White': 122,
@@ -134,6 +137,100 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
                  fftdat=fftdat, fftdat_epochs=fftdat_epochs, freq=freq)
 
     if (analyseEEG_duringNF):
+        settings = settings.get_settings_EEG_duringNF()
+
+        # get timing settings
+        # timelimits_data, timepoints, frequencypoints, zeropoint = get_timing_variables(settings.timelimits,settings.samplingfreq)
+        timelimits_data_zp, timepoints_zp, frequencypoints_zp, zeropoint_zp = helper.get_timing_variables(settings.timelimits_zeropad,settings.samplingfreq)
+
+        # preallocate
+        num_epochs = settings.num_trials / settings.num_conditions
+        epochs_days = np.empty(( int(num_epochs), settings.num_electrodes, len(timepoints_zp) + 1,  settings.num_features, settings.num_spaces,
+                              settings.num_days))
+        epochs_days[:] = np.nan
+
+        # iterate through test days to get data
+        for day_count, day_val in enumerate(settings.daysuse):
+            # TODO: save daily plots for events, drop logs, ERPs and FFTs
+            # get file names
+            bids = helper.BIDS_FileNaming(sub_val, settings, day_val)
+            print(bids.casestring)
+
+            # get EEG data
+            raw, events, eeg_data_interp = helper.get_eeg_data(bids, day_count, settings)
+
+            # % Cue Start trig.cuestart(attended
+            # trig.cuestart(i.spaceattd,i.featattd)
+            #  1 - black | 2 - white | 1 - \ | 2 - / '
+            # trig.cuestart = [
+            #     111 112
+            #     113 114];
+
+            # Epoch to events of interest
+            event_id = {'Black/Left_diag': 111, 'White/Left_diag': 112,
+                        'Black/Right_diag': 113, 'White/Right_diag': 114} # will be different triggers for training days
+
+            epochs = mne.Epochs(eeg_data_interp, events, event_id=event_id, tmin=settings.timelimits_zeropad[0], tmax=settings.timelimits_zeropad[1],
+                                baseline=(0, 1 / settings.samplingfreq), picks=np.arange(settings.num_electrodes),
+                                reject=dict(eeg=400), detrend=1) #
+
+            # drop bad channels
+            epochs.drop_bad()
+            epochs.plot_drop_log()
+            # epochs2 = epochs.equalize_event_counts(event_id, method='mintime')
+
+            # visualise topo
+            # epochs.plot_psd_topomap()
+
+            # get data for each  condition
+            epochs_days[0:sum(elem == [] for elem in epochs['Black/Left_diag'].drop_log), :, :, 0, 0, day_count] = epochs['Black/Left_diag'].get_data()
+            epochs_days[0:sum(elem == [] for elem in epochs['Black/Right_diag'].drop_log), :, :, 0, 1, day_count] = epochs['Black/Right_diag'].get_data()
+            epochs_days[0:sum(elem == [] for elem in epochs['White/Left_diag'].drop_log), :, :, 1, 0, day_count] = epochs['White/Left_diag'].get_data()
+            epochs_days[0:sum(elem == [] for elem in epochs['White/Right_diag'].drop_log), :, :, 1, 1, day_count] = epochs['White/Right_diag'].get_data()
+
+        # average across trials
+        erps_days = np.squeeze(np.nanmean(epochs_days, axis=0))
+        erps_days_wave = np.squeeze(np.nanmean(epochs_days, axis=0))
+        timepoints_zp = epochs.times
+
+        fftdat, fftdat_epochs, freq = geegdnf.getSSVEPs(erps_days, epochs_days, epochs, settings, bids)
+        fftdat_epochs = np.nanmean(fftdat_epochs, axis=0) # average across trials to get the same shape for single trial SSVEPs
+
+        # get signal to noise
+        fftdat_snr = geegdnf.getfft_sigtonoise(settings, epochs, fftdat, freq)
+        fftdat_snr_epochs = geegdnf.getfft_sigtonoise(settings, epochs, fftdat_epochs, freq)
+
+        # get ssvep amplitudes
+        SSVEPs_prepost, SSVEPs_prepost_channelmean, BEST = geegdnf.getSSVEPS_conditions(settings, fftdat, freq) # trial average
+        SSVEPs_prepost_epochs, SSVEPs_prepost_channelmean_epochs, BEST_epochs = geegdnf.getSSVEPS_conditions(settings, fftdat_epochs, freq) # single trial
+
+        # get ssvep amplitudes SNR
+        SSVEPs_prepost_snr, SSVEPs_prepost_channelmean_snr, BEST_snr = geegdnf.getSSVEPS_conditions(settings, fftdat_snr, freq)  # trial average
+        SSVEPs_prepost_epochs_snr, SSVEPs_prepost_channelmean_epochs_snr, BEST_epochs_snr = geegdnf.getSSVEPS_conditions(settings,fftdat_snr_epochs,freq)  # single trial
+
+        ERPstring = 'ERP'
+        geegdnf.plotResultsPrePost_subjects(SSVEPs_prepost_channelmean, settings, ERPstring, bids)
+
+        ERPstring = 'Single Trial'
+        geegdnf.plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_epochs, settings, ERPstring, bids)
+
+        ERPstring = 'ERP SNR'
+        geegdnf.plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_snr, settings, ERPstring, bids)
+
+        ERPstring = 'Single Trial SNR'
+        geegdnf.plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_epochs_snr, settings, ERPstring, bids)
+
+        # TODO: figure out if this script is wrong or if the matlab script is.
+
+        np.savez(bids.direct_results / Path(bids.substring + "EEG_duringNF_results"),
+                 SSVEPs_prepost_channelmean_epochs_snr = SSVEPs_prepost_channelmean_epochs_snr,
+                 SSVEPs_prepost_channelmean_snr=SSVEPs_prepost_channelmean_snr,
+                 SSVEPs_prepost_channelmean_epochs=SSVEPs_prepost_channelmean_epochs,
+                 SSVEPs_prepost_channelmean=SSVEPs_prepost_channelmean,
+                 wavelets_prepost=wavelets_prepost,
+                 timepoints_zp=timepoints_zp,
+                 erps_days_wave=erps_days_wave,
+                 fftdat=fftdat, fftdat_epochs=fftdat_epochs, freq=freq)
 
 # Collate EEG prepost
 if (collateEEGprepost):
@@ -236,7 +333,7 @@ if (collateEEGprepost):
     np.save(bids.direct_results_group / Path("group_ssvep_selectivity_prepost_epochs.npy"), tmp)
 
     # save attentional selectivity for stats
-    ssvep_selectivity_prepost = SSVEPs_prepost_group[0, :, :, :] - SSVEPs_epochs_prepost_group[1, :, :, :]
+    ssvep_selectivity_prepost = SSVEPs_prepost_group[0, :, :, :] - SSVEPs_prepost_group[1, :, :, :]
     tmp = np.reshape(ssvep_selectivity_prepost,
                      (4, settings.num_subs))  # day 1-space, day 1 - feature, day 4 - space, day 4 - feature
     np.save(bids.direct_results_group / Path("group_ssvep_selectivity_prepost.npy"), tmp)

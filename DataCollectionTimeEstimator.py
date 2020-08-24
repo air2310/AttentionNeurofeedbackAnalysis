@@ -8,7 +8,7 @@ max_subsweek = 8
 min_substotal = 50
 max_substotal = 80
 
-subs_collected = 22
+subs_collected = 27
 
 min_subsneeded = min_substotal - subs_collected
 max_subsneeded = max_substotal - subs_collected

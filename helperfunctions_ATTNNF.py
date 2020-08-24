@@ -44,14 +44,14 @@ class SetupMetaData:
 
         # get correct subject indices
         if (self.attntrained == 0): # Space
-            self.subsIDX = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53]))
-            self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53]))
-            self.subsIDXall = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53]))
+            self.subsIDX = np.array(([ 60 ]))
+            self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
+            self.subsIDXall = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
 
         else: # Feature
-            self.subsIDX = np.array(([  2, 4, 8, 9, 18, 21, 23, 41, 47])) # 1, 2,
-            self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47]))
-            self.subsIDXall = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47 ]))
+            self.subsIDX = np.array(([58])) # 1, 2,
+            self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58]))
+            self.subsIDXall = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58 ]))
         self.num_subs = len(self.subsIDXcollate)
 
 
@@ -62,6 +62,26 @@ class SetupMetaData:
         self.num_days = 2
         self.daysuse = [1, 4]
         self.num_trials = 192
+        self.num_conditions = 4
+
+        # EEG settings
+        self.samplingfreq = 1200
+        self.num_electrodes = 9
+
+        # Timing Settings
+        self.timelimits = np.array([0, 6]) # Epoch start and end time (seconds) relative to cue onset
+        self.zeropading = 2
+        self.timelimits_zeropad = np.array([self.timelimits[0]-self.zeropading, self.timelimits[1]+self.zeropading])
+        return self
+
+    def get_settings_EEG_duringNF(self): # settings specific to pre vs post training EEG analysis
+        # Task Settings
+        self.testtrain = 1 # 0 = test, 1 = train
+        self.task = 0 # 0 = motion descrim, 1 = visual search, 2 = n-back
+        self.num_days = 3
+        # self.daysuse = [1]
+        self.daysuse = [1, 2, 3]
+        self.num_trials = 256
         self.num_conditions = 4
 
         # EEG settings
@@ -114,6 +134,74 @@ def get_timing_variables(timelimits,samplingfreq):
 
     zeropoint = np.argmin(np.abs(timepoints - 0))
     return timelimits_data, timepoints, frequencypoints, zeropoint
+
+
+def get_eeg_data(bids, day_count, settings):
+    import mne
+    import matplotlib.pyplot as plt
+    # decide which EEG file to use
+    possiblefiles = []
+    filesizes = []
+    for filesfound in bids.direct_data_eeg.glob(bids.filename_eeg + "*.eeg"):
+        filesizes.append(filesfound.stat().st_size)
+
+    for filesfound in bids.direct_data_eeg.glob(bids.filename_eeg + "*.vhdr"):
+        possiblefiles.append(filesfound)
+
+    file2useIDX = np.argmax(filesizes)  # get the biggest file (there are often smaller shorter accidental recordings)
+    file2use = possiblefiles[file2useIDX]
+
+    montage = {'Iz': [-28.6, -109.8, -28.0],
+               'Oz': [-28.2, -107.8, 8.5],
+               'POz': [-18.2, -97.5, 44.6],
+               'O1': [52.7, -94.0, -34.1],
+               'O2': [0.1, -110.1, 14.0],
+               'PO3': [-46.4, -95.2, 20.7],
+               'PO4': [19.1, -97.6, 44.5],
+               'PO7': [-52.6, -94.0, -34.0],
+               'PO8': [47.8, -95.3, 20.8] }
+
+    montageuse = mne.channels.make_dig_montage(ch_pos=montage, lpa=[-82.5, -19.2, -46], nasion=[0, 83.2, -38.3], rpa=[82.2, -19.2, -46]) # based on mne help file on setting 10-20 montage
+
+    # load EEG file
+    raw = mne.io.read_raw_brainvision(file2use, preload=True, scale=1e6)
+    print(raw.info)
+
+    # raw.plot(remove_dc = False, scalings=dict(eeg=50))
+
+    # pick events
+    events = mne.find_events(raw, stim_channel="TRIG")
+    mne.viz.plot_events(events, raw.info['sfreq'], raw.first_samp)
+    print('Found %s events, first five:' % len(events))
+    print(events[:5])
+
+    # set bad chans
+    if (np.logical_and(bids.substring == 'sub-02', day_count == 0)):         raw.info['bads'] = ['O1']
+    if (np.logical_and(bids.substring == 'sub-09', day_count == 0)):        raw.info['bads'] = ['PO4']
+    if (np.logical_and(bids.substring == 'sub-23', day_count == 0)):        raw.info['bads'] = ['Iz']
+    if (np.logical_and(bids.substring == 'sub-47', day_count == 0)):        raw.info['bads'] = ['PO8']
+    if (np.logical_and(bids.substring == 'sub-53', day_count == 0)):        raw.info['bads'] = ['Iz']
+
+    if (np.logical_and(bids.substring == 'sub-02', np.logical_and(day_count == 1, settings.testtrain == 1))):
+        raw.info['bads'] = ['Oz']
+    if (np.logical_and(bids.substring == 'sub-10', np.logical_and(day_count == 1, settings.testtrain == 1))):
+        raw.info['bads'] = ['Oz']
+    # sub 52 day 4- particularly noisy everywhere...
+
+    # plt.show()
+    # tmp = input('check the eeg data')
+
+    eeg_data = raw.copy().pick_types(eeg=True, exclude=['TRIG'])
+    eeg_data.info.set_montage(montageuse)
+    eeg_data_interp = eeg_data.copy().interpolate_bads(reset_bads=False)
+
+    # Filter Data
+    eeg_data_interp.filter(l_freq=1, h_freq=45, h_trans_bandwidth=0.1)
+
+    #plot results
+    eeg_data_interp.plot(remove_dc=False, scalings=dict(eeg=50))
+
+    return raw, events, eeg_data_interp
 
 def within_subjects_error(x):
     ''' calculate within subjects error for x
