@@ -51,8 +51,8 @@ def getSSVEPs(erps_days, epochs_days, epochs, settings, bids):
         if (day_count == 1): axuse = ax2
         if (day_count == 2): axuse = ax3
         axuse.plot(freq, chanmeanfft[:, 0, 0, day_count].T, '-', label='Black/Left_diag', color=settings.lightteal)  # 'Space/Left_diag'
-        axuse.plot(freq, chanmeanfft[:, 0, 1, day_count].T, '-', label='Black/Right_diag', color=settings.medteal)  # 'Space/Right_diag'
-        axuse.plot(freq, chanmeanfft[:, 1, 0, day_count].T, '-', label='White/Left_diag', color=settings.darkteal)  # 'Feat/Black'
+        axuse.plot(freq, chanmeanfft[:, 0, 1, day_count].T, '-', label='Black/Right_diag', color=settings.darkteal)  # 'Space/Right_diag'
+        axuse.plot(freq, chanmeanfft[:, 1, 0, day_count].T, '-', label='White/Left_diag', color=settings.orange)  # 'Feat/Black'
         axuse.plot(freq, chanmeanfft[:, 1, 1, day_count].T, '-', label='White/Right_diag', color=settings.yellow)  # 'Feat/White'
 
         axuse.set_xlim(2, 20)
@@ -217,3 +217,122 @@ def plotResultsPrePost_subjects(SSVEPs_prepost_mean, settings, ERPstring, bids):
     fig.suptitle(titlestring)
     plt.savefig(bids.direct_results / Path(titlestring + '.png'), format='png')
 
+
+
+def plotGroupFFTSpectrum(fftdat_ave, bids, ERPstring, settings, freq):
+    import matplotlib.pyplot as plt
+    from pathlib import Path
+
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(15, 10))
+
+    chanmeanfft = np.mean(fftdat_ave, axis=0)
+
+    for day_count in np.arange(settings.num_days):
+        if (day_count == 0): axuse = ax1
+        if (day_count == 1): axuse = ax2
+        if (day_count == 2): axuse = ax3
+
+        hz_attn = settings.hz_attn  # ['\B \W'], ['/B /W']
+        axuse.axvline(hz_attn[0, 0], 0, 1, linestyle='--', color='k', alpha=0.2)  # black/Left_diag
+        axuse.annotate("Black-leftdiag", (hz_attn[0, 0], 0.3))
+        axuse.axvline(hz_attn[0, 1], 0, 1, linestyle='--', color='k', alpha=0.2)  # black/Right_diag
+        axuse.annotate("Black-rightdiag", (hz_attn[1, 0], 0.3))
+        axuse.axvline(hz_attn[1, 0], 0, 1, linestyle='--', color='k', alpha=0.2)  # white/Left_diag
+        axuse.annotate("white-leftdiag", (hz_attn[0, 1], 0.3))
+        axuse.axvline(hz_attn[1, 1], 0, 1, linestyle='--', color='k', alpha=0.2)  # white/Right_diag
+        axuse.annotate("white-rightdiag", (hz_attn[1, 1], 0.3))
+
+        axuse.plot(freq, chanmeanfft[:, 0, 0, day_count].T, '-', label='Black/Left_diag', color=settings.lightteal)  # 'Space/Left_diag'
+        axuse.plot(freq, chanmeanfft[:, 0, 1, day_count].T, '-', label='Black/Right_diag', color=settings.darkteal)  # 'Space/Right_diag'
+        axuse.plot(freq, chanmeanfft[:, 1, 0, day_count].T, '-', label='White/Left_diag', color=settings.yellow)  # 'Feat/Black'
+        axuse.plot(freq, chanmeanfft[:, 1, 1, day_count].T, '-', label='White/Right_diag', color=settings.orange)  # 'Feat/White'
+
+        axuse.set_xlim(2, 20)
+        axuse.set_ylim(0, .4)
+        axuse.set_title(settings.string_testday[day_count])
+        axuse.legend()
+        axuse.set_frame_on(False)
+
+    titlestring = 'During NF Group Mean '+ ERPstring +' FFT Spectrum' + settings.string_attntrained[settings.attntrained]
+    fig.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
+
+def plotGroupSSVEPs(SSVEPs_group, bids, ERPstring, settings):
+    import matplotlib.pyplot as plt
+    from pathlib import Path
+    import Analysis_Code.helperfunctions_ATTNNF as helper
+
+    M = np.nanmean(SSVEPs_group, axis=3)
+
+    E = np.empty((settings.num_attnstates, settings.num_days, settings.num_attnstates))
+    for attn in np.arange(settings.num_attnstates):
+        for day in np.arange(settings.num_days):
+            E[:,day, attn] = helper.within_subjects_error(SSVEPs_group[:,day,attn,:].T)
+
+    # E = np.std(SSVEPs_group, axis=3) / settings.num_subs
+
+    # plot results
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+
+    labels = settings.string_attd_unattd
+    x = np.arange(len(labels))
+    width = 0.25
+
+    for attn in np.arange(settings.num_attnstates):
+        if (attn == 0): axuse = ax1
+        if (attn == 1): axuse = ax2
+
+        axuse.bar(x - width, M[:, 0, attn], width, label=settings.string_testday[0],
+                  facecolor=settings.lightteal)  # Day 1
+        axuse.bar(x , M[:, 1, attn], width, label=settings.string_testday[1],
+                  facecolor=settings.medteal)  # Day 2
+        axuse.bar(x + width , M[:, 2, attn], width, label=settings.string_testday[2],
+                  facecolor=settings.darkteal)  # Day 3
+
+        # Add some text for labels, title and custom x-axis tick labels, etc.
+        axuse.set_ylabel('SSVEP amp (µV)')
+        axuse.set_title(settings.string_cuetype[attn])
+        axuse.set_xticks(x)
+        axuse.set_xticklabels(labels)
+        axuse.legend()
+        axuse.set_frame_on(False)
+
+    titlestring = 'Group Mean ' + ERPstring + ' SSVEPs during NF TRAIN ' + settings.string_attntrained[
+        settings.attntrained]
+    fig.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
+
+    # compute SSVEP differences and plot
+    diffdat = SSVEPs_group[0, :, :, :] - SSVEPs_group[1, :, :, :]
+    M = np.nanmean(diffdat, axis=2)
+    # E = np.std(diffdat, axis=2) / settings.num_subs
+
+    E = np.empty(( settings.num_days, settings.num_attnstates))
+    for day in np.arange(settings.num_days):
+        E[day, :] = helper.within_subjects_error(diffdat[day,:,:].T)
+
+
+    fig, ax = plt.subplots(figsize=(5, 5))
+
+    labels = settings.string_attntrained
+    x = np.arange(len(labels))
+    width = 0.25
+    xpos = np.array((x - width , x, x + width ))
+    colors = np.array((settings.yellow, settings.orange, settings.lightteal))
+    for day in np.arange(settings.num_days):
+        ax.bar(xpos[day], M[day, :], yerr=E[day, :], width=width, label=settings.string_testday[day],
+               facecolor=colors[day])
+
+
+    ax.plot(xpos[:, 0], diffdat[:, 0, :], '-', alpha=0.3, color='k')
+    ax.plot(xpos[:, 1], diffdat[:, 1, :], '-', alpha=0.3, color='k')
+
+    plt.ylabel('Delta SSVEP amp (µV)')
+    plt.xticks(x, labels)
+    plt.legend()
+    ax.set_frame_on(False)
+
+    titlestring = 'Group Mean ' + ERPstring + ' SSVEP selectivity during NF TRAIN ' + settings.string_attntrained[
+        settings.attntrained]
+    fig.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')

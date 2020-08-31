@@ -44,14 +44,15 @@ class SetupMetaData:
 
         # get correct subject indices
         if (self.attntrained == 0): # Space
-            self.subsIDX = np.array(([ 60 ]))
-            self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
-            self.subsIDXall = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
+            self.subsIDX = np.array(([ 64 ]))
+            self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
+            self.subsIDXall = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64]))
 
         else: # Feature
-            self.subsIDX = np.array(([58])) # 1, 2,
-            self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58]))
-            self.subsIDXall = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58 ]))
+            self.subsIDX = np.array(([ 68 ])) # 1, 2,
+            self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
+            self.subsIDXall = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69]))
+            # 21 day 1 train files missing
         self.num_subs = len(self.subsIDXcollate)
 
 
@@ -170,7 +171,11 @@ def get_eeg_data(bids, day_count, settings):
     # raw.plot(remove_dc = False, scalings=dict(eeg=50))
 
     # pick events
-    events = mne.find_events(raw, stim_channel="TRIG")
+    if (bids.substring == 'sub-68'):
+        events = mne.find_events(raw, stim_channel="TRIG", min_duration=4/raw.info['sfreq'])
+    else:
+        events = mne.find_events(raw, stim_channel="TRIG")
+
     mne.viz.plot_events(events, raw.info['sfreq'], raw.first_samp)
     print('Found %s events, first five:' % len(events))
     print(events[:5])

@@ -8,13 +8,13 @@ max_subsweek = 8
 min_substotal = 50
 max_substotal = 80
 
-subs_collected = 27
+subs_collected = 17 + 16
 
 min_subsneeded = min_substotal - subs_collected
 max_subsneeded = max_substotal - subs_collected
-mean_subsneeded = (max_subsneeded+min_subsneeded)/2
+mean_subsneeded = (max_subsneeded+min_subsneeded)/2 -10
 range_subsneeded = max_subsneeded-min_subsneeded
-SD_subsneeded = range_subsneeded / 6
+SD_subsneeded = range_subsneeded / 10
 
 n_simulations = 1000
 Weeksall = np.empty((n_simulations))

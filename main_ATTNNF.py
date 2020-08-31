@@ -9,17 +9,18 @@ import Analysis_Code.functions_getEEG_duringNF as geegdnf
 
 
 # TODO:
-# switch to within subjects error for wavelet plot
+
 # add subject scatterpoints to behavioural results
-# integrate behavioural analyses with python
 # figure out topoplotting
+
+# integrate behavioural analyses with python
 
 # correlate behaviour with ssvep selectivity
 # look at differences between classifiable and unclassifiable participants.
 # check prepost differences in nback and visual search tasks
 # analyse feedback - how long in each state? how does it correspond to behaviour?
-
-# analyse behaviour and EEG during training - across the three days.
+# analyse behaviour during neurofeedback training - across the three days.
+# look at withing session learning curves for SSVEPs
 
 
 # Decide which analyses to do
@@ -27,6 +28,7 @@ analyseEEGprepost = False # analyse EEG Pre Vs. Post Training
 analyseEEG_duringNF = False # analyse EEG during Neurofeedback
 
 collateEEGprepost = True # Collate EEG Pre Vs. Post Training across subjects
+collateEEG_duringNF =False# analyse EEG during Neurofeedback
 
 # setup generic settings
 attntrained = 1 # ["Space", "Feature"]
@@ -227,7 +229,6 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
                  SSVEPs_prepost_channelmean_snr=SSVEPs_prepost_channelmean_snr,
                  SSVEPs_prepost_channelmean_epochs=SSVEPs_prepost_channelmean_epochs,
                  SSVEPs_prepost_channelmean=SSVEPs_prepost_channelmean,
-                 wavelets_prepost=wavelets_prepost,
                  timepoints_zp=timepoints_zp,
                  erps_days_wave=erps_days_wave,
                  fftdat=fftdat, fftdat_epochs=fftdat_epochs, freq=freq)
@@ -338,11 +339,51 @@ if (collateEEGprepost):
                      (4, settings.num_subs))  # day 1-space, day 1 - feature, day 4 - space, day 4 - feature
     np.save(bids.direct_results_group / Path("group_ssvep_selectivity_prepost.npy"), tmp)
 
-    # TODO: get wserror
-    # plot error around wavelets
 
+# Collate EEG prepost
+if (collateEEG_duringNF):
+    print('collating SSVEP amplitudes during NF')
+    # get settings specific to this analysis
+    settings = settings.get_settings_EEG_duringNF()
 
+    # Get timing settings
+    timelimits_data_zp, timepoints_zp, frequencypoints_zp, zeropoint_zp = helper.get_timing_variables(settings.timelimits_zeropad, settings.samplingfreq)
 
+    # preallocate group mean variables
+    num_subs = settings.num_subs
+    SSVEPs_group = np.empty((settings.num_attd_unattd, settings.num_days, settings.num_attnstates, num_subs))
+    SSVEPs_epochs_group = np.empty((settings.num_attd_unattd, settings.num_days, settings.num_attnstates, num_subs))
+    fftdat_group = np.empty((settings.num_electrodes, len(timepoints_zp) + 1, settings.num_attnstates, settings.num_levels, settings.num_days, num_subs))
+    fftdat_epochs_group = np.empty((settings.num_electrodes, len(timepoints_zp) + 1, settings.num_attnstates, settings.num_levels, settings.num_days, num_subs))
 
+    # iterate through subjects for individual subject analyses
+    for sub_count, sub_val in enumerate(settings.subsIDXcollate):
+        # get directories and file names
+        bids = helper.BIDS_FileNaming(sub_val, settings, 0)
+        print(bids.substring)
+
+        # load results
+        results = np.load(bids.direct_results / Path(bids.substring + "EEG_duringNF_results.npz"), allow_pickle=True) #
+        #saved vars: SSVEPs_prepost_channelmean, SSVEPs_prepost_channelmean_epochs, wavelets_prepost, timepoints_zp, erps_days_wave, fftdat, fftdat_epochs, freq)
+
+        # store results
+        SSVEPs_group[:, :, :, sub_count] = results['SSVEPs_prepost_channelmean']
+        SSVEPs_epochs_group[:, :, :, sub_count] = results['SSVEPs_prepost_channelmean_epochs']
+        fftdat_group[:,:,:,:,:,sub_count] = results['fftdat']
+        fftdat_epochs_group[:, :, :, :, :, sub_count] = results['fftdat_epochs']
+
+        timepoints_use = results['timepoints_zp']
+        freq = results['freq']
+
+    # plot grand average frequency spectrum
+    fftdat_ave = np.nanmean(fftdat_group, axis = 5)
+    geegdnf.plotGroupFFTSpectrum(fftdat_ave, bids, ERPstring='ERP', settings=settings, freq=freq)
+
+    fftdat_epochs_ave = np.nanmean(fftdat_epochs_group, axis = 5)
+    geegdnf.plotGroupFFTSpectrum(fftdat_epochs_ave, bids, ERPstring='Single Trial', settings=settings, freq=freq)
+
+    # plot average SSVEP results
+    geegdnf.plotGroupSSVEPs(SSVEPs_group, bids, ERPstring='ERP', settings=settings)
+    geegdnf.plotGroupSSVEPs(SSVEPs_epochs_group, bids, ERPstring='Single Trial', settings=settings)
 
 
