@@ -1,6 +1,119 @@
 import numpy as np
 from pathlib import Path
 import mne
+import Analysis_Code.helperfunctions_ATTNNF as helper
+
+def analyseEEGprepost(settings, sub_val):
+    print('analysing SSVEP amplitudes pre Vs. post training')
+
+    # get settings specific to this analysis
+    settings = settings.get_settings_EEG_prepost()
+
+    # get timing settings
+    # timelimits_data, timepoints, frequencypoints, zeropoint = get_timing_variables(settings.timelimits,settings.samplingfreq)
+    timelimits_data_zp, timepoints_zp, frequencypoints_zp, zeropoint_zp = helper.get_timing_variables(
+        settings.timelimits_zeropad, settings.samplingfreq)
+
+    # preallocate
+    num_epochs = settings.num_trials / settings.num_conditions
+    epochs_days = np.empty(
+        (int(num_epochs), settings.num_electrodes, len(timepoints_zp) + 1, settings.num_attnstates, settings.num_levels,
+         settings.num_days))
+    epochs_days[:] = np.nan
+
+    # iterate through test days to get data
+    for day_count, day_val in enumerate(settings.daysuse):
+        # TODO: save daily plots for events, drop logs, ERPs and FFTs
+        # get file names
+        bids = helper.BIDS_FileNaming(sub_val, settings, day_val)
+        print(bids.casestring)
+
+        # get EEG data
+        raw, events, eeg_data_interp = helper.get_eeg_data(bids, day_count, settings)
+
+        # Epoch to events of interest
+        event_id = {'Feat/Black': 121, 'Feat/White': 122,
+                    'Space/Left_diag': 123, 'Space/Right_diag': 124}  # will be different triggers for training days
+
+        epochs = mne.Epochs(eeg_data_interp, events, event_id=event_id, tmin=settings.timelimits_zeropad[0],
+                            tmax=settings.timelimits_zeropad[1],
+                            baseline=(0, 1 / settings.samplingfreq), picks=np.arange(settings.num_electrodes),
+                            reject=dict(eeg=400), detrend=1)  #
+
+        # drop bad channels
+        epochs.drop_bad()
+        # epochs.plot_drop_log()
+        # epochs2 = epochs.equalize_event_counts(event_id, method='mintime')
+
+        # visualise topo
+        # epochs.plot_psd_topomap()
+
+        # get data for each  condition
+        epochs_days[0:sum(elem == [] for elem in epochs['Space/Left_diag'].drop_log), :, :, 0, 0, day_count] = epochs[
+            'Space/Left_diag'].get_data()
+        epochs_days[0:sum(elem == [] for elem in epochs['Space/Right_diag'].drop_log), :, :, 0, 1, day_count] = epochs[
+            'Space/Right_diag'].get_data()
+        epochs_days[0:sum(elem == [] for elem in epochs['Feat/Black'].drop_log), :, :, 1, 0, day_count] = epochs[
+            'Feat/Black'].get_data()
+        epochs_days[0:sum(elem == [] for elem in epochs['Feat/White'].drop_log), :, :, 1, 1, day_count] = epochs[
+            'Feat/White'].get_data()
+
+    # average across trials
+    erps_days = np.squeeze(np.nanmean(epochs_days, axis=0))
+    erps_days_wave = np.squeeze(np.nanmean(epochs_days, axis=0))
+    timepoints_zp = epochs.times
+
+    # # Get SSVEPs
+    fftdat, fftdat_epochs, freq = getSSVEPs(erps_days, epochs_days, epochs, settings, bids)
+    fftdat_epochs = np.nanmean(fftdat_epochs,
+                               axis=0)  # average across trials to get the same shape for single trial SSVEPs
+
+    # get signal to noise
+    fftdat_snr = getfft_sigtonoise(settings, epochs, fftdat, freq)
+    fftdat_snr_epochs = getfft_sigtonoise(settings, epochs, fftdat_epochs, freq)
+
+    # get ssvep amplitudes
+    SSVEPs_prepost, SSVEPs_prepost_channelmean, BEST = getSSVEPS_conditions(settings, fftdat,
+                                                                                   freq)  # trial average
+    SSVEPs_prepost_epochs, SSVEPs_prepost_channelmean_epochs, BEST_epochs = getSSVEPS_conditions(settings,
+                                                                                                        fftdat_epochs,
+                                                                                                        freq)  # single trial
+
+    # get ssvep amplitudes SNR
+    SSVEPs_prepost_snr, SSVEPs_prepost_channelmean_snr, BEST_snr = getSSVEPS_conditions(settings, fftdat_snr,
+                                                                                               freq)  # trial average
+    SSVEPs_prepost_epochs_snr, SSVEPs_prepost_channelmean_epochs_snr, BEST_epochs_snr = getSSVEPS_conditions(
+        settings, fftdat_snr_epochs, freq)  # single trial
+
+    # get wavelets
+    wavelets_prepost = get_wavelets_prepost(erps_days_wave, settings, epochs, BEST, bids)
+
+    # plot topos
+    # TODO: add topoplotting
+
+    # Plot SSVEP results
+    ERPstring = 'ERP'
+    plotResultsPrePost_subjects(SSVEPs_prepost_channelmean, settings, ERPstring, bids)
+
+    ERPstring = 'Single Trial'
+    plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_epochs, settings, ERPstring, bids)
+
+    ERPstring = 'ERP SNR'
+    plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_snr, settings, ERPstring, bids)
+
+    ERPstring = 'Single Trial SNR'
+    plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_epochs_snr, settings, ERPstring, bids)
+
+    np.savez(bids.direct_results / Path(bids.substring + "EEG_pre_post_results"),
+             SSVEPs_prepost_channelmean_epochs_snr=SSVEPs_prepost_channelmean_epochs_snr,
+             SSVEPs_prepost_channelmean_snr=SSVEPs_prepost_channelmean_snr,
+             SSVEPs_prepost_channelmean_epochs=SSVEPs_prepost_channelmean_epochs,
+             SSVEPs_prepost_channelmean=SSVEPs_prepost_channelmean,
+             wavelets_prepost=wavelets_prepost,
+             timepoints_zp=timepoints_zp,
+             erps_days_wave=erps_days_wave,
+             fftdat=fftdat, fftdat_epochs=fftdat_epochs, freq=freq)
+
 
 
 def getSSVEPs(erps_days, epochs_days, epochs, settings, bids):
