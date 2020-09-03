@@ -7,8 +7,8 @@ library(RcppCNPy)
 
 # run options
 
-options.traintype = 1 # Feature or Space
-options.singletrial = 2 # ERP, single trial
+options.traintype = 2 # Feature or Space
+options.singletrial = 1 # ERP, single trial
 
 # task options
 options.task = 1 # 1 = Motion Detection,

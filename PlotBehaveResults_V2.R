@@ -11,9 +11,9 @@ library(tidyverse)
 options.traintype =1 # Feature or Space
 
 if (options.traintype == 1) {
-  subnumbers = c(67) #c(1, 2 , 4, 8, 9, 18, 21, 23, 41, 47 )
+  subnumbers = c(1, 2 , 4, 8, 9, 18, 21, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69) #c(1, 2 , 4, 8, 9, 18, 21, 23, 41, 47 )
 } else {
-  subnumbers = c(64) #c(10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53)
+  subnumbers = c(10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64) #c(10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53)
 }
 # Settings ----------------------------------------------------------------
 
@@ -245,15 +245,34 @@ for (SUB in length(subnumbers)) { #6:length(subnumbers
   daystr_ALL [RT_ALL>2.0 ] = NaN
   RT_ALL[RT_ALL>2.0] = NaN
   
-  # bind together reaction time plotting data
   
+  # bind together reaction time plotting data
   tmp = RT_ALL
   tmp[ACCURACY_ALL==responseopts.incorrect  ] = NaN
   tmp[ACCURACY_ALL==responseopts.falsealarm] = NaN
   RTplot = cbind(tmp, daystr_ALL, ATTNTYPE_ALL)
+  
+  
+  # exclude RT outliers for each day and condition
+  for(options.TestDayloop in 1:n_days) {
+    for (trialattntype in 1:2) {
+      # get index for trials to get outliers for
+      testday = strings.day[options.TestDayloop]
+      idx = RTplot$days ==testday & RTplot$attntype == trialattntype
+      
+      # find criteria for outliers (3SDs above mean for day and cond)
+      outliercrit = mean(RTplot$RT[idx]) + sd(RTplot$RT[idx])*3 
+      
+      # exclude those outliers
+      outliers = RTplot$RT > outliercrit & RTplot$days ==testday
+      RTplot$RT[outliers] = NaN
+    }
+  }
+  
+  # exclude NaNs
   RTplot = na.omit(RTplot)
   
-  
+  # Get Accuracy to plot
   ACCplot = cbind(ACCURACY_ALL, daystr_ALL, ATTNTYPE_ALL)
   ACCplot = na.omit(ACCplot)
   

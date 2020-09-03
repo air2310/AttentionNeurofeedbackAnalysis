@@ -2,39 +2,49 @@
 import numpy as np
 from pathlib import Path
 import mne
+import h5py
 import matplotlib.pyplot as plt
 import Analysis_Code.helperfunctions_ATTNNF as helper
 import Analysis_Code.functions_getEEGprepost as geegpp
 import Analysis_Code.functions_getEEG_duringNF as geegdnf
-
+import Analysis_Code.analyse_visualsearchtask as avissearch
 
 # TODO:
 
 # add subject scatterpoints to behavioural results
 # figure out topoplotting
+# exclude + 3sd on reaction time
 
 # integrate behavioural analyses with python
+# Organise data better
 
 # correlate behaviour with ssvep selectivity
 # look at differences between classifiable and unclassifiable participants.
-# check prepost differences in nback and visual search tasks
+# check prepost differences in nback task
 # analyse feedback - how long in each state? how does it correspond to behaviour?
 # analyse behaviour during neurofeedback training - across the three days.
 # look at withing session learning curves for SSVEPs
 
+# asthetic changes to plotting
+# stats on behaviour
+
 
 # Decide which analyses to do
-analyseEEGprepost = False # analyse EEG Pre Vs. Post Training
-analyseEEG_duringNF = True # analyse EEG during Neurofeedback
+analyseEEGprepost = True # analyse EEG Pre Vs. Post Training
+analyseEEG_duringNF = False # analyse EEG during Neurofeedback
+analyse_visualsearchtask = False
 
 collateEEGprepost = False # Collate EEG Pre Vs. Post Training across subjects
-collateEEG_duringNF =False# analyse EEG during Neurofeedback
+collateEEG_duringNF = False # Collate EEG during Neurofeedback
+collate_visualsearchtask = False # Collate Visual Search results
 
 # setup generic settings
-attntrained = 1 # ["Space", "Feature"]
+attntrained = 0 # ["Space", "Feature"]
 settings = helper.SetupMetaData(attntrained)
 
 print("Analysing Data for condition train: " + settings.string_attntrained[settings.attntrained])
+
+sub_count, sub_val = 0, 28
 
 # iterate through subjects for individual subject analyses
 for sub_count, sub_val in enumerate(settings.subsIDX):
@@ -43,6 +53,9 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
 
     if (analyseEEG_duringNF):
         geegdnf.analyseEEG_duringNF(settings, sub_val)
+
+    if (analyse_visualsearchtask):
+        avissearch.analyse_visualsearchtask(settings, sub_val)
 
 # Collate EEG prepost
 if (collateEEGprepost):
@@ -198,4 +211,86 @@ if (collateEEG_duringNF):
     geegdnf.plotGroupSSVEPs(SSVEPs_group, bids, ERPstring='ERP', settings=settings)
     geegdnf.plotGroupSSVEPs(SSVEPs_epochs_group, bids, ERPstring='Single Trial', settings=settings)
 
+# Collate Visual Search Task
+if (collate_visualsearchtask):
+    print('Collating Visual Search Task')
 
+    # get task specific settings
+    settings = settings.get_settings_visualsearchtask()
+
+    # preallocate group mean variables
+    num_subs = settings.num_subs
+    acc_vissearch_all = np.empty((settings.num_trialscond, settings.num_setsizes, settings.num_days, num_subs))
+    rt_vissearch_all = np.empty((settings.num_trialscond, settings.num_setsizes, settings.num_days, num_subs))
+    mean_acc_all = np.empty((settings.num_setsizes, settings.num_days, num_subs))
+    mean_rt_all = np.empty((settings.num_setsizes, settings.num_days, num_subs))
+
+    # iterate through subjects for individual subject analyses
+    for sub_count, sub_val in enumerate(settings.subsIDXcollate):
+        # get directories and file names
+        bids = helper.BIDS_FileNaming(sub_val, settings, 0)
+        print(bids.substring)
+
+        # load results
+        results = np.load(bids.direct_results / Path(bids.substring + "visual_search_results.npz"), allow_pickle=True)  #
+        # saved vars: meanacc=meanacc, meanrt=meanrt, acc_vissearch=acc_vissearch, rt_vissearch=rt_vissearch
+
+        # store results
+        acc_vissearch_all[ :, :, :, sub_count] = results['acc_vissearch']
+        mean_acc_all[ :, :, sub_count] = results['meanacc']
+
+        rt_vissearch_all[ :, :, :, sub_count] = results['rt_vissearch']
+        mean_rt_all[ :, :, sub_count] = results['meanrt']
+
+
+    # plot accuracy results
+    meanacc = np.nanmean(mean_acc_all, axis=2)
+    erroracc = np.empty((settings.num_setsizes, settings.num_days))
+    erroracc[:, 0] = helper.within_subjects_error(np.squeeze(mean_acc_all[:,0,:]).T)
+    erroracc[:, 1] = helper.within_subjects_error(np.squeeze(mean_acc_all[:,1,:]).T)
+
+    fig, ax = plt.subplots(figsize=(5, 5))
+
+    labels = settings.string_prepost
+    x = np.arange(len(labels))
+    width = 0.25
+
+    plt.bar(x - width, meanacc[0, :], width, yerr=erroracc[0, :], label=settings.string_setsize[0], facecolor=settings.lightteal)
+    plt.bar(x, meanacc[1, :], width,  yerr=erroracc[1, :],label=settings.string_setsize[1], facecolor=settings.medteal)
+    plt.bar(x + width, meanacc[2, :], width,yerr=erroracc[2, :],  label=settings.string_setsize[2], facecolor=settings.darkteal)
+
+    plt.ylim([90, 100])
+    plt.ylabel('Accuracy (%)')
+    plt.xticks(x, labels)
+    plt.legend()
+    ax.set_frame_on(False)
+
+    titlestring = 'Visual Search Accuracy train ' + settings.string_attntrained[settings.attntrained]
+    plt.title(titlestring)
+    plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
+
+
+    # plot reaction time results
+    meanrt = np.nanmean(mean_rt_all, axis=2)
+    errorrt = np.empty((settings.num_setsizes, settings.num_days))
+    errorrt[:, 0] = helper.within_subjects_error(np.squeeze(mean_rt_all[:,0,:]).T)
+    errorrt[:, 1] = helper.within_subjects_error(np.squeeze(mean_rt_all[:,1,:]).T)
+
+    fig, ax = plt.subplots(figsize=(5, 5))
+
+    labels = settings.string_prepost
+    x = np.arange(len(labels))
+    width = 0.25
+
+    plt.bar(x - width, meanrt[0, :], width, yerr=errorrt[0, :], label=settings.string_setsize[0], facecolor=settings.lightteal)
+    plt.bar(x, meanrt[1, :], width,  yerr=errorrt[1, :],label=settings.string_setsize[1], facecolor=settings.medteal)
+    plt.bar(x + width, meanrt[2, :], width,yerr=errorrt[2, :],  label=settings.string_setsize[2], facecolor=settings.darkteal)
+
+    plt.ylabel('reaction time (s)')
+    plt.xticks(x, labels)
+    plt.legend()
+    ax.set_frame_on(False)
+
+    titlestring = 'Visual Search reaction time train ' + settings.string_attntrained[settings.attntrained]
+    plt.title(titlestring)
+    plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')

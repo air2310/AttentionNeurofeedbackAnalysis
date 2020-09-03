@@ -8,7 +8,7 @@ class SetupMetaData:
     string_attntrained = ["Space", "Feature"]
     string_tasknames =  ['AttnNFMotion', 'AttnNFVisualSearch', 'AttnNFnback']
     string_testday = ['Day 1', 'Day 2', 'Day 3', 'Day 4']
-    string_prepost = ['pretest', 'posttest'];
+    string_prepost = ['pre-training', 'post-training'];
     string_cuetype  = ["Space", "Feature"]
     string_testtrain = ["Test", "Train"]
     string_attd_unattd = ["Attended", "UnAttended"]
@@ -44,13 +44,13 @@ class SetupMetaData:
 
         # get correct subject indices
         if (self.attntrained == 0): # Space
-            self.subsIDX = np.array(([ 64 ]))
+            self.subsIDX = np.array(([ 28]))
             self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
             self.subsIDXall = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64]))
 
         else: # Feature
-            self.subsIDX = np.array(([ 68 ])) # 1, 2,
-            self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
+            self.subsIDX = np.array(([ 23, 41, 47, 57, 58,63, 66, 67,68, 69])) # 1, 2,
+            self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ])) #np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
             self.subsIDXall = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69]))
             # 21 day 1 train files missing
         self.num_subs = len(self.subsIDXcollate)
@@ -95,6 +95,17 @@ class SetupMetaData:
         self.timelimits_zeropad = np.array([self.timelimits[0]-self.zeropading, self.timelimits[1]+self.zeropading])
         return self
 
+    def get_settings_visualsearchtask(self):  # settings specific to pre vs post training EEG analysis
+        self.testtrain = 0  # 0 = test, 1 = train
+        self.task = 1  # 0 = motion descrim, 1 = visual search, 2 = n-back
+        self.num_days = 2
+        self.daysuse = [1, 4]
+
+        self.num_trialscond = 80
+        self.num_setsizes = 3
+        self.string_setsize = ["SS8", "SS12", "SS16"]
+
+        return self
 
 class BIDS_FileNaming:
     def __init__(self, subject_idx, settings, day_val):
@@ -152,15 +163,15 @@ def get_eeg_data(bids, day_count, settings):
     file2useIDX = np.argmax(filesizes)  # get the biggest file (there are often smaller shorter accidental recordings)
     file2use = possiblefiles[file2useIDX]
 
-    montage = {'Iz': [-28.6, -109.8, -28.0],
-               'Oz': [-28.2, -107.8, 8.5],
-               'POz': [-18.2, -97.5, 44.6],
-               'O1': [52.7, -94.0, -34.1],
-               'O2': [0.1, -110.1, 14.0],
-               'PO3': [-46.4, -95.2, 20.7],
-               'PO4': [19.1, -97.6, 44.5],
-               'PO7': [-52.6, -94.0, -34.0],
-               'PO8': [47.8, -95.3, 20.8] }
+    montage = {'Iz':  [0, -110, -40],
+               'Oz': [0, -105, -15],
+               'POz': [0,   -100, 15],
+               'O1': [-40, -106, -15],
+               'O2':  [40, -106, -15],
+               'PO3': [-35, -101, 10],
+               'PO4': [35,  -101, 10],
+               'PO7': [-70, -110, 0],
+               'PO8': [70, -110, 0] }
 
     montageuse = mne.channels.make_dig_montage(ch_pos=montage, lpa=[-82.5, -19.2, -46], nasion=[0, 83.2, -38.3], rpa=[82.2, -19.2, -46]) # based on mne help file on setting 10-20 montage
 
@@ -218,5 +229,5 @@ def within_subjects_error(x):
     grand_mean = np.nanmean(subject_mean, axis=0)
 
     x_2 = x - (np.tile(subject_mean, [ cols,1]).T - grand_mean)
-    error = np.nanstd(x_2) / np.sqrt(rows)
+    error = np.nanstd(x_2, axis=0) / np.sqrt(rows)
     return error

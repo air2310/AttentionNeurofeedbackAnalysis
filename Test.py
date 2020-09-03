@@ -17,3 +17,12 @@ ten_twenty_montage.dig[ten_twenty_montage.ch_names.index('PO3')+2]
 ten_twenty_montage.dig[ten_twenty_montage.ch_names.index('PO4')+2]
 ten_twenty_montage.dig[ten_twenty_montage.ch_names.index('PO7')+2]
 ten_twenty_montage.dig[ten_twenty_montage.ch_names.index('PO8')+2]
+
+
+ten_twenty_montage.dig[ten_twenty_montage.ch_names.index('Iz')+2]
+ten_twenty_montage.dig[ten_twenty_montage.ch_names.index('Oz')+2]
+ten_twenty_montage.dig[ten_twenty_montage.ch_names.index('POz')+2]
+
+ten_twenty_montage.dig[ten_twenty_montage.ch_names.index('Iz')]
+ten_twenty_montage.dig[ten_twenty_montage.ch_names.index('Oz')]
+ten_twenty_montage.dig[ten_twenty_montage.ch_names.index('POz')]

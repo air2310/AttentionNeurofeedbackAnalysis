@@ -58,7 +58,7 @@ def analyseEEGprepost(settings, sub_val):
         epochs_days[0:sum(elem == [] for elem in epochs['Feat/White'].drop_log), :, :, 1, 1, day_count] = epochs[
             'Feat/White'].get_data()
 
-    # average across trials
+       # average across trials
     erps_days = np.squeeze(np.nanmean(epochs_days, axis=0))
     erps_days_wave = np.squeeze(np.nanmean(epochs_days, axis=0))
     timepoints_zp = epochs.times
@@ -79,7 +79,7 @@ def analyseEEGprepost(settings, sub_val):
                                                                                                         fftdat_epochs,
                                                                                                         freq)  # single trial
 
-    # get ssvep amplitudes SNR
+       # get ssvep amplitudes SNR
     SSVEPs_prepost_snr, SSVEPs_prepost_channelmean_snr, BEST_snr = getSSVEPS_conditions(settings, fftdat_snr,
                                                                                                freq)  # trial average
     SSVEPs_prepost_epochs_snr, SSVEPs_prepost_channelmean_epochs_snr, BEST_epochs_snr = getSSVEPS_conditions(
@@ -88,8 +88,6 @@ def analyseEEGprepost(settings, sub_val):
     # get wavelets
     wavelets_prepost = get_wavelets_prepost(erps_days_wave, settings, epochs, BEST, bids)
 
-    # plot topos
-    # TODO: add topoplotting
 
     # Plot SSVEP results
     ERPstring = 'ERP'
@@ -103,6 +101,57 @@ def analyseEEGprepost(settings, sub_val):
 
     ERPstring = 'Single Trial SNR'
     plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_epochs_snr, settings, ERPstring, bids)
+
+
+
+    montage = {'Iz':  [0, -110, -40],
+               'Oz': [0, -105, -15],
+               'POz': [0,   -100, 15],
+               'O1': [-40, -106, -15],
+               'O2':  [40, -106, -15],
+               'PO3': [-35, -101, 10],
+               'PO4': [35,  -101, 10],
+               'PO7': [-70, -110, 0],
+               'PO8': [70, -110, 0],
+               'Pz': [0,   -95, 45],
+               'P9': [-120,   -110, 15],
+               'P10': [120,   -110, 15]}
+
+    montageuse = mne.channels.make_dig_montage(ch_pos=montage, lpa=[-82.5, -19.2, -46], nasion=[0, 83.2, -38.3], rpa=[82.2, -19.2, -46]) # based on mne help file on setting 10-20 montage
+
+
+    # tmp.ch_names[0] = 'Pz''P3''P4' 'P5' 'P6''P7' 'P8' 'P9' 'P10'
+
+
+    tmp = raw.copy().pick_types(eeg=True, exclude=['TRIG'])
+    tmp.rename_channels({"Iz":"Pz"})
+    tmp.rename_channels({"Oz": "P9"})
+    tmp.rename_channels({"POz": "P10"})
+    tmp.pick_channels([tmp.ch_names[pick] for pick in np.arange(3)])
+
+
+    topodat = raw.copy().pick_types(eeg=True, exclude=['TRIG'])
+    topodat.add_channels([tmp])
+
+    topodat.info.set_montage(montageuse)
+
+
+
+    # plot topomap
+    vmin, vmax = np.min(SSVEPs_prepost[:]), np.max(SSVEPs_prepost[:]) # get limits
+    for attntype in np.arange(2):
+        for day in np.arange(2):
+            for attd in np.arange(2):
+                fig, ax = plt.subplots()
+
+                dataplot = SSVEPs_prepost[:,  day, attd, attntype] # chans, # daycount, # attd unattd, # space/feat
+                dataplot = np.append(dataplot, [0, 0, 0])
+                mne.viz.plot_topomap(dataplot, topodat.info, cmap="viridis", show_names=True,
+                                     names=list(('Iz', 'Oz', 'POz', 'O1', 'O2', 'PO3', 'PO4', 'PO7', 'PO8', 'Pz', 'P9', 'P10')), vmin = vmin, vmax=vmax )
+                plt.title(settings.string_attntrained[attntype] + " " + settings.string_attd_unattd[attd] + " " + settings.string_prepost[day])
+
+
+
 
     np.savez(bids.direct_results / Path(bids.substring + "EEG_pre_post_results"),
              SSVEPs_prepost_channelmean_epochs_snr=SSVEPs_prepost_channelmean_epochs_snr,
@@ -244,7 +293,7 @@ def getSSVEPS_conditions(settings, fftdat, freq):
     # average across cue types and store the SSVEPs alltogether for plotting and further analysis
     SSVEPs_prepost = np.empty(
         (settings.num_electrodes, settings.num_days, settings.num_attd_unattd, settings.num_attnstates))
-    SSVEPs_prepost[:, :, :, 0] = np.mean(spaceSSVEPs, axis=3)
+    SSVEPs_prepost[:, :, :, 0] = np.mean(spaceSSVEPs, axis=3) # chans, # daycount, # attd unattd, # space/feat
     SSVEPs_prepost[:, :, :, 1] = np.mean(featureSSVEPs, axis=3)
 
     # get best electrodes to use and mean SSVEPs for these electrodes
