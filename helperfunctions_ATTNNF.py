@@ -44,14 +44,14 @@ class SetupMetaData:
 
         # get correct subject indices
         if (self.attntrained == 0): # Space
-            self.subsIDX = np.array(([ 28]))
-            self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
-            self.subsIDXall = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64]))
+            self.subsIDX = np.array(([ 71]))
+            self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
+            self.subsIDXall = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71]))
 
         else: # Feature
-            self.subsIDX = np.array(([ 23, 41, 47, 57, 58,63, 66, 67,68, 69])) # 1, 2,
-            self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ])) #np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
-            self.subsIDXall = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69]))
+            self.subsIDX = np.array(([ 70 ])) # 1, 2,
+            self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58,63, 66, 67,68, 69, 70 ])) #np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
+            self.subsIDXall = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70]))
             # 21 day 1 train files missing
         self.num_subs = len(self.subsIDXcollate)
 
@@ -197,6 +197,7 @@ def get_eeg_data(bids, day_count, settings):
     if (np.logical_and(bids.substring == 'sub-23', day_count == 0)):        raw.info['bads'] = ['Iz']
     if (np.logical_and(bids.substring == 'sub-47', day_count == 0)):        raw.info['bads'] = ['PO8']
     if (np.logical_and(bids.substring == 'sub-53', day_count == 0)):        raw.info['bads'] = ['Iz']
+    if (np.logical_and(bids.substring == 'sub-70', day_count == 0)):        raw.info['bads'] = ['O2', 'Iz']
 
     if (np.logical_and(bids.substring == 'sub-02', np.logical_and(day_count == 1, settings.testtrain == 1))):
         raw.info['bads'] = ['Oz']

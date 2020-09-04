@@ -30,7 +30,7 @@ import Analysis_Code.analyse_visualsearchtask as avissearch
 
 
 # Decide which analyses to do
-analyseEEGprepost = True # analyse EEG Pre Vs. Post Training
+analyseEEGprepost = True# analyse EEG Pre Vs. Post Training
 analyseEEG_duringNF = False # analyse EEG during Neurofeedback
 analyse_visualsearchtask = False
 

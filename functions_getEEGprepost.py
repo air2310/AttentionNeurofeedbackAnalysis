@@ -79,15 +79,22 @@ def analyseEEGprepost(settings, sub_val):
                                                                                                         fftdat_epochs,
                                                                                                         freq)  # single trial
 
-       # get ssvep amplitudes SNR
+    # get ssvep amplitudes SNR
     SSVEPs_prepost_snr, SSVEPs_prepost_channelmean_snr, BEST_snr = getSSVEPS_conditions(settings, fftdat_snr,
                                                                                                freq)  # trial average
     SSVEPs_prepost_epochs_snr, SSVEPs_prepost_channelmean_epochs_snr, BEST_epochs_snr = getSSVEPS_conditions(
         settings, fftdat_snr_epochs, freq)  # single trial
 
+
+    # Topoplot SSVEPs
+    ERPstring = 'ERP'
+    topoinfo = topoplot_SSVEPs(raw, SSVEPs_prepost, ERPstring, settings, bids)
+
+    ERPstring = 'Single Trial'
+    topoinfo = topoplot_SSVEPs(raw, SSVEPs_prepost_epochs, ERPstring, settings, bids)
+
     # get wavelets
     wavelets_prepost = get_wavelets_prepost(erps_days_wave, settings, epochs, BEST, bids)
-
 
     # Plot SSVEP results
     ERPstring = 'ERP'
@@ -104,55 +111,6 @@ def analyseEEGprepost(settings, sub_val):
 
 
 
-    montage = {'Iz':  [0, -110, -40],
-               'Oz': [0, -105, -15],
-               'POz': [0,   -100, 15],
-               'O1': [-40, -106, -15],
-               'O2':  [40, -106, -15],
-               'PO3': [-35, -101, 10],
-               'PO4': [35,  -101, 10],
-               'PO7': [-70, -110, 0],
-               'PO8': [70, -110, 0],
-               'Pz': [0,   -95, 45],
-               'P9': [-120,   -110, 15],
-               'P10': [120,   -110, 15]}
-
-    montageuse = mne.channels.make_dig_montage(ch_pos=montage, lpa=[-82.5, -19.2, -46], nasion=[0, 83.2, -38.3], rpa=[82.2, -19.2, -46]) # based on mne help file on setting 10-20 montage
-
-
-    # tmp.ch_names[0] = 'Pz''P3''P4' 'P5' 'P6''P7' 'P8' 'P9' 'P10'
-
-
-    tmp = raw.copy().pick_types(eeg=True, exclude=['TRIG'])
-    tmp.rename_channels({"Iz":"Pz"})
-    tmp.rename_channels({"Oz": "P9"})
-    tmp.rename_channels({"POz": "P10"})
-    tmp.pick_channels([tmp.ch_names[pick] for pick in np.arange(3)])
-
-
-    topodat = raw.copy().pick_types(eeg=True, exclude=['TRIG'])
-    topodat.add_channels([tmp])
-
-    topodat.info.set_montage(montageuse)
-
-
-
-    # plot topomap
-    vmin, vmax = np.min(SSVEPs_prepost[:]), np.max(SSVEPs_prepost[:]) # get limits
-    for attntype in np.arange(2):
-        for day in np.arange(2):
-            for attd in np.arange(2):
-                fig, ax = plt.subplots()
-
-                dataplot = SSVEPs_prepost[:,  day, attd, attntype] # chans, # daycount, # attd unattd, # space/feat
-                dataplot = np.append(dataplot, [0, 0, 0])
-                mne.viz.plot_topomap(dataplot, topodat.info, cmap="viridis", show_names=True,
-                                     names=list(('Iz', 'Oz', 'POz', 'O1', 'O2', 'PO3', 'PO4', 'PO7', 'PO8', 'Pz', 'P9', 'P10')), vmin = vmin, vmax=vmax )
-                plt.title(settings.string_attntrained[attntype] + " " + settings.string_attd_unattd[attd] + " " + settings.string_prepost[day])
-
-
-
-
     np.savez(bids.direct_results / Path(bids.substring + "EEG_pre_post_results"),
              SSVEPs_prepost_channelmean_epochs_snr=SSVEPs_prepost_channelmean_epochs_snr,
              SSVEPs_prepost_channelmean_snr=SSVEPs_prepost_channelmean_snr,
@@ -161,7 +119,7 @@ def analyseEEGprepost(settings, sub_val):
              wavelets_prepost=wavelets_prepost,
              timepoints_zp=timepoints_zp,
              erps_days_wave=erps_days_wave,
-             fftdat=fftdat, fftdat_epochs=fftdat_epochs, freq=freq)
+             fftdat=fftdat, fftdat_epochs=fftdat_epochs, freq=freq, topoinfo=topoinfo)
 
 
 
@@ -398,6 +356,77 @@ def get_wavelets_prepost(erps_days, settings, epochs, BEST, bids):
     plt.savefig(bids.direct_results / Path(titlestring + '.png'), format='png')
 
     return wavelets_prepost
+
+
+
+def topoplot_SSVEPs(raw, SSVEPs, ERPstring, settings, bids):
+    import matplotlib.pyplot as plt
+    from pathlib import Path
+
+    # define expanded montage
+    montage = {'Iz': [0, -110, -40],
+               'Oz': [0, -105, -15],
+               'POz': [0, -100, 15],
+               'O1': [-40, -106, -15],
+               'O2': [40, -106, -15],
+               'PO3': [-35, -101, 10],
+               'PO4': [35, -101, 10],
+               'PO7': [-70, -110, 0],
+               'PO8': [70, -110, 0],
+               'Pz': [0, -95, 45],
+               'P9': [-120, -110, 15],
+               'P10': [120, -110, 15]}
+
+    montageuse = mne.channels.make_dig_montage(ch_pos=montage, lpa=[-82.5, -19.2, -46], nasion=[0, 83.2, -38.3],
+                                               rpa=[82.2, -19.2,
+                                                    -46])  # based on mne help file on setting 10-20 montage
+
+    # make new fake channels to add to dat so we can expand info out and add our extra (empty) channels for plotting
+    tmp = raw.copy().pick_types(eeg=True, exclude=['TRIG'])
+    tmp.rename_channels({"Iz": "Pz"})
+    tmp.rename_channels({"Oz": "P9"})
+    tmp.rename_channels({"POz": "P10"})
+    tmp.pick_channels([tmp.ch_names[pick] for pick in np.arange(3)])
+
+    # Add the empty channels to our dopodat (just to get the info) and apply the expanded montage
+    topodat = raw.copy().pick_types(eeg=True, exclude=['TRIG'])
+    topodat.add_channels([tmp])
+
+    topodat.info.set_montage(montageuse)
+
+    # attntype, day, attd = 0, 0, 0
+    # plot topomap
+    vmin, vmax = np.min(SSVEPs[:]), np.max(SSVEPs[:])  # get limits
+
+    fig, (ax1, ax2) = plt.subplots(2, 4, figsize=(15, 6))
+    count = -1
+    for attntype in np.arange(2):
+        for day in np.arange(2):
+            count += 1
+            for attd in np.arange(2):
+                if (attd == 0): axuse = ax1
+                if (attd == 1): axuse = ax2
+
+                plt.axes(axuse[count])
+                dataplot = SSVEPs[:, day, attd, attntype]  # chans, # daycount, # attd unattd, # space/feat
+                dataplot = np.append(dataplot, [0, 0, 0])
+
+                im = mne.viz.plot_topomap(dataplot, topodat.info, cmap="viridis", show_names=False,
+                                     names=list(('Iz', 'Oz', 'POz', 'O1', 'O2', 'PO3', 'PO4', 'PO7', 'PO8', 'Pz',
+                                                 'P9', 'P10')), vmin=vmin, vmax=vmax, contours = 0)
+
+                plt.title(settings.string_attntrained[attntype] + " " + settings.string_attd_unattd[attd] + " " +
+                          settings.string_prepost[day])
+
+                # plt.colorbar(plt.cm.ScalarMappable(cmap=im[0].cmap))
+                plt.colorbar(im[0], shrink=0.5)
+
+
+    titlestring = bids.substring + ' ' + ERPstring + ' Topoplots pre-post'
+    fig.suptitle(titlestring)
+    plt.savefig(bids.direct_results / Path(titlestring + '.png'), format='png')
+
+    return topodat.info
 
 
 def plotResultsPrePost_subjects(SSVEPs_prepost_mean, settings, ERPstring, bids):
