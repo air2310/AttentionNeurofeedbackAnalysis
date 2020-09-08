@@ -11,13 +11,6 @@ import Analysis_Code.analyse_visualsearchtask as avissearch
 
 # TODO:
 
-# add subject scatterpoints to behavioural results
-# figure out topoplotting
-# exclude + 3sd on reaction time
-
-# integrate behavioural analyses with python
-# Organise data better
-
 # correlate behaviour with ssvep selectivity
 # look at differences between classifiable and unclassifiable participants.
 # check prepost differences in nback task
@@ -25,26 +18,27 @@ import Analysis_Code.analyse_visualsearchtask as avissearch
 # analyse behaviour during neurofeedback training - across the three days.
 # look at withing session learning curves for SSVEPs
 
-# asthetic changes to plotting
+# asthetic changes to plotting - add subject scatterpoints to behavioural results
 # stats on behaviour
+# integrate behavioural analyses with python
+# group average topoplots
 
 
 # Decide which analyses to do
-analyseEEGprepost = True# analyse EEG Pre Vs. Post Training
-analyseEEG_duringNF = False # analyse EEG during Neurofeedback
-analyse_visualsearchtask = False
+analyseEEGprepost = False # analyse EEG Pre Vs. Post Training
+analyseEEG_duringNF = False# analyse EEG during Neurofeedback
+analyse_visualsearchtask = False # Analyse Visual Search Task
+analyse_nbacktask = True # Analyse N-back Task
 
 collateEEGprepost = False # Collate EEG Pre Vs. Post Training across subjects
 collateEEG_duringNF = False # Collate EEG during Neurofeedback
 collate_visualsearchtask = False # Collate Visual Search results
 
 # setup generic settings
-attntrained = 0 # ["Space", "Feature"]
+attntrained = 1 # ["Space", "Feature"]
 settings = helper.SetupMetaData(attntrained)
 
 print("Analysing Data for condition train: " + settings.string_attntrained[settings.attntrained])
-
-sub_count, sub_val = 0, 28
 
 # iterate through subjects for individual subject analyses
 for sub_count, sub_val in enumerate(settings.subsIDX):
@@ -163,7 +157,6 @@ if (collateEEGprepost):
     tmp = np.reshape(ssvep_selectivity_prepost,
                      (4, settings.num_subs))  # day 1-space, day 1 - feature, day 4 - space, day 4 - feature
     np.save(bids.direct_results_group / Path("group_ssvep_selectivity_prepost.npy"), tmp)
-
 
 # Collate EEG prepost
 if (collateEEG_duringNF):

@@ -6,12 +6,12 @@ library(ggpubr)
 library(ggthemes)
 
 ## Subnumbers
-options.traintype = 1# Feature or Space
+options.traintype = 2# Feature or Space
 
 if (options.traintype == 1) {
-  subnumbers = c(1, 2 , 4, 8, 9, 18, 21, 23, 41, 47, 57, 58, 63, 66, 67)
+  subnumbers = c(1, 2 , 4, 8, 9, 18, 21, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77)
 } else {
-  subnumbers = c(10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64)
+  subnumbers = c(10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74)
 }
 
 # Settings ----------------------------------------------------------------

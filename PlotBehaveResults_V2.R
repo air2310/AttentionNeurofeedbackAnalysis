@@ -8,16 +8,16 @@ library(ggthemes)
 library(tidyverse)
 
 ## Subnumbers
-options.traintype =1 # Feature or Space
+options.traintype =2 # Feature or Space
 
 if (options.traintype == 1) {
-  subnumbers = c(1, 2 , 4, 8, 9, 18, 21, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69) #c(1, 2 , 4, 8, 9, 18, 21, 23, 41, 47 )
+  subnumbers = c(70, 72, 73, 76, 77) #c(1, 2 , 4, 8, 9, 18, 21, 23, 41, 47 )
 } else {
-  subnumbers = c(10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64) #c(10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53)
+  subnumbers = c (71, 74) #c(10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53)
 }
 # Settings ----------------------------------------------------------------
 
-for (SUB in length(subnumbers)) { #6:length(subnumbers
+for (SUB in 1: length(subnumbers)) { #6:length(subnumbers
   subject = subnumbers[SUB]
   options.TestDay = 1;
   

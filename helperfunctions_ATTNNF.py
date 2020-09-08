@@ -44,14 +44,14 @@ class SetupMetaData:
 
         # get correct subject indices
         if (self.attntrained == 0): # Space
-            self.subsIDX = np.array(([ 71]))
-            self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
-            self.subsIDXall = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71]))
+            self.subsIDX = np.array(([ 74]))
+            self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
+            self.subsIDXall = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74]))
 
         else: # Feature
-            self.subsIDX = np.array(([ 70 ])) # 1, 2,
-            self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58,63, 66, 67,68, 69, 70 ])) #np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
-            self.subsIDXall = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70]))
+            self.subsIDX = np.array(([ 77 ])) # 1, 2,
+            self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58,63, 66, 67,68, 69, 70, 72, 73, 76, 77 ])) #np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
+            self.subsIDXall = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77]))
             # 21 day 1 train files missing
         self.num_subs = len(self.subsIDXcollate)
 
@@ -104,6 +104,17 @@ class SetupMetaData:
         self.num_trialscond = 80
         self.num_setsizes = 3
         self.string_setsize = ["SS8", "SS12", "SS16"]
+
+        return self
+
+    def get_settings_nbacktask(self):  # settings specific to pre vs post training EEG analysis
+        self.testtrain = 0  # 0 = test, 1 = train
+        self.task = 2  # 0 = motion descrim, 1 = visual search, 2 = n-back
+        self.num_days = 2
+        self.daysuse = [1, 4]
+
+        self.num_trialsblock = 48
+        self.num_blocks= 4
 
         return self
 

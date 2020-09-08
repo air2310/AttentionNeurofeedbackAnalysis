@@ -8,11 +8,11 @@ library(RcppCNPy)
 # run options
 
 options.traintype = 2 # Feature or Space
-options.singletrial = 1 # ERP, single trial
+options.singletrial = 2 # ERP, single trial
 
 # task options
 options.task = 1 # 1 = Motion Detection,
-options.TestTrain = 1 # 1 = test, 2 = train
+options.TestTrain = 2 # 1 = test, 2 = train
 
 # analysis options
 n_days = switch (options.TestTrain, 2, 3)
@@ -116,7 +116,7 @@ i <- i + ggtitle( tit ) + theme(plot.title = element_text(hjust = 0.5))
 i <- i + scale_y_continuous(trans='log2')
 i <- i + geom_hline(yintercept=3, linetype="dashed", color = yellow)
 i <- i + geom_hline(yintercept=0.33, linetype="dashed", color = yellow)
-i <- i + geom_vline(xintercept=25, linetype="dashed", color = orange)
+i <- i + geom_vline(xintercept=30, linetype="dashed", color = orange)
 
 i <- i + scale_colour_manual(values = c(darkteal, lightteal) )
 plot(i)

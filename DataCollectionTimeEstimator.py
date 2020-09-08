@@ -5,14 +5,14 @@ from pathlib import Path
 mean_subsweek = 5
 max_subsweek = 8
 
-min_substotal = 50
+min_substotal = 60
 max_substotal = 80
 
-subs_collected = 17 + 16
+subs_collected = 31 + 28
 
 min_subsneeded = min_substotal - subs_collected
 max_subsneeded = max_substotal - subs_collected
-mean_subsneeded = (max_subsneeded+min_subsneeded)/2 -10
+mean_subsneeded = (max_subsneeded+min_subsneeded)/2
 range_subsneeded = max_subsneeded-min_subsneeded
 SD_subsneeded = range_subsneeded / 10
 
