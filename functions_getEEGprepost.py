@@ -73,6 +73,7 @@ def analyseEEGprepost(settings, sub_val):
     fftdat_snr_epochs = getfft_sigtonoise(settings, epochs, fftdat_epochs, freq)
 
     # get ssvep amplitudes
+    # @ David! This is what I'd like you to check :)
     SSVEPs_prepost, SSVEPs_prepost_channelmean, BEST = getSSVEPS_conditions(settings, fftdat,
                                                                                    freq)  # trial average
     SSVEPs_prepost_epochs, SSVEPs_prepost_channelmean_epochs, BEST_epochs = getSSVEPS_conditions(settings,

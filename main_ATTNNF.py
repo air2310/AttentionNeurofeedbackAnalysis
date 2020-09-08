@@ -25,10 +25,10 @@ import Analysis_Code.analyse_visualsearchtask as avissearch
 
 
 # Decide which analyses to do
-analyseEEGprepost = False # analyse EEG Pre Vs. Post Training
+analyseEEGprepost = True # analyse EEG Pre Vs. Post Training
 analyseEEG_duringNF = False# analyse EEG during Neurofeedback
 analyse_visualsearchtask = False # Analyse Visual Search Task
-analyse_nbacktask = True # Analyse N-back Task
+analyse_nbacktask = False # Analyse N-back Task
 
 collateEEGprepost = False # Collate EEG Pre Vs. Post Training across subjects
 collateEEG_duringNF = False # Collate EEG during Neurofeedback
@@ -43,13 +43,49 @@ print("Analysing Data for condition train: " + settings.string_attntrained[setti
 # iterate through subjects for individual subject analyses
 for sub_count, sub_val in enumerate(settings.subsIDX):
     if (analyseEEGprepost):
-         geegpp.analyseEEGprepost(settings, sub_val)
+        geegpp.analyseEEGprepost(settings, sub_val)
 
     if (analyseEEG_duringNF):
         geegdnf.analyseEEG_duringNF(settings, sub_val)
 
     if (analyse_visualsearchtask):
         avissearch.analyse_visualsearchtask(settings, sub_val)
+
+    if (analyse_nbacktask):
+        # get task specific settings
+        settings = settings.get_settings_nbacktask()
+
+        # pre-allocate
+        acc_nback = np.empty((settings.num_trials, settings.num_days))
+        rt_back = np.empty((settings.num_trials, settings.num_days))
+
+        # loop through days
+        for day_count, day_val in enumerate(settings.daysuse):
+            # get file names
+            bids = helper.BIDS_FileNaming(sub_val, settings, day_val)
+
+            # decide which file to use
+            possiblefiles = []
+            filesizes = []
+            for filesfound in bids.direct_data_behave.glob(bids.filename_nback + "*.mat"):
+                filesizes.append(filesfound.stat().st_size)
+                possiblefiles.append(filesfound)
+
+            file2useIDX = np.argmax(
+                filesizes)  # get the biggest file (there are often smaller shorter accidental recordings)
+            file2use = possiblefiles[file2useIDX]
+
+            # load data
+            F = h5py.File(file2use, 'r')
+            print(list(F.keys()))
+
+            # get Accuracy
+            acc_nback[:,day_count] = np.array(F['ACC_ALL']).reshape(settings.num_trials) #responses.hit = 1;responses.falsealarm = 2;responses.correctreject = 3; responses.miss = 4;
+            rt_back[:,day_count] = np.array(F['RT_ALL']).reshape(settings.num_trials)
+
+
+        # Plot reaction time pre vs. post violin plot
+
 
 # Collate EEG prepost
 if (collateEEGprepost):

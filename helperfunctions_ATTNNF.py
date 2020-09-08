@@ -28,8 +28,6 @@ class SetupMetaData:
     direct_dataroot = Path("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Data/")
     direct_resultsroot = Path("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Results/")
 
-    # relevant triggers
-    trig_cuestart_cuediff = np.array(([121, 122], [123, 124]))
 
     # colours
     darkteal = [18 / 255, 47 / 255, 65 / 255]
@@ -37,6 +35,7 @@ class SetupMetaData:
     lightteal = [78 / 255, 185 / 255, 159 / 255]
     yellow = [242 / 255, 176 / 255, 53 / 255]
     orange = [236 / 255, 85 / 255, 58 / 255]
+    red = [193 / 255, 31 / 255, 58 / 255]
 
     # initialise
     def __init__(self, attntrained):
@@ -73,6 +72,12 @@ class SetupMetaData:
         self.timelimits = np.array([0, 6]) # Epoch start and end time (seconds) relative to cue onset
         self.zeropading = 2
         self.timelimits_zeropad = np.array([self.timelimits[0]-self.zeropading, self.timelimits[1]+self.zeropading])
+
+        # relevant triggers
+        trig_cuestart_cuediff = {'Feat/Black': 121, 'Feat/White': 122,
+                                 'Space/Left_diag': 123,
+                                 'Space/Right_diag': 124}  # will be different triggers for training days
+
         return self
 
     def get_settings_EEG_duringNF(self): # settings specific to pre vs post training EEG analysis
@@ -115,6 +120,7 @@ class SetupMetaData:
 
         self.num_trialsblock = 48
         self.num_blocks= 4
+        self.num_trials = self.num_trialsblock * self.num_blocks
 
         return self
 
@@ -144,7 +150,7 @@ class BIDS_FileNaming:
         self.filename_evt = self.casestring + '_events'
         self.filename_behave = self.casestring + '_behav'
         self.filename_vissearch = self.casestring + '_vissearch'
-        self.filename_nback = self.casestring + 'nback'
+        self.filename_nback = self.casestring + '_behav'
 
 def get_timing_variables(timelimits,samplingfreq):
     timelimits_data = timelimits * samplingfreq
