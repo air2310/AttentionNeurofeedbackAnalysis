@@ -8,7 +8,7 @@ import Analysis_Code.helperfunctions_ATTNNF as helper
 import Analysis_Code.functions_getEEGprepost as geegpp
 import Analysis_Code.functions_getEEG_duringNF as geegdnf
 import Analysis_Code.analyse_visualsearchtask as avissearch
-
+import Analysis_Code.analyse_nbacktask as anback
 # TODO:
 
 # correlate behaviour with ssvep selectivity
@@ -23,16 +23,27 @@ import Analysis_Code.analyse_visualsearchtask as avissearch
 # integrate behavioural analyses with python
 # group average topoplots
 
+# collate nbacktask
 
 # Decide which analyses to do
-analyseEEGprepost = True # analyse EEG Pre Vs. Post Training
-analyseEEG_duringNF = False# analyse EEG during Neurofeedback
+# analyseEEGprepost =True # analyse EEG Pre Vs. Post Training
+# analyseEEG_duringNF = True # analyse EEG during Neurofeedback
+# analyse_visualsearchtask = True # Analyse Visual Search Task
+# analyse_nbacktask = True # Analyse N-back Task
+#
+collateEEGprepost = False# Collate EEG Pre Vs. Post Training across subjects
+collateEEG_duringNF = False # Collate EEG during Neurofeedback
+collate_visualsearchtask = False # Collate Visual Search results
+collate_nbacktask = True # Analyse N-back Task
+
+analyseEEGprepost =False # analyse EEG Pre Vs. Post Training
+analyseEEG_duringNF = False # analyse EEG during Neurofeedback
 analyse_visualsearchtask = False # Analyse Visual Search Task
 analyse_nbacktask = False # Analyse N-back Task
 
-collateEEGprepost = False # Collate EEG Pre Vs. Post Training across subjects
-collateEEG_duringNF = False # Collate EEG during Neurofeedback
-collate_visualsearchtask = False # Collate Visual Search results
+# collateEEGprepost = True # Collate EEG Pre Vs. Post Training across subjects
+# collateEEG_duringNF = True # Collate EEG during Neurofeedback
+# collate_visualsearchtask = True # Collate Visual Search results
 
 # setup generic settings
 attntrained = 1 # ["Space", "Feature"]
@@ -52,40 +63,8 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
         avissearch.analyse_visualsearchtask(settings, sub_val)
 
     if (analyse_nbacktask):
-        # get task specific settings
-        settings = settings.get_settings_nbacktask()
-
-        # pre-allocate
-        acc_nback = np.empty((settings.num_trials, settings.num_days))
-        rt_back = np.empty((settings.num_trials, settings.num_days))
-
-        # loop through days
-        for day_count, day_val in enumerate(settings.daysuse):
-            # get file names
-            bids = helper.BIDS_FileNaming(sub_val, settings, day_val)
-
-            # decide which file to use
-            possiblefiles = []
-            filesizes = []
-            for filesfound in bids.direct_data_behave.glob(bids.filename_nback + "*.mat"):
-                filesizes.append(filesfound.stat().st_size)
-                possiblefiles.append(filesfound)
-
-            file2useIDX = np.argmax(
-                filesizes)  # get the biggest file (there are often smaller shorter accidental recordings)
-            file2use = possiblefiles[file2useIDX]
-
-            # load data
-            F = h5py.File(file2use, 'r')
-            print(list(F.keys()))
-
-            # get Accuracy
-            acc_nback[:,day_count] = np.array(F['ACC_ALL']).reshape(settings.num_trials) #responses.hit = 1;responses.falsealarm = 2;responses.correctreject = 3; responses.miss = 4;
-            rt_back[:,day_count] = np.array(F['RT_ALL']).reshape(settings.num_trials)
-
-
-        # Plot reaction time pre vs. post violin plot
-
+        if (sub_val != 21):
+            anback.analyse_nbacktask(settings, sub_val)
 
 # Collate EEG prepost
 if (collateEEGprepost):
@@ -108,7 +87,7 @@ if (collateEEGprepost):
     # iterate through subjects for individual subject analyses
     for sub_count, sub_val in enumerate(settings.subsIDXcollate):
         # get directories and file names
-        bids = helper.BIDS_FileNaming(sub_val, settings, 0)
+        bids = helper.BIDS_FileNaming(int(sub_val), settings, 0)
         print(bids.substring)
 
         # load results
@@ -213,7 +192,7 @@ if (collateEEG_duringNF):
     # iterate through subjects for individual subject analyses
     for sub_count, sub_val in enumerate(settings.subsIDXcollate):
         # get directories and file names
-        bids = helper.BIDS_FileNaming(sub_val, settings, 0)
+        bids = helper.BIDS_FileNaming(int(sub_val), settings, 0)
         print(bids.substring)
 
         # load results
@@ -257,7 +236,7 @@ if (collate_visualsearchtask):
     # iterate through subjects for individual subject analyses
     for sub_count, sub_val in enumerate(settings.subsIDXcollate):
         # get directories and file names
-        bids = helper.BIDS_FileNaming(sub_val, settings, 0)
+        bids = helper.BIDS_FileNaming(int(sub_val), settings, 0)
         print(bids.substring)
 
         # load results
@@ -323,3 +302,93 @@ if (collate_visualsearchtask):
     titlestring = 'Visual Search reaction time train ' + settings.string_attntrained[settings.attntrained]
     plt.title(titlestring)
     plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
+
+if (collate_nbacktask):
+    import seaborn as sns
+    import pandas as pd
+
+    # preallocate
+    num_subs = np.zeros((settings.num_attnstates))
+    daystrings = []
+    attnstrings = []
+    accuracy_compare = []
+    rt_compare = []
+
+    print('Collating N-back Task for space and feature train')
+
+    for attntrained in np.arange(settings.num_attnstates): # cycle trough space and feature train groups
+
+        # get task specific settings
+        settings = helper.SetupMetaData(attntrained)
+        settings = settings.get_settings_nbacktask()
+
+        # pre-allocate for this group
+        if (attntrained == 1): # correct for lost data for sub 21 (feature train)
+            settings.subsIDXcollate = np.delete(settings.subsIDXcollate, settings.subsIDXcollate==21)
+            settings.num_subs = settings.num_subs-1
+
+        num_subs[attntrained] = settings.num_subs
+        mean_acc_all = np.empty((settings.num_days, settings.num_subs))
+        mean_rt_all = np.empty((settings.num_days, settings.num_subs))
+
+        # iterate through subjects for individual subject analyses
+        for sub_count, sub_val in enumerate(settings.subsIDXcollate):
+
+            # get directories and file names
+            bids = helper.BIDS_FileNaming(int(sub_val), settings, 0)
+            print(bids.substring)
+
+            # load results
+            results = np.load(bids.direct_results / Path(bids.substring + "Nback_results.npz"),
+                              allow_pickle=True)  #saved vars: meanacc=meanacc, meanrt=meanrt, acc_vissearch=acc_nback, rt_vissearch=rt_nback
+
+            # store results temporarily
+            mean_acc_all[:, sub_count] = results['meanacc']*100
+            mean_rt_all[:, sub_count] = results['meanrt']
+
+        # store results for attention condition
+        tmp = [settings.string_prepost[0]] * settings.num_subs + [settings.string_prepost[1]] * settings.num_subs
+        daystrings = np.concatenate((daystrings, tmp))
+
+        tmp = [settings.string_attntrained[attntrained]] * settings.num_subs * settings.num_days
+        attnstrings = np.concatenate((attnstrings, tmp))
+
+        tmp = np.concatenate((mean_acc_all[0, :], mean_acc_all[1, :]))
+        accuracy_compare = np.concatenate((accuracy_compare, tmp))
+
+        tmp = np.concatenate((mean_rt_all[0, :], mean_rt_all[1, :]))
+        rt_compare = np.concatenate((rt_compare, tmp))
+
+    # create the data frames for accuracy and reaction time data
+    data = {'Testday': daystrings, 'Attention Trained': attnstrings, 'Accuracy (%)': accuracy_compare }
+    df_acc = pd.DataFrame(data)
+
+    data = {'Testday': daystrings, 'Attention Trained': attnstrings, 'Reaction Time (s)': rt_compare}
+    df_rt = pd.DataFrame(data)
+
+    # plot results
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+    sns.set(style="ticks")
+    colors = ["#112F41", "#4CB99F"]
+
+    # Accuracy Grouped violinplot
+    sns.violinplot(x="Attention Trained", y= "Accuracy (%)" , hue = "Testday", data=df_acc, palette=sns.color_palette(colors), style="ticks", ax=ax1, split=True)
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+
+    ax1.set_title("Accuracy")
+
+    # Reaction time Grouped violinplot
+
+    sns.violinplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", data=df_rt,
+                   palette=sns.color_palette(colors), style="ticks", ax=ax2, split=True)
+    ax2.spines['top'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+
+    ax2.set_title("Reaction time")
+
+    titlestring = 'Nback Results Compare Training'
+
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+

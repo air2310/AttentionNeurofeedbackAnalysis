@@ -2,13 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-mean_subsweek = 5
+mean_subsweek = 6
 max_subsweek = 8
 
 min_substotal = 60
 max_substotal = 80
 
-subs_collected = 31 + 28
+subs_collected = 22 + 24
 
 min_subsneeded = min_substotal - subs_collected
 max_subsneeded = max_substotal - subs_collected
@@ -20,6 +20,7 @@ n_simulations = 1000
 Weeksall = np.empty((n_simulations))
 
 subcount_all = np.round(np.random.randn(n_simulations)*SD_subsneeded + mean_subsneeded)
+subcount_all = np.ones(n_simulations )*min_subsneeded
 # subcount_all = np.round(np.random.rand(n_simulations)*range_subsneeded + min_subsneeded) # uniform dist
 
 # simulate

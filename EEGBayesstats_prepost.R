@@ -7,7 +7,7 @@ library(RcppCNPy)
 
 # run options
 
-options.traintype = 2 # Feature or Space
+options.traintype =2 # Feature or Space
 options.singletrial = 2 # ERP, single trial
 
 # task options
@@ -45,6 +45,9 @@ direct.resultsGroup = paste(direct.resultsRoot, "Train",strings.traintype[option
 
 filename.bids.results = paste( "group_ssvep_selectivity_prepost", strings.singletrial[options.singletrial], ".npy", sep = "") # day 1-space, day 1 - feature, day 4 - space, day 4 - feature
 results <- npyLoad( paste( direct.resultsGroup, "/",  filename.bids.results, sep = ""))
+
+#results = results[,sample(0:19,19, replace = FALSE)]
+
 
 # Assign to dataframe: day 1-space, day 1 - feature, day 4 - space, day 4 - feature
 

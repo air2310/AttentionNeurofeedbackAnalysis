@@ -43,14 +43,14 @@ class SetupMetaData:
 
         # get correct subject indices
         if (self.attntrained == 0): # Space
-            self.subsIDX = np.array(([ 74]))
-            self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
-            self.subsIDXall = np.array(([10, 11, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74]))
+            self.subsIDX = np.array(([ 10, 11, 19, 22, 28, 29,38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84 ]))
+            self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29,38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
+            self.subsIDXall = np.array(([10, 11, 19, 22, 28, 29,38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84]))
 
         else: # Feature
-            self.subsIDX = np.array(([ 77 ])) # 1, 2,
-            self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58,63, 66, 67,68, 69, 70, 72, 73, 76, 77 ])) #np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
-            self.subsIDXall = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77]))
+            self.subsIDX = np.array(([ 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69, 70, 72, 73, 76, 77, 78, 80])) # 1, 2,
+            self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69, 70, 72, 73, 76, 77, 78, 80 ])) #np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
+            self.subsIDXall = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80]))
             # 21 day 1 train files missing
         self.num_subs = len(self.subsIDXcollate)
 
@@ -140,9 +140,15 @@ class BIDS_FileNaming:
         self.direct_results =  settings.direct_resultsroot / Path('Train' + settings.string_attntrained[settings.attntrained] + '/' + self.substring + '/')
         self.direct_results.mkdir(parents=True, exist_ok=True)
 
+        # group results
         self.direct_results_group = settings.direct_resultsroot / Path(
             'Train' + settings.string_attntrained[settings.attntrained] + '/group/')
         self.direct_results_group.mkdir(parents=True, exist_ok=True)
+
+        # group results between subjects
+        self.direct_results_group_compare = settings.direct_resultsroot / Path(
+            'CompareSpaceFeat/group/')
+        self.direct_results_group_compare.mkdir(parents=True, exist_ok=True)
 
         # filenames
         self.filename_eeg = self.casestring + '_eeg'
