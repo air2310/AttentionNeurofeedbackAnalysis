@@ -84,7 +84,53 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
 
             # load data
             F = h5py.File(file2use, 'r')
-            print(list(F.keys()))
+            print(list(F.keys())) #'DATA', 'RESPONSE', 'RESPONSETIME', 'trialtype'
+
+            ### get variables of interest
+            # Response Data
+            response_raw = np.array(F['RESPONSE'])
+            responsetime = np.array(F['RESPONSETIME'])
+
+            # Experiment Settings
+            trialattntype = np.squeeze(np.array(F['DATA']['trialattntype']))
+            moveonsets = np.array(F['DATA']['MOVEONSETS'])
+            directionchanges = np.array(F['DATA']['DirChanges__Moveorder'])
+            moveorder = np.squeeze(np.array(F['DATA']['Moveorder']))
+
+            # process responses
+            response_diff_idx = np.column_stack((np.zeros((settings.num_trials,)).T, np.diff(response_raw, axis=1))) # find changes in trials x frames response variable
+            responses = np.array([np.nan, np.nan, np.nan])
+            # Find responses on each trial
+            for TT in np.arange(settings.num_trials):
+                idx_trialresponses = np.asarray(np.where(response_diff_idx[TT,:]>0)) # Where were the responses this trial?
+
+                if (idx_trialresponses.size>0): # if thre were any responses this trial
+                    for ii in np.arange(idx_trialresponses.shape[1]): # loop through those responses
+                        # stack response, trial, and index of all responses together
+                        idx = idx_trialresponses.item(ii)
+                        tmp = np.array([response_raw.item((TT,idx)), TT, idx])
+                        responses = np.row_stack((responses, tmp))
+            responses = responses.astype(int) # convert back to integers
+
+            # Score behaviour ----------------------------------------------------------------------------------------
+            num_responses = responses.shape[0]
+            resp_accuracy = np.array((num_responses,))
+            resp_reactiontime = np.array((num_responses,))
+            resp_trialattntype = np.array((num_responses,))
+            resp_daystring = np.array((num_responses,))
+
+            for TT in np.arange(settings.num_trials):
+                # Define correct answer for this trial
+                if (trialattntype[TT] == 1):
+                    correctmoveorder = np.where(np.logical_or(moveorder[:,TT] == 1, moveorder[:, TT] == 3))
+
+                # if (trialattntype[TT] == 2):
+                #     correctmoveorder = np.where(np.logical_or(moveorder[:,TT] == 2, moveorder[:, TT] ==4))
+
+
+
+
+
 
     if (analyse_EEG_prepost):
         geegpp.analyseEEGprepost(settings, sub_val)

@@ -94,6 +94,11 @@ class SetupMetaData:
         self.responseopts_falsealarm = 2
         self.responseopts_correct = 3
 
+        # timing settings
+        self.mon_ref = 144
+        self.responseperiod = np.array([0.3, 1.5]) * self.mon.ref
+        self.directions =  np.array([0, 90, 180, 270])
+
         return self
 
     def get_settings_EEG_duringNF(self): # settings specific to pre vs post training EEG analysis
