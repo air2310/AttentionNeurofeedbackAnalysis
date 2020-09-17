@@ -43,12 +43,12 @@ class SetupMetaData:
 
         # get correct subject indices
         if (self.attntrained == 0): # Space
-            self.subsIDX = np.array(([ 10, 11, 19, 22, 28, 29,38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84 ]))
+            self.subsIDX = np.array(([ 10 ]))
             self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29,38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
             self.subsIDXall = np.array(([10, 11, 19, 22, 28, 29,38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84]))
 
         else: # Feature
-            self.subsIDX = np.array(([ 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69, 70, 72, 73, 76, 77, 78, 80])) # 1, 2,
+            self.subsIDX = np.array(([ 1 ])) # 1, 2,
             self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69, 70, 72, 73, 76, 77, 78, 80 ])) #np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
             self.subsIDXall = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80]))
             # 21 day 1 train files missing
@@ -77,6 +77,22 @@ class SetupMetaData:
         trig_cuestart_cuediff = {'Feat/Black': 121, 'Feat/White': 122,
                                  'Space/Left_diag': 123,
                                  'Space/Right_diag': 124}  # will be different triggers for training days
+
+        return self
+
+    def get_settings_behave_prepost(self):
+        self.testtrain = 0  # 0 = test, 1 = train
+        self.task = 0  # 0 = motion descrim, 1 = visual search, 2 = n-back
+        self.num_days = 2
+        self.daysuse = [1, 4]
+        self.num_trials = 192
+        self.num_conditions = 4
+
+        # response options
+        self.responseopts_miss = 0
+        self.responseopts_incorrect = 1
+        self.responseopts_falsealarm = 2
+        self.responseopts_correct = 3
 
         return self
 

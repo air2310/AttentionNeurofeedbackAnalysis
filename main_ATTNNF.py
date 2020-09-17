@@ -9,62 +9,103 @@ import Analysis_Code.functions_getEEGprepost as geegpp
 import Analysis_Code.functions_getEEG_duringNF as geegdnf
 import Analysis_Code.analyse_visualsearchtask as avissearch
 import Analysis_Code.analyse_nbacktask as anback
+
+
 # TODO:
 
+#### New Analyses
 # correlate behaviour with ssvep selectivity
 # look at differences between classifiable and unclassifiable participants.
-# check prepost differences in nback task
 # analyse feedback - how long in each state? how does it correspond to behaviour?
 # analyse behaviour during neurofeedback training - across the three days.
 # look at withing session learning curves for SSVEPs
+# analyse wavelets around movement epochs
+# GLM of results
+# Bayesian anova of results.
 
-# asthetic changes to plotting - add subject scatterpoints to behavioural results
+## Changes to Code
+# asthetic changes to plotting - add subject scatterpoints to violin plots
 # stats on behaviour
 # integrate behavioural analyses with python
 # group average topoplots
 
-# collate nbacktask
 
 # Decide which analyses to do
+# analyse_behaviour_prepost = True
 # analyseEEGprepost =True # analyse EEG Pre Vs. Post Training
 # analyseEEG_duringNF = True # analyse EEG during Neurofeedback
 # analyse_visualsearchtask = True # Analyse Visual Search Task
 # analyse_nbacktask = True # Analyse N-back Task
-#
-collateEEGprepost = False# Collate EEG Pre Vs. Post Training across subjects
-collateEEG_duringNF = False # Collate EEG during Neurofeedback
-collate_visualsearchtask = False # Collate Visual Search results
-collate_nbacktask = True # Analyse N-back Task
 
-analyseEEGprepost =False # analyse EEG Pre Vs. Post Training
-analyseEEG_duringNF = False # analyse EEG during Neurofeedback
+analyse_behaviour_prepost = True # Analyse Behaviour Pre Vs. Post Training
+analyse_EEG_prepost =False # analyse EEG Pre Vs. Post Training
+analyse_EEG_duringNF = False # analyse EEG during Neurofeedback
 analyse_visualsearchtask = False # Analyse Visual Search Task
 analyse_nbacktask = False # Analyse N-back Task
 
-# collateEEGprepost = True # Collate EEG Pre Vs. Post Training across subjects
-# collateEEG_duringNF = True # Collate EEG during Neurofeedback
-# collate_visualsearchtask = True # Collate Visual Search results
+collateEEGprepost = False# Collate EEG Pre Vs. Post Training across subjects
+collateEEGprepostcompare = False # Collate EEG Pre Vs. Post Training across subjects
+collateEEG_duringNF = False # Collate EEG during Neurofeedback
+collate_visualsearchtask = False # Collate Visual Search results
+collate_nbacktask = False # Analyse N-back Task
+
 
 # setup generic settings
-attntrained = 1 # ["Space", "Feature"]
+attntrained = 0 # ["Space", "Feature"]
 settings = helper.SetupMetaData(attntrained)
 
 print("Analysing Data for condition train: " + settings.string_attntrained[settings.attntrained])
 
 # iterate through subjects for individual subject analyses
 for sub_count, sub_val in enumerate(settings.subsIDX):
-    if (analyseEEGprepost):
+    if (analyse_behaviour_prepost):
+        # get task specific settings
+        settings = settings.get_settings_behave_prepost()
+
+        # pre-allocate
+        # acc_nback = np.empty((settings.num_trials, settings.num_days))
+        # rt_nback = np.empty((settings.num_trials, settings.num_days))
+
+        # loop through days
+        for day_count, day_val in enumerate(settings.daysuse):
+            # get file names
+            bids = helper.BIDS_FileNaming(sub_val, settings, day_val)
+
+            # decide which file to use
+            possiblefiles = []
+            filesizes = []
+            for filesfound in bids.direct_data_behave.glob(bids.filename_behave + "*.mat"):
+                filesizes.append(filesfound.stat().st_size)
+                possiblefiles.append(filesfound)
+
+            file2useIDX = np.argmax(
+                filesizes)  # get the biggest file (there are often smaller shorter accidental recordings)
+            file2use = possiblefiles[file2useIDX]
+
+            # load data
+            F = h5py.File(file2use, 'r')
+            print(list(F.keys()))
+
+    if (analyse_EEG_prepost):
         geegpp.analyseEEGprepost(settings, sub_val)
 
-    if (analyseEEG_duringNF):
+    if (analyse_EEG_duringNF):
         geegdnf.analyseEEG_duringNF(settings, sub_val)
 
     if (analyse_visualsearchtask):
+        if (attntrained == 1):  # correct for lost data for sub 21 (feature train)
+            settings.subsIDXcollate = np.delete(settings.subsIDXcollate, settings.subsIDXcollate == 21)
+            settings.num_subs = settings.num_subs - 1
+
         avissearch.analyse_visualsearchtask(settings, sub_val)
 
     if (analyse_nbacktask):
-        if (sub_val != 21):
-            anback.analyse_nbacktask(settings, sub_val)
+        if (attntrained == 1):  # correct for lost data for sub 21 (feature train)
+            settings.subsIDXcollate = np.delete(settings.subsIDXcollate, settings.subsIDXcollate == 21)
+            settings.num_subs = settings.num_subs - 1
+
+        anback.analyse_nbacktask(settings, sub_val)
+
 
 # Collate EEG prepost
 if (collateEEGprepost):
@@ -103,6 +144,16 @@ if (collateEEGprepost):
 
         timepoints_use = results['timepoints_zp']
         freq = results['freq']
+
+    np.savez(bids.direct_results_group / Path("EEGResults_prepost"),
+             SSVEPs_prepost_group=SSVEPs_prepost_group,
+             SSVEPs_epochs_prepost_group=SSVEPs_epochs_prepost_group,
+             fftdat_group=fftdat_group,
+             fftdat_epochs_group=fftdat_epochs_group,
+             wavelets_prepost_group=wavelets_prepost_group,
+             timepoints_use=timepoints_use,
+             freq=freq)
+
 
     # plot grand average frequency spectrum
     fftdat_ave = np.mean(fftdat_group, axis = 5)
@@ -173,6 +224,80 @@ if (collateEEGprepost):
                      (4, settings.num_subs))  # day 1-space, day 1 - feature, day 4 - space, day 4 - feature
     np.save(bids.direct_results_group / Path("group_ssvep_selectivity_prepost.npy"), tmp)
 
+# Collate EEG prepost - Compare space and feature attention
+if (collateEEGprepostcompare):
+    import seaborn as sns
+    import pandas as pd
+    print('collating SSVEP amplitudes pre Vs. post training compareing Space Vs. Feat Training')
+
+    # preallocate
+    num_subs = np.zeros((settings.num_attnstates))
+    daystrings = []
+    attnstrings = []
+    attntaskstrings = []
+    selectivity_compare = []
+
+    # cycle trough space and feature train groups
+    for attntrained in np.arange(settings.num_attnstates):  # cycle trough space and feature train groups
+
+        # get task specific settings
+        settings = helper.SetupMetaData(attntrained)
+        settings = settings.get_settings_nbacktask()
+
+        # file names
+        bids = helper.BIDS_FileNaming(0, settings, 0)
+        print(bids.substring)
+
+        # load results
+        results = np.load(bids.direct_results_group / Path("EEGResults_prepost.npy.npz"), allow_pickle=True)  #
+
+        SSVEPs_epochs_prepost_group = results['SSVEPs_epochs_prepost_group'] #results['SSVEPs_prepost_group']
+        diffdat = SSVEPs_epochs_prepost_group[0, :, :, :] - SSVEPs_epochs_prepost_group[1, :, :, :] # [day,attn,sub]
+
+        # store results for attention condition
+        tmp = [settings.string_prepost[0]] * settings.num_subs * settings.num_attnstates + [settings.string_prepost[1]] * settings.num_subs * settings.num_attnstates
+        daystrings = np.concatenate((daystrings, tmp))
+
+        tmp = [settings.string_attntrained[0]] * settings.num_subs + [settings.string_attntrained[1]] * settings.num_subs
+        attntaskstrings = np.concatenate((attntaskstrings, tmp, tmp))
+
+        tmp = [settings.string_attntrained[attntrained]] * settings.num_subs * settings.num_days * settings.num_attnstates
+        attnstrings = np.concatenate((attnstrings, tmp))
+
+        tmp = np.concatenate((diffdat[0, 0, :], diffdat[0, 1, :], diffdat[1, 0, :], diffdat[1, 1, :]))
+        selectivity_compare = np.concatenate((selectivity_compare, tmp))
+
+    data = {'Testday': daystrings, 'Attention Type': attntaskstrings, 'Attention Trained': attnstrings, 'Selectivity (ΔµV)':  selectivity_compare}
+    df_selctivity = pd.DataFrame(data)
+
+    # plot results
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+    sns.set(style="ticks")
+    colors = ["#F2B035", "#EC553A"]
+
+    # Accuracy Grouped violinplot
+    sns.violinplot(x="Attention Trained", y= "Selectivity (ΔµV)" , hue = "Testday", data=df_selctivity[df_selctivity["Attention Type"].isin([settings.string_attntrained[0]])], palette=sns.color_palette(colors), ax=ax1, split=True, inner="quartile")
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+
+    ax1.set_title(settings.string_attntrained[0] + " Attention")
+    ax1.set_ylim(-0.25, 0.65)
+    # Accuracy Grouped violinplot
+    sns.violinplot(x="Attention Trained", y="Selectivity (ΔµV)", hue="Testday",
+                   data=df_selctivity[df_selctivity["Attention Type"].isin([settings.string_attntrained[1]])],
+                   palette=sns.color_palette(colors), ax=ax2, split=True, inner="quartile")
+    ax2.spines['top'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+
+    ax2.set_title(settings.string_attntrained[1] + " Attention")
+    ax2.set_ylim(-0.25, 0.65)
+
+
+    titlestring = 'Attentional Selectivity PrePost Compare Training'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
 # Collate EEG prepost
 if (collateEEG_duringNF):
     print('collating SSVEP amplitudes during NF')
@@ -225,6 +350,11 @@ if (collate_visualsearchtask):
 
     # get task specific settings
     settings = settings.get_settings_visualsearchtask()
+
+    # correct for lost data for sub 21 (feature train)
+    if (attntrained == 1):
+        settings.subsIDXcollate = np.delete(settings.subsIDXcollate, settings.subsIDXcollate == 21)
+        settings.num_subs = settings.num_subs - 1
 
     # preallocate group mean variables
     num_subs = settings.num_subs
@@ -303,6 +433,175 @@ if (collate_visualsearchtask):
     plt.title(titlestring)
     plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
 
+
+
+
+
+
+
+
+
+    # Collate across group
+    import seaborn as sns
+    import pandas as pd
+
+    # preallocate
+    num_subs = np.zeros((settings.num_attnstates))
+    daystrings = []
+    attnstrings = []
+    setsizestrings = []
+    # substring = []
+    accuracy_compare = []
+    rt_compare = []
+
+    meandaystrings = []
+    meanattnstrings = []
+    meanaccuracy_compare = []
+    meanrt_compare = []
+
+    print('Collating Visual Search Task for space and feature train')
+    for attntrained in np.arange(settings.num_attnstates):  # cycle trough space and feature train groups
+
+        # get task specific settings
+        settings = helper.SetupMetaData(attntrained)
+        settings = settings.get_settings_visualsearchtask()
+
+        # pre-allocate for this group
+        if (attntrained == 1):  # correct for lost data for sub 21 (feature train)
+            settings.subsIDXcollate = np.delete(settings.subsIDXcollate, settings.subsIDXcollate == 21)
+            settings.num_subs = settings.num_subs - 1
+
+        num_subs[attntrained] = settings.num_subs
+        mean_acc_all = np.empty((settings.num_setsizes, settings.num_days, settings.num_subs))
+        mean_rt_all = np.empty((settings.num_setsizes, settings.num_days, settings.num_subs))
+
+        # iterate through subjects for individual subject analyses
+        for sub_count, sub_val in enumerate(settings.subsIDXcollate):
+            # get directories and file names
+            bids = helper.BIDS_FileNaming(int(sub_val), settings, 0)
+            print(bids.substring)
+
+            # load results
+            results = np.load(bids.direct_results / Path(bids.substring + "visual_search_results.npz"),
+                              allow_pickle=True)  # saved vars: meanacc=meanacc, meanrt=meanrt, acc_vissearch=acc_nback, rt_vissearch=rt_nback
+
+            # store results temporarily
+            mean_acc_all[:,: , sub_count] = results['meanacc']
+            mean_rt_all[:,:, sub_count] = results['meanrt']
+
+        # store results for attention condition
+        tmp = [settings.string_prepost[0]] * (settings.num_subs * settings.num_setsizes) + [settings.string_prepost[1]] * (settings.num_subs * settings.num_setsizes)
+        daystrings = np.concatenate((daystrings, tmp)) # pretrain then postrain
+
+        tmp = [settings.string_setsize[0]] * (settings.num_subs) +  [settings.string_setsize[1]] * (settings.num_subs) +  [settings.string_setsize[2]] * (settings.num_subs)
+        setsizestrings = np.concatenate((setsizestrings, tmp, tmp)) #Each setsize for each subject, repeated for the two testdays
+
+        # tmp = np.arange(settings.num_subs)
+        # substring = np.concatenate((substring, tmp, tmp, tmp, tmp, tmp, tmp)) # subject number for each setsize and day cond
+
+        tmp = [settings.string_attntrained[attntrained]] * settings.num_subs * settings.num_days * settings.num_setsizes
+        attnstrings = np.concatenate((attnstrings, tmp)) # All setsizes and subjects and days are the same attention trained
+
+        tmp = np.concatenate((mean_acc_all[0, 0, :], mean_acc_all[1, 0, :], mean_acc_all[2, 0, :],
+                              mean_acc_all[0, 1, :], mean_acc_all[1, 1, :], mean_acc_all[2, 1, :]))
+        accuracy_compare = np.concatenate((accuracy_compare, tmp))
+
+        tmp = np.concatenate((mean_rt_all[0, 0, :], mean_rt_all[1, 0, :], mean_rt_all[2, 0, :],
+                              mean_rt_all[0, 1, :], mean_rt_all[1, 1, :], mean_rt_all[2, 1, :]))
+        rt_compare = np.concatenate((rt_compare, tmp))
+
+        # store results for attention condition - mean across set size conditions
+        tmp = [settings.string_prepost[0]] * settings.num_subs + [settings.string_prepost[1]] * settings.num_subs
+        meandaystrings = np.concatenate((meandaystrings, tmp))
+
+        tmp = [settings.string_attntrained[attntrained]] * settings.num_subs * settings.num_days
+        meanattnstrings = np.concatenate((meanattnstrings, tmp))
+
+        mean_acc_all2 = np.mean(mean_acc_all, axis = 0)
+        tmp = np.concatenate((mean_acc_all2[0, :], mean_acc_all2[1, :]))
+        meanaccuracy_compare = np.concatenate((meanaccuracy_compare, tmp))
+
+        mean_rt_all2 = np.mean(mean_rt_all, axis = 0)
+        tmp = np.concatenate((mean_rt_all2[0, :], mean_rt_all2[1, :]))
+        meanrt_compare = np.concatenate((meanrt_compare, tmp))
+
+    # create the data frames for accuracy and reaction time data
+    data = {'Testday': daystrings, 'Attention Trained': attnstrings, 'Set Size':setsizestrings, 'Accuracy (%)': accuracy_compare}
+    df_acc = pd.DataFrame(data)
+
+    data = { 'Testday': daystrings, 'Attention Trained': attnstrings, 'Set Size':setsizestrings, 'Reaction Time (s)': rt_compare}
+    df_rt = pd.DataFrame(data)
+
+    # plot results
+    fig, (ax1, ax2) = plt.subplots(2, 2, figsize=(12, 8))
+    sns.set(style="ticks")
+    colors = ["#112F41", "#4CB99F"]
+
+    # Accuracy Grouped violinplot
+    for attn, attnstring in enumerate(settings.string_attntrained):
+        sns.violinplot(x="Set Size", y="Accuracy (%)", hue="Testday", data=df_acc[df_acc["Attention Trained"].isin([attnstring])],
+                       palette=sns.color_palette(colors), style="ticks", ax=ax1[attn], split=True, inner="stick")
+
+        ax1[attn].spines['top'].set_visible(False)
+        ax1[attn].spines['right'].set_visible(False)
+
+        ax1[attn].set_title(attnstring)
+        ax1[attn].set_ylim(0,100)
+
+
+    # Reaction time Grouped violinplot
+    colors = ["#F2B035", "#EC553A"]
+
+    for attn, attnstring in enumerate(settings.string_attntrained):
+        sns.violinplot(x="Set Size", y="Reaction Time (s)", hue="Testday",
+                       data=df_rt[df_rt["Attention Trained"].isin([attnstring])],
+                       palette=sns.color_palette(colors), style="ticks", ax=ax2[attn], split=True, inner="stick")
+
+        ax2[attn].spines['top'].set_visible(False)
+        ax2[attn].spines['right'].set_visible(False)
+
+        ax2[attn].set_title(attnstring)
+
+    titlestring = 'Visual Search Results Compare Training'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+
+
+    # Plot average over set sizes
+    # create the data frames for accuracy and reaction time data
+    data = {'Testday': meandaystrings, 'Attention Trained': meanattnstrings, 'Accuracy (%)': meanaccuracy_compare}
+    df_acc_SSmean = pd.DataFrame(data)
+
+    data = {'Testday': meandaystrings, 'Attention Trained': meanattnstrings, 'Reaction Time (s)': meanrt_compare}
+    df_rt_SSmean = pd.DataFrame(data)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+    sns.set(style="ticks")
+    colors = ["#112F41", "#4CB99F"]
+
+    # Accuracy Grouped violinplot
+
+    sns.violinplot(x="Attention Trained", y= "Accuracy (%)" , hue = "Testday", data=df_acc_SSmean, palette=sns.color_palette(colors), style="ticks", ax=ax1, split=True, inner="stick")
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+    ax1.set_ylim(0, 100)
+    ax1.set_title("Accuracy")
+
+    # Reaction time Grouped violinplot
+    colors = ["#F2B035", "#EC553A"]
+    sns.violinplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", data=df_rt_SSmean,
+                   palette=sns.color_palette(colors), style="ticks", ax=ax2, split=True, inner="stick")
+    ax2.spines['top'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+
+    ax2.set_title("Reaction time")
+
+    titlestring = 'Visual Search Results Compare Training Set Size Ave'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+# Collate N-Back Task
 if (collate_nbacktask):
     import seaborn as sns
     import pandas as pd
@@ -340,7 +639,7 @@ if (collate_nbacktask):
 
             # load results
             results = np.load(bids.direct_results / Path(bids.substring + "Nback_results.npz"),
-                              allow_pickle=True)  #saved vars: meanacc=meanacc, meanrt=meanrt, acc_vissearch=acc_nback, rt_vissearch=rt_nback
+                              allow_pickle=True)  #saved vars: meanacc=meanacc, meanrt=meanrt, acc_nback=acc_nback, rt_nback=rt_nback
 
             # store results temporarily
             mean_acc_all[:, sub_count] = results['meanacc']*100
@@ -373,22 +672,22 @@ if (collate_nbacktask):
     colors = ["#112F41", "#4CB99F"]
 
     # Accuracy Grouped violinplot
-    sns.violinplot(x="Attention Trained", y= "Accuracy (%)" , hue = "Testday", data=df_acc, palette=sns.color_palette(colors), style="ticks", ax=ax1, split=True)
+    sns.violinplot(x="Attention Trained", y= "Accuracy (%)" , hue = "Testday", data=df_acc, palette=sns.color_palette(colors), style="ticks", ax=ax1, split=True, inner="stick")
     ax1.spines['top'].set_visible(False)
     ax1.spines['right'].set_visible(False)
-
+    ax1.set_ylim(0, 100)
     ax1.set_title("Accuracy")
 
     # Reaction time Grouped violinplot
-
+    colors = ["#F2B035", "#EC553A"]
     sns.violinplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", data=df_rt,
-                   palette=sns.color_palette(colors), style="ticks", ax=ax2, split=True)
+                   palette=sns.color_palette(colors), style="ticks", ax=ax2, split=True, inner="stick")
     ax2.spines['top'].set_visible(False)
     ax2.spines['right'].set_visible(False)
 
     ax2.set_title("Reaction time")
 
     titlestring = 'Nback Results Compare Training'
-
+    plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
