@@ -10,6 +10,7 @@ import Analysis_Code.functions_getEEG_duringNF as geegdnf
 import Analysis_Code.analyse_visualsearchtask as avissearch
 import Analysis_Code.analyse_nbacktask as anback
 
+# P86 super artifacty throughout - maybe exclude? frequency spectrum looks weird. look into this.
 
 # TODO:
 
@@ -30,24 +31,42 @@ import Analysis_Code.analyse_nbacktask as anback
 # group average topoplots
 
 
-# Decide which analyses to do
-# analyse_behaviour_prepost = True
-# analyseEEGprepost =True # analyse EEG Pre Vs. Post Training
-# analyseEEG_duringNF = True # analyse EEG during Neurofeedback
-# analyse_visualsearchtask = True # Analyse Visual Search Task
-# analyse_nbacktask = True # Analyse N-back Task
+######## Decide which single subject analyses to do ########
 
-analyse_behaviour_prepost = True # Analyse Behaviour Pre Vs. Post Training
+# analyse_behaviour_prepost = True
+analyse_behaviour_prepost = False # Analyse Behaviour Pre Vs. Post Training
+
+# analyse_EEG_prepost =True # analyse EEG Pre Vs. Post Training
 analyse_EEG_prepost =False # analyse EEG Pre Vs. Post Training
+
+# analyse_EEG_duringNF = True # analyse EEG during Neurofeedback
 analyse_EEG_duringNF = False # analyse EEG during Neurofeedback
+
+# analyse_visualsearchtask = True # Analyse Visual Search Task
 analyse_visualsearchtask = False # Analyse Visual Search Task
+
+# analyse_nbacktask = True # Analyse N-back Task
 analyse_nbacktask = False # Analyse N-back Task
 
+######## Decide which group analyses to do ########
+
+# collateEEGprepost = True# Collate EEG Pre Vs. Post Training across subjects
 collateEEGprepost = False# Collate EEG Pre Vs. Post Training across subjects
+
+# collateEEGprepostcompare = True # Collate EEG Pre Vs. Post Training across subjects
 collateEEGprepostcompare = False # Collate EEG Pre Vs. Post Training across subjects
+
+# collateEEG_duringNF = True # Collate EEG during Neurofeedback
 collateEEG_duringNF = False # Collate EEG during Neurofeedback
-collate_visualsearchtask = False # Collate Visual Search results
-collate_nbacktask = False # Analyse N-back Task
+
+collate_visualsearchtask = True# Collate Visual Search results
+# collate_visualsearchtask = False # Collate Visual Search results
+
+collate_nbacktask = True # Analyse N-back Task
+# collate_nbacktask = False # Analyse N-back Task
+
+
+
 
 
 # setup generic settings
@@ -127,11 +146,6 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
                 # if (trialattntype[TT] == 2):
                 #     correctmoveorder = np.where(np.logical_or(moveorder[:,TT] == 2, moveorder[:, TT] ==4))
 
-
-
-
-
-
     if (analyse_EEG_prepost):
         geegpp.analyseEEGprepost(settings, sub_val)
 
@@ -140,14 +154,23 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
 
     if (analyse_visualsearchtask):
         if (attntrained == 1):  # correct for lost data for sub 21 (feature train)
-            settings.subsIDXcollate = np.delete(settings.subsIDXcollate, settings.subsIDXcollate == 21)
-            settings.num_subs = settings.num_subs - 1
+            if (attntrained == 1):  # correct for lost data for sub 21 (feature train)
+                settings.subsIDXcollate = np.delete(settings.subsIDXcollate,
+                                                    np.isin(settings.subsIDXcollate, np.array([21, 89])))
+                settings.num_subs = settings.num_subs - 2
+            if (attntrained == 0):  # correct for lost data for sub 21 (feature train)
+                settings.subsIDXcollate = np.delete(settings.subsIDXcollate,
+                                                    np.isin(settings.subsIDXcollate, np.array([90])))
+                settings.num_subs = settings.num_subs - 1
 
         avissearch.analyse_visualsearchtask(settings, sub_val)
 
     if (analyse_nbacktask):
         if (attntrained == 1):  # correct for lost data for sub 21 (feature train)
-            settings.subsIDXcollate = np.delete(settings.subsIDXcollate, settings.subsIDXcollate == 21)
+            settings.subsIDXcollate = np.delete(settings.subsIDXcollate, np.isin(settings.subsIDXcollate, np.array([21, 89 ])))
+            settings.num_subs = settings.num_subs - 2
+        if (attntrained == 0):  # correct for lost data for sub 21 (feature train)
+            settings.subsIDXcollate = np.delete(settings.subsIDXcollate, np.isin(settings.subsIDXcollate, np.array([90])))
             settings.num_subs = settings.num_subs - 1
 
         anback.analyse_nbacktask(settings, sub_val)
@@ -295,7 +318,7 @@ if (collateEEGprepostcompare):
         print(bids.substring)
 
         # load results
-        results = np.load(bids.direct_results_group / Path("EEGResults_prepost.npy.npz"), allow_pickle=True)  #
+        results = np.load(bids.direct_results_group / Path("EEGResults_prepost.npz"), allow_pickle=True)  #
 
         SSVEPs_epochs_prepost_group = results['SSVEPs_epochs_prepost_group'] #results['SSVEPs_prepost_group']
         diffdat = SSVEPs_epochs_prepost_group[0, :, :, :] - SSVEPs_epochs_prepost_group[1, :, :, :] # [day,attn,sub]
@@ -397,9 +420,13 @@ if (collate_visualsearchtask):
     # get task specific settings
     settings = settings.get_settings_visualsearchtask()
 
-    # correct for lost data for sub 21 (feature train)
-    if (attntrained == 1):
-        settings.subsIDXcollate = np.delete(settings.subsIDXcollate, settings.subsIDXcollate == 21)
+    # correct for lost data
+    if (attntrained == 1):  # correct for lost data for sub 21 (feature train)
+        settings.subsIDXcollate = np.delete(settings.subsIDXcollate,
+                                            np.isin(settings.subsIDXcollate, np.array([21, 89])))
+        settings.num_subs = settings.num_subs - 2
+    if (attntrained == 0):  # correct for lost data for sub 21 (feature train)
+        settings.subsIDXcollate = np.delete(settings.subsIDXcollate, np.isin(settings.subsIDXcollate, np.array([90])))
         settings.num_subs = settings.num_subs - 1
 
     # preallocate group mean variables
@@ -512,9 +539,14 @@ if (collate_visualsearchtask):
         settings = helper.SetupMetaData(attntrained)
         settings = settings.get_settings_visualsearchtask()
 
-        # pre-allocate for this group
+        # correct for lost data
         if (attntrained == 1):  # correct for lost data for sub 21 (feature train)
-            settings.subsIDXcollate = np.delete(settings.subsIDXcollate, settings.subsIDXcollate == 21)
+            settings.subsIDXcollate = np.delete(settings.subsIDXcollate,
+                                                np.isin(settings.subsIDXcollate, np.array([21, 89])))
+            settings.num_subs = settings.num_subs - 2
+        if (attntrained == 0):  # correct for lost data for sub 21 (feature train)
+            settings.subsIDXcollate = np.delete(settings.subsIDXcollate,
+                                                np.isin(settings.subsIDXcollate, np.array([90])))
             settings.num_subs = settings.num_subs - 1
 
         num_subs[attntrained] = settings.num_subs
@@ -668,9 +700,14 @@ if (collate_nbacktask):
         settings = settings.get_settings_nbacktask()
 
         # pre-allocate for this group
-        if (attntrained == 1): # correct for lost data for sub 21 (feature train)
-            settings.subsIDXcollate = np.delete(settings.subsIDXcollate, settings.subsIDXcollate==21)
-            settings.num_subs = settings.num_subs-1
+        if (attntrained == 1):  # correct for lost data for sub 21 (feature train)
+            settings.subsIDXcollate = np.delete(settings.subsIDXcollate,
+                                                np.isin(settings.subsIDXcollate, np.array([21, 89])))
+            settings.num_subs = settings.num_subs - 2
+        if (attntrained == 0):  # correct for lost data for sub 21 (feature train)
+            settings.subsIDXcollate = np.delete(settings.subsIDXcollate,
+                                                np.isin(settings.subsIDXcollate, np.array([90])))
+            settings.num_subs = settings.num_subs - 1
 
         num_subs[attntrained] = settings.num_subs
         mean_acc_all = np.empty((settings.num_days, settings.num_subs))
