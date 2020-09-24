@@ -96,7 +96,7 @@ class SetupMetaData:
 
         # timing settings
         self.mon_ref = 144
-        self.responseperiod = np.array([0.3, 1.5]) * self.mon.ref
+        self.responseperiod = np.round(np.array([0.3, 1.5]) * self.mon_ref)
         self.directions =  np.array([0, 90, 180, 270])
 
         return self

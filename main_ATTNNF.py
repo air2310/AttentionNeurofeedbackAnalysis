@@ -30,11 +30,10 @@ import Analysis_Code.analyse_nbacktask as anback
 # integrate behavioural analyses with python
 # group average topoplots
 
-
 ######## Decide which single subject analyses to do ########
 
-# analyse_behaviour_prepost = True
-analyse_behaviour_prepost = False # Analyse Behaviour Pre Vs. Post Training
+analyse_behaviour_prepost = True
+# analyse_behaviour_prepost = False # Analyse Behaviour Pre Vs. Post Training
 
 # analyse_EEG_prepost =True # analyse EEG Pre Vs. Post Training
 analyse_EEG_prepost =False # analyse EEG Pre Vs. Post Training
@@ -48,6 +47,7 @@ analyse_visualsearchtask = False # Analyse Visual Search Task
 # analyse_nbacktask = True # Analyse N-back Task
 analyse_nbacktask = False # Analyse N-back Task
 
+
 ######## Decide which group analyses to do ########
 
 # collateEEGprepost = True# Collate EEG Pre Vs. Post Training across subjects
@@ -59,11 +59,11 @@ collateEEGprepostcompare = False # Collate EEG Pre Vs. Post Training across subj
 # collateEEG_duringNF = True # Collate EEG during Neurofeedback
 collateEEG_duringNF = False # Collate EEG during Neurofeedback
 
-collate_visualsearchtask = True# Collate Visual Search results
-# collate_visualsearchtask = False # Collate Visual Search results
+# collate_visualsearchtask = True# Collate Visual Search results
+collate_visualsearchtask = False # Collate Visual Search results
 
-collate_nbacktask = True # Analyse N-back Task
-# collate_nbacktask = False # Analyse N-back Task
+# collate_nbacktask = True # Analyse N-back Task
+collate_nbacktask = False # Analyse N-back Task
 
 
 
@@ -97,13 +97,12 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
                 filesizes.append(filesfound.stat().st_size)
                 possiblefiles.append(filesfound)
 
-            file2useIDX = np.argmax(
-                filesizes)  # get the biggest file (there are often smaller shorter accidental recordings)
+            file2useIDX = np.argmax(filesizes)  # get the biggest file (there are often smaller shorter accidental recordings)
             file2use = possiblefiles[file2useIDX]
 
             # load data
             F = h5py.File(file2use, 'r')
-            print(list(F.keys())) #'DATA', 'RESPONSE', 'RESPONSETIME', 'trialtype'
+            # print(list(F.keys())) #'DATA', 'RESPONSE', 'RESPONSETIME', 'trialtype'
 
             ### get variables of interest
             # Response Data
@@ -118,7 +117,8 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
 
             # process responses
             response_diff_idx = np.column_stack((np.zeros((settings.num_trials,)).T, np.diff(response_raw, axis=1))) # find changes in trials x frames response variable
-            responses = np.array([np.nan, np.nan, np.nan])
+            responses = np.array([np.nan, np.nan, np.nan]) # start of responses array
+
             # Find responses on each trial
             for TT in np.arange(settings.num_trials):
                 idx_trialresponses = np.asarray(np.where(response_diff_idx[TT,:]>0)) # Where were the responses this trial?
@@ -129,22 +129,97 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
                         idx = idx_trialresponses.item(ii)
                         tmp = np.array([response_raw.item((TT,idx)), TT, idx])
                         responses = np.row_stack((responses, tmp))
-            responses = responses.astype(int) # convert back to integers
+
+            tmp = np.delete(responses, 0,0) # delete Nans at the begining
+            responses = tmp.astype(int) # convert back to integers
 
             # Score behaviour ----------------------------------------------------------------------------------------
             num_responses = responses.shape[0]
-            resp_accuracy = np.array((num_responses,))
-            resp_reactiontime = np.array((num_responses,))
-            resp_trialattntype = np.array((num_responses,))
-            resp_daystring = np.array((num_responses,))
+            resp_accuracy = np.array(np.nan)
+            resp_reactiontime = np.array(np.nan)
+            resp_trialattntype = np.array(np.nan)
+            # resp_daystring = np.array([np.nan])
 
             for TT in np.arange(settings.num_trials):
-                # Define correct answer for this trial
-                if (trialattntype[TT] == 1):
+                # Define when the targets happened on this trial
+
+                # for moveorder, coding is in terms of the cue so: 1 = Cued Feature, Cued Space, 2 = Uncued Feature, Cued Space, 3 = Cued Feature, Uncued Space, 4 = Uncued Feature, Uncued Space.
+                # For the pre and post training task, this coding is a little irrelevant, as we get either a space or a feature cue, not both (like we do during neurofeedback). However, we just used the same coding to make the
+                # task easier to write up. Therefore, either 1 or 3 could mean the cued feature for feature cues, and either 1 or 2 could mean the cued space for space cues.
+                # if trial attntype == 3 - during NF, only want moveorder = 1.
+                if (trialattntype[TT] == 1): # Feature
                     correctmoveorder = np.where(np.logical_or(moveorder[:,TT] == 1, moveorder[:, TT] == 3))
 
-                # if (trialattntype[TT] == 2):
-                #     correctmoveorder = np.where(np.logical_or(moveorder[:,TT] == 2, moveorder[:, TT] ==4))
+                if (trialattntype[TT] == 2): # Space
+                    correctmoveorder = np.where(np.logical_or(moveorder[:,TT] == 1, moveorder[:, TT] ==2))
+
+                # Define correct answers for this trial
+                correct = directionchanges[correctmoveorder, TT].T
+                for ii in np.arange(len(correct)):
+                    correct[ii] = np.where(settings.directions==correct[ii])
+
+                # define period in which correct answers happen
+                tmp = moveonsets[correctmoveorder, TT].T
+                moveframes = np.array([np.nan, np.nan])
+                for ii in np.arange(len(tmp)):
+                    tmp2 = np.array( [ tmp[ii] +settings.responseperiod[0], tmp[ii] +settings.responseperiod[1] ] )
+                    moveframes = np.row_stack((moveframes, tmp2.T))
+                moveframes = np.delete(moveframes, 0, axis=0) # delete the row we used to initialise
+
+                # Gather responses from this trial
+                trialresponses = np.array(np.where(responses[:,1]==TT))
+                trialresponses_accounted = np.zeros(len(trialresponses.T))
+
+                # Allocate response accuracy and reaction time for this trial
+                for ii in np.arange(len(correct)):
+                    # get eligible responses within trial response period
+                    idx_response = np.array(np.where(np.logical_and(responses[:,1]==TT, np.logical_and(responses[:,2] > moveframes[ii,0],  responses[:,2] < moveframes[ii,1]))))
+                    idx_response = np.reshape(idx_response, -1)
+
+                    # if any of the responses during this trial happened during the necessary time period after a target, mark it as accounted for
+                    trialresponses_accounted[np.squeeze(np.isin(trialresponses, idx_response))] = 1
+
+                    # Fill out accuracy data - if no response to this target during the response period.
+                    if len(idx_response)==0: #if no response to this target during the response period.
+                        resp_accuracy = np.row_stack((resp_accuracy, settings.responseopts_miss))
+                        resp_reactiontime = np.row_stack(( resp_reactiontime, np.nan))
+                        resp_trialattntype = np.row_stack((resp_trialattntype, trialattntype[TT]))
+
+                    elif len(idx_response) == 1:  # Correct or incorrect response?
+                        if responses[idx_response, 0] == correct[ii]: # Correct Response!
+                            resp_accuracy = np.row_stack((resp_accuracy, settings.responseopts_correct))
+                        else:
+                            resp_accuracy = np.row_stack((resp_accuracy, settings.responseopts_incorrect))
+
+                        tmp = responsetime[TT, responses[idx_response,2]] - moveonsets[np.reshape(correctmoveorder, -1)[ii],TT]/settings.mon_ref
+                        resp_reactiontime = np.row_stack((resp_reactiontime, tmp))
+                        resp_trialattntype = np.row_stack((resp_trialattntype, trialattntype[TT]))
+
+                    elif len(idx_response) > 1:  # False alarm somewhere
+                        idx_correct = np.where(np.squeeze(responses[idx_response, 0] == correct[ii]))
+                        idx_falsealarm = np.where(np.squeeze(responses[idx_response, 0] != correct[ii]))
+
+                        # Accuracy
+                        tmp = np.ones(idx_response.shape[1])*np.nan # create array of NaNs of length of number of responses
+                        tmp[ idx_correct ] = settings.responseopts_correct # mark correct answers as correct
+                        tmp[ idx_falsealarm ] = settings.responseopts_falsealarm  # mark incorrect answers as false alarms
+
+                        resp_accuracy = np.row_stack((resp_accuracy, np.expand_dims(tmp, axis = 1)) )# stack to accuracy results
+
+                        # Response Time and Trial Attention type
+                        tmp = np.ones(idx_response.shape[1]) * np.nan  # create array of NaNs of length of number of responses
+                        tmp[idx_correct] = responsetime[TT, responses[np.squeeze(idx_response)[idx_correct],2]] - moveonsets[np.reshape(correctmoveorder, -1)[ii],TT]/settings.mon_ref
+
+                        resp_reactiontime = np.row_stack((resp_reactiontime,  np.expand_dims(tmp, axis = 1)))
+
+                        # trial attention type
+                        tmp = np.ones(idx_response.shape[1]) * trialattntype[TT]
+                        resp_trialattntype = np.row_stack((resp_trialattntype,  np.expand_dims(tmp, axis = 1)))
+
+
+
+
+
 
     if (analyse_EEG_prepost):
         geegpp.analyseEEGprepost(settings, sub_val)
@@ -611,21 +686,8 @@ if (collate_visualsearchtask):
     df_rt = pd.DataFrame(data)
 
     # plot results
-    fig, (ax1, ax2) = plt.subplots(2, 2, figsize=(12, 8))
+    fig, (ax1) = plt.subplots(1, 2, figsize=(12, 6))
     sns.set(style="ticks")
-    colors = ["#112F41", "#4CB99F"]
-
-    # Accuracy Grouped violinplot
-    for attn, attnstring in enumerate(settings.string_attntrained):
-        sns.violinplot(x="Set Size", y="Accuracy (%)", hue="Testday", data=df_acc[df_acc["Attention Trained"].isin([attnstring])],
-                       palette=sns.color_palette(colors), style="ticks", ax=ax1[attn], split=True, inner="stick")
-
-        ax1[attn].spines['top'].set_visible(False)
-        ax1[attn].spines['right'].set_visible(False)
-
-        ax1[attn].set_title(attnstring)
-        ax1[attn].set_ylim(0,100)
-
 
     # Reaction time Grouped violinplot
     colors = ["#F2B035", "#EC553A"]
@@ -633,12 +695,12 @@ if (collate_visualsearchtask):
     for attn, attnstring in enumerate(settings.string_attntrained):
         sns.violinplot(x="Set Size", y="Reaction Time (s)", hue="Testday",
                        data=df_rt[df_rt["Attention Trained"].isin([attnstring])],
-                       palette=sns.color_palette(colors), style="ticks", ax=ax2[attn], split=True, inner="stick")
+                       palette=sns.color_palette(colors), style="ticks", ax=ax1[attn], split=True, inner="stick")
 
-        ax2[attn].spines['top'].set_visible(False)
-        ax2[attn].spines['right'].set_visible(False)
+        ax1[attn].spines['top'].set_visible(False)
+        ax1[attn].spines['right'].set_visible(False)
 
-        ax2[attn].set_title(attnstring)
+        ax1[attn].set_title(attnstring)
 
     titlestring = 'Visual Search Results Compare Training'
     plt.suptitle(titlestring)
