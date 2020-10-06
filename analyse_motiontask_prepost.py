@@ -10,9 +10,12 @@ import sys
 
 import Analysis_Code.helperfunctions_ATTNNF as helper
 
-def run(settings, sub_val):
+def run(settings, sub_val, test_train):
     #get task specific settings
-    settings = settings.get_settings_behave_prepost()
+    if (test_train == 0):
+        settings = settings.get_settings_behave_prepost()
+    else:
+        settings = settings.get_settings_behave_duringNF()
 
     # pre-allocate
     # acc_nback = np.empty((settings.num_trials, settings.num_days))
@@ -30,8 +33,13 @@ def run(settings, sub_val):
             filesizes.append(filesfound.stat().st_size)
             possiblefiles.append(filesfound)
 
-        file2useIDX = np.argmax(filesizes)  # get the biggest file (there are often smaller shorter accidental recordings)
-        file2use = possiblefiles[file2useIDX]
+        if any(filesizes):
+            file2useIDX = np.argmax(filesizes)  # get the biggest file (there are often smaller shorter accidental recordings)
+            file2use = possiblefiles[file2useIDX]
+        else:
+            if (day_count==0):
+                 df_behavedata=[] # assign df_behave data as empty if this happens on the first day
+            continue
 
         # load data
         F = h5py.File(file2use, 'r')
@@ -85,6 +93,9 @@ def run(settings, sub_val):
 
             if (trialattntype[TT] == 2): # Space
                 correctmoveorder = np.where(np.logical_or(moveorder[:,TT] == 1, moveorder[:, TT] ==2))
+
+            if (trialattntype[TT] == 3):  # Space
+                correctmoveorder = np.where(moveorder[:, TT] == 1)
 
             # Define correct answers for this trial
             correct = directionchanges[correctmoveorder, TT].T
@@ -189,12 +200,13 @@ def run(settings, sub_val):
         resp_trialattntype =resp_trialattntype.astype(str)
         resp_trialattntype[resp_trialattntype=='1.0'] = settings.trialattntype[0]
         resp_trialattntype[resp_trialattntype == '2.0'] = settings.trialattntype[1]
+        resp_trialattntype[resp_trialattntype == '3.0'] = settings.trialattntype[2]
 
         # list behavioural data
         behavedata = {'Testday': daystrings, 'Accuracy': np.squeeze(resp_accuracy),
                       'Reaction Time': np.squeeze(resp_reactiontime),
                       'Attention Type': np.squeeze(resp_trialattntype)}
-        if (day_count == 0) :
+        if (day_count == 0 or not any(df_behavedata)) :
             df_behavedata = pd.DataFrame(behavedata)
 
         else: # apend second day data to first day data
@@ -216,14 +228,20 @@ def run(settings, sub_val):
     sns.set(style="ticks")
 
     # Reaction time Grouped violinplot
-    colors = ["#F2B035", "#EC553A"]
 
-    sns.violinplot(x="Attention Type", y="Reaction Time", hue="Testday",data=df_behavedata, palette=sns.color_palette(colors), style="ticks", ax=ax1, split=True, inner="quartile")
+
+    if (test_train==0):
+        colors = ["#F2B035", "#EC553A"]
+        sns.violinplot(x="Attention Type", y="Reaction Time", hue="Testday",data=df_behavedata, palette=sns.color_palette(colors), style="ticks", ax=ax1, split=True, inner="quartile")
+    else:
+        colors = ["#F2B035", "#EC553A", "#C11F3A"] # yellow, orange, red
+        sns.violinplot(x="Testday", y="Reaction Time",data=df_behavedata,
+                       palette=sns.color_palette(colors), style="ticks", ax=ax1)
 
     ax1.spines['top'].set_visible(False)
     ax1.spines['right'].set_visible(False)
 
-    titlestring =  bids.substring + ' Motion Task RT by Day'
+    titlestring =  bids.substring + ' Motion Task RT by Day ' +  settings.string_testtrain[test_train]
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results / Path(titlestring + '.png'), format='png')
 
@@ -231,6 +249,7 @@ def run(settings, sub_val):
 
     # copy data to new accuracy data frame
     df_accuracy = df_behavedata[['Testday', 'Attention Type']].copy()
+
 
     # fill in the columns
     tmp = np.zeros(df_behavedata.__len__())
@@ -253,6 +272,7 @@ def run(settings, sub_val):
     # df_accuracy.set_index(['Testday', 'Attention Type'], inplace=True)
     acc_count = df_accuracy.groupby(['Testday', 'Attention Type']).sum()
 
+
     # Normalise
     totals = acc_count["miss"]+ acc_count['incorrect'] + acc_count["falsealarm"]+ acc_count['correct']
     acc_count = acc_count.div(totals, axis=0)*100
@@ -262,28 +282,40 @@ def run(settings, sub_val):
     acc_count2 = acc_count2.T
 
     # plot!
-    fig, (ax) = plt.subplots(1, 2, figsize=(12, 6))
+    if (test_train == 0):
+        fig, (ax) = plt.subplots(1, 2, figsize=(12, 6))
+    else:
+        fig, (ax) = plt.subplots(1, 1, figsize=(6, 6))
 
     # style
     colors = ["#4EB99F", "#C11F3A", "#F2B035", "#EC553A"] # light teal,red, yellow, orrange
 
     sns.set(style="ticks", palette=sns.color_palette(colors))
 
-    # Reaction time Grouped violinplot
-    for attn, attn_val in enumerate(settings.string_attntype):
-        acc_count2[attn_val].T.plot(kind='bar', stacked=True,  ax=ax[attn])
+    if (test_train == 0):
+        # Reaction time Grouped violinplot
+        for attn, attn_val in enumerate(settings.string_attntype):
+            acc_count2[attn_val].T.plot(kind='bar', stacked=True,  ax=ax[attn])
 
-        ax[attn].spines['top'].set_visible(False)
-        ax[attn].spines['right'].set_visible(False)
+            ax[attn].spines['top'].set_visible(False)
+            ax[attn].spines['right'].set_visible(False)
 
-        ax[attn].set_ylabel('Response %')
-        ax[attn].set_title(attn_val)
+            ax[attn].set_ylabel('Response %')
+            ax[attn].set_title(attn_val)
+    else:
+        acc_count2['Both'].T.plot(kind='bar', stacked=True, ax=ax)
 
-    titlestring = bids.substring + ' Motion Task Accuracy by Day'
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+
+        ax.set_ylabel('Response %')
+
+
+    titlestring = bids.substring + ' Motion Task Accuracy by Day ' +  settings.string_testtrain[test_train]
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results / Path(titlestring + '.png'), format='png')
 
     # save results.
-    df_accuracy.to_pickle(bids.direct_results / Path(bids.substring + "motiondiscrim_acc.pkl"))
-    df_behavedata.to_pickle(bids.direct_results / Path(bids.substring + "motiondiscrim_allbehave.pkl"))
+    df_accuracy.to_pickle(bids.direct_results / Path(bids.substring + "motiondiscrim_acc_" +  settings.string_testtrain[test_train] + ".pkl"))
+    df_behavedata.to_pickle(bids.direct_results / Path(bids.substring + "motiondiscrim_allbehave_" +  settings.string_testtrain[test_train] + ".pkl"))
 #

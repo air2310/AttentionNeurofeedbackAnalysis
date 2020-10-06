@@ -37,21 +37,29 @@ class SetupMetaData:
     orange = [236 / 255, 85 / 255, 58 / 255]
     red = [193 / 255, 31 / 255, 58 / 255]
 
+    darkteal_ = "#122F41"
+    medteal_ = "#058586"
+    lightteal_ = "#4EB99F"
+    yellow_ = "#F2B035"
+    orange_ = "#EC553A"
+    red_ = "#C11F3A"
+
+
     # initialise
     def __init__(self, attntrained):
         self.attntrained = attntrained
 
         # get correct subject indices
         if (self.attntrained == 0): # Space
-            self.subsIDX = np.array(([ 10, 11, 19, 22, 28, 29,38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90]))
-            self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29,38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
-            self.subsIDXall = np.array(([10, 11, 19, 22, 28, 29,38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90,99]))
+            self.subsIDX = np.array(([ 104 ]))
+            self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29,38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90,94,97, 99, 104 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
+            self.subsIDXall = np.array(([10, 11, 19, 22, 28, 29,38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104]))
 
         else: # Feature
-            self.subsIDX = np.array(([ 1 ])) # 1, 2,
-            self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89, 92 ])) #np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
-            self.subsIDXall = np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89,92]))
-            # 21 day 1 train files missing
+            self.subsIDX = np.array(([ 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89, 92, 100, 101, 102])) # 1, 2,
+            self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58,63, 66, 67,68, 69, 70, 72, 73, 76, 77, 78, 80,  87, 89, 92, 100, 101, 102 ])) #np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
+            self.subsIDXall = np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89,92, 100, 101, 102]))
+
         self.num_subs = len(self.subsIDXcollate)
 
 
@@ -86,6 +94,31 @@ class SetupMetaData:
         self.num_days = 2
         self.daysuse = [1, 4]
         self.num_trials = 192
+        self.num_conditions = 4
+
+        # response options
+        self.responseopts_miss = 0
+        self.responseopts_incorrect = 1
+        self.responseopts_falsealarm = 2
+        self.responseopts_correct = 3
+
+        # timing settings
+        self.mon_ref = 144
+        # self.responseperiod = np.round(np.array([0.3, 1.5]) * self.mon_ref)
+        self.responseperiod = np.round(np.array([0.3, 1.75]) * self.mon_ref)
+
+        self.directions =  np.array([0, 90, 180, 270])
+
+        self.trialattntype = ['Feature', 'Space', 'Both']
+        self.string_attntype = ["Space", "Feature"]
+
+        return self
+    def get_settings_behave_duringNF(self):
+        self.testtrain = 1  # 0 = test, 1 = train
+        self.task = 0  # 0 = motion descrim, 1 = visual search, 2 = n-back
+        self.num_days = 3
+        self.daysuse = [1, 2, 3]
+        self.num_trials = 256
         self.num_conditions = 4
 
         # response options

@@ -3,16 +3,23 @@ library(R.matlab)
 library(ggplot2)
 library(RcppCNPy)
 
+library(reshape2)
+library(plyr)
+library(RColorBrewer)
+library(ggpubr)
+library(ggthemes)
+library(tidyverse)
+
 # Settings ----------------------------------------------------------------
 
 # run options
 
-options.traintype =2 # Feature or Space
+options.traintype =1# Feature or Space
 options.singletrial =2 # ERP, single trial
 
 # task options
 options.task = 1 # 1 = Motion Detection,
-options.TestTrain = 2 # 1 = test, 2 = train
+options.TestTrain = 1 # 1 = test, 2 = train
 
 # analysis options
 n_days = switch (options.TestTrain, 2, 3)
