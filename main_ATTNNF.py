@@ -145,14 +145,8 @@ if (collate_behaviour_prepost):
         print(bids.substring)
 
         # load results
-        accdat_sub = pd.read_pickle(bids.direct_results / Path(bids.substring + "motiondiscrim_acc.pkl"))
-        behdat_sub = pd.read_pickle(bids.direct_results / Path(bids.substring + "motiondiscrim_allbehave.pkl"))
-
-        # df_accuracy.to_pickle(bids.direct_results / Path(
-        #     bids.substring + "motiondiscrim_acc_" + settings.string_testtrain[test_train] + ".pkl"))
-        # df_behavedata.to_pickle(bids.direct_results / Path(
-        #     bids.substring + "motiondiscrim_allbehave_" + settings.string_testtrain[test_train] + ".pkl"))
-        #
+        accdat_sub = pd.read_pickle(bids.direct_results / Path(bids.substring + "motiondiscrim_acc_" +  settings.string_testtrain[0] + ".pkl"))
+        behdat_sub = pd.read_pickle(bids.direct_results / Path(bids.substring + "motiondiscrim_allbehave_" +  settings.string_testtrain[0] + ".pkl"))
 
         # Add Sub ID column
         accdat_sub['subID']=sub_count
@@ -235,6 +229,9 @@ if (collate_behaviour_prepost):
     titlestring =  'Motion Task Accuracy by Day Train ' + settings.string_attntrained[settings.attntrained]
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
+
+    # Save results out for collation later
+    accdat_all_avg.to_pickle(bids.direct_results_group / Path("motiondiscrim_behaveresults_" + settings.string_testtrain[0] + ".pkl"))
 
 # Collate motion task behaviour prepost
 if (collate_behaviour_duringNF):
@@ -927,7 +924,7 @@ if (collate_nbacktask):
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
 if (classification_acc_correlations):
-
+    ############# Load Classification Accuracy Data ###############################
     attntrained_vec = []
     sub_vec = []
     classifiertype_vec = []
@@ -1008,10 +1005,10 @@ if (classification_acc_correlations):
 
         # get task specific settings
         settings = helper.SetupMetaData(attntrained)
-        settings = settings.get_settings_nbacktask()
+        settings = settings.get_settings_EEG_prepost()
 
         # file names
-        bids = helper.BIDS_FileNaming(0, settings, 0)
+        bids = helper.BIDS_FileNaming(subject_idx=0, settings=settings, day_val=0)
 
         # load results
         results = np.load(bids.direct_results_group / Path("EEGResults_prepost.npz"), allow_pickle=True)  #
@@ -1040,51 +1037,164 @@ if (classification_acc_correlations):
     df_selctivity = pd.DataFrame(data)
 
     # Add selectivity - get the indices we're interested in.
-    idx_space = np.logical_and(df_selctivity.Testday == 'pre-training',df_selctivity["Attention Type"] == "Space")
-    idx_feature = np.logical_and(df_selctivity.Testday == 'pre-training', df_selctivity["Attention Type"] == "Feature")
+    idx_space_pre = np.logical_and(df_selctivity.Testday == 'pre-training',df_selctivity["Attention Type"] == "Space")
+    idx_feature_pre = np.logical_and(df_selctivity.Testday == 'pre-training', df_selctivity["Attention Type"] == "Feature")
 
     idx_space_post = np.logical_and(df_selctivity.Testday == 'post-training', df_selctivity["Attention Type"] == "Space")
     idx_feature_post = np.logical_and(df_selctivity.Testday == 'post-training', df_selctivity["Attention Type"] == "Feature")
 
     # create new correlation dataframe to add selectivity to
     df_correlationsdat = df_classifier_condensed.drop(["ClassifierType"], axis = 1).copy().reset_index()
+    df_correlationsdat = df_correlationsdat.drop(["index"], axis=1)
 
-    # add selectivity
-    df_correlationsdat["Space_Selectivity"] = df_selctivity.loc[idx_space,:].reset_index().loc[:,"Selectivity (ΔµV)"]
-    df_correlationsdat["Feature_Selectivity"] = df_selctivity.loc[idx_feature,:].reset_index().loc[:,"Selectivity (ΔµV)"]
+    # add selectivity - pre and post training
+    df_correlationsdat["Space_Selectivity_pre"] = df_selctivity.loc[idx_space_pre,:].reset_index().loc[:,"Selectivity (ΔµV)"]
+    df_correlationsdat["Feature_Selectivity_pre"] = df_selctivity.loc[idx_feature_pre,:].reset_index().loc[:,"Selectivity (ΔµV)"]
+
+    df_correlationsdat["Space_Selectivity_post"] = df_selctivity.loc[idx_space_post, :].reset_index().loc[:, "Selectivity (ΔµV)"]
+    df_correlationsdat["Feature_Selectivity_post"] = df_selctivity.loc[idx_feature_post, :].reset_index().loc[:, "Selectivity (ΔµV)"]
 
     # Add training effect
-    df_correlationsdat["Space_Selectivity_trainefc"] =  df_selctivity.loc[idx_space_post, :].reset_index().loc[:, "Selectivity (ΔµV)"] - df_selctivity.loc[idx_space, :].reset_index().loc[:, "Selectivity (ΔµV)"]
-    df_correlationsdat["Feature_Selectivity_trainefc"] = df_selctivity.loc[idx_feature_post, :].reset_index().loc[:,"Selectivity (ΔµV)"] - df_selctivity.loc[idx_feature, :].reset_index().loc[:,"Selectivity (ΔµV)"]
-    # cleanup
-    df_correlationsdat = df_correlationsdat.drop(["index"], axis = 1)
+    df_correlationsdat["Space_Selectivity_trainefc"] =  df_selctivity.loc[idx_space_post, :].reset_index().loc[:, "Selectivity (ΔµV)"] - df_selctivity.loc[idx_space_pre, :].reset_index().loc[:, "Selectivity (ΔµV)"]
+    df_correlationsdat["Feature_Selectivity_trainefc"] = df_selctivity.loc[idx_feature_post, :].reset_index().loc[:,"Selectivity (ΔµV)"] - df_selctivity.loc[idx_feature_pre, :].reset_index().loc[:,"Selectivity (ΔµV)"]
 
-    # plot scatter
 
-    fig, ax = plt.subplots(2, 2, figsize=(12, 12))
+    ######## Load behavioural data
+    # cycle trough space and feature train groups
+    for attntrainedcount, attntrained in enumerate(settings.string_attntrained):  # cycle trough space and feature train groups
+        # setup generic settings
+        settings = helper.SetupMetaData(attntrainedcount)
+        settings = settings.get_settings_behave_prepost()
+
+        # file names
+        bids = helper.BIDS_FileNaming(subject_idx=0, settings=settings, day_val=0)
+
+        # accdat_all_avg.to_pickle(bids.direct_results_group / Path("motiondiscrim_behaveresults_" + settings.string_testtrain[0] + ".pkl"))
+        df_behaveresults_tmp = pd.read_pickle(bids.direct_results_group / Path("motiondiscrim_behaveresults_" + settings.string_testtrain[0] + ".pkl"))
+        df_behaveresults_tmp['AttentionTrained'] = attntrained
+
+        if (attntrainedcount==0):
+            df_behaveresults = df_behaveresults_tmp[['AttentionTrained', 'Testday', 'Attention Type', 'Sensitivity']]
+        else:
+            df_behaveresults = df_behaveresults.append(df_behaveresults_tmp[['AttentionTrained', 'Testday', 'Attention Type', 'Sensitivity']])
+
+    # Add data to correlations dat - get indices
+    idx_space_pre = np.logical_and(df_behaveresults.Testday == 'Day 1', df_behaveresults["Attention Type"] == "Space")
+    idx_feature_pre = np.logical_and(df_behaveresults.Testday == 'Day 1', df_behaveresults["Attention Type"] == "Feature")
+
+    idx_space_post = np.logical_and(df_behaveresults.Testday == 'Day 4', df_behaveresults["Attention Type"] == "Space")
+    idx_feature_post = np.logical_and(df_behaveresults.Testday == 'Day 4', df_behaveresults["Attention Type"] == "Feature")
+
+    # Add data to correlations dat
+    df_correlationsdat["Space_Sensitivity_pre"] = df_behaveresults.loc[idx_space_pre, :].reset_index().loc[:, "Sensitivity"]
+    df_correlationsdat["Feature_Sensitivity_pre"] = df_behaveresults.loc[idx_feature_pre, :].reset_index().loc[:, "Sensitivity"]
+
+    df_correlationsdat["Space_Sensitivity_post"] = df_behaveresults.loc[idx_space_post, :].reset_index().loc[:, "Sensitivity"]
+    df_correlationsdat["Feature_Sensitivity_post"] = df_behaveresults.loc[idx_feature_post, :].reset_index().loc[:, "Sensitivity"]
+
+    # Add training effect
+    df_correlationsdat["Space_Sensitivity_trainefc"] = df_behaveresults.loc[idx_space_post, :].reset_index().loc[:, "Sensitivity"] - df_behaveresults.loc[idx_space_pre, :].reset_index().loc[:, "Sensitivity"]
+    df_correlationsdat["Feature_Sensitivity_trainefc"] = df_behaveresults.loc[idx_feature_post, :].reset_index().loc[:, "Sensitivity"] - df_behaveresults.loc[idx_feature_pre, :].reset_index().loc[:, "Sensitivity"]
+
+    # plot classification accuracy vs. Selectivity
+
+    corrs_space = df_correlationsdat.loc[df_correlationsdat.AttentionTrained == "Space", ["ClassifierAccuracy", "Space_Selectivity_pre"]].corr()["ClassifierAccuracy"][ "Space_Selectivity_pre"]
+    corrs_feat = df_correlationsdat.loc[df_correlationsdat.AttentionTrained == "Feature", ["ClassifierAccuracy", "Feature_Selectivity_pre"]].corr()["ClassifierAccuracy"][ "Feature_Selectivity_pre"]
+
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
     sns.set(style="ticks")
     colors = [settings.yellow_, settings.lightteal_]
 
-    # Accuracy Grouped violinplot
-    sns.scatterplot(data=df_correlationsdat[df_correlationsdat.AttentionTrained=="Space"] , x="ClassifierAccuracy", y="Space_Selectivity", ax=ax[0][0], color = settings.yellow_)
-    sns.scatterplot(data=df_correlationsdat[df_correlationsdat.AttentionTrained == "Feature"], x="ClassifierAccuracy", y="Feature_Selectivity", ax=ax[0][0], color=settings.lightteal_)
-    ax[0][0].set_title("Classifier Acc Vs. Selectivity")
-    ax[0][0].set_ylabel("Selectivity for trained attention type")
-    ax[0][0].legend(settings.string_attntrained, title="Attention Trained")
-
-    sns.scatterplot(data=df_correlationsdat[df_correlationsdat.AttentionTrained == "Feature"], x="ClassifierAccuracy", y="Feature_Selectivity_trainefc", ax=ax[0][1], color = settings.lightteal_)
-    sns.scatterplot(data=df_correlationsdat[df_correlationsdat.AttentionTrained=="Space"], x="ClassifierAccuracy", y="Space_Selectivity_trainefc",  ax=ax[0][1], color=settings.yellow_)
-    ax[0][1].set_title("Classifier Acc Vs. Selectivity train effect")
-    ax[0][1].set_ylabel("change in Selectivity for trained attention type")
-    ax[0][1].legend(settings.string_attntrained, title="Attention Trained")
-
-    sns.scatterplot(data=df_correlationsdat, x="Feature_Selectivity", y="Space_Selectivity", hue="AttentionTrained",palette=sns.color_palette(colors), ax=ax[1][0])
-    ax[1][0].set_title("Feature Selectivity Vs. Space Selectivity")
-
-
-    titlestring = 'Correlations classification acc'
+    sns.scatterplot(data=df_correlationsdat[df_correlationsdat.AttentionTrained == "Space"], x="ClassifierAccuracy", y="Space_Selectivity_pre", ax=ax, color=settings.yellow_)
+    sns.scatterplot(data=df_correlationsdat[df_correlationsdat.AttentionTrained == "Feature"], x="ClassifierAccuracy", y="Feature_Selectivity_pre", ax=ax, color=settings.lightteal_)
+    ax.set_title("Space r = " + str(corrs_space) + ', Feat r = ' + str(corrs_feat))
+    ax.set_ylabel("Selectivity for trained attention type")
+    ax.legend(settings.string_attntrained, title="Attention Trained")
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    titlestring = "Classifier Acc Vs. Selectivity Scatter"
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
 
-    # next up - training effect
+    # Plot how training effects relate to classifcation accuracy
+
+    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+    sns.set(style="ticks")
+    colors = [settings.yellow_, settings.lightteal_]
+
+    sns.scatterplot(data=df_correlationsdat[df_correlationsdat.AttentionTrained == "Feature"], x="ClassifierAccuracy", y="Feature_Selectivity_trainefc", ax=ax[0], color = settings.lightteal_)
+    sns.scatterplot(data=df_correlationsdat[df_correlationsdat.AttentionTrained=="Space"], x="ClassifierAccuracy", y="Space_Selectivity_trainefc",  ax=ax[0], color=settings.yellow_)
+    ax[0].set_title("Classifier Acc Vs. Selectivity train effect")
+    ax[0].set_ylabel("change in Selectivity for trained attention type")
+    ax[0].legend(settings.string_attntrained, title="Attention Trained")
+    ax[0].spines['top'].set_visible(False)
+    ax[0].spines['right'].set_visible(False)
+
+    sns.scatterplot(data=df_correlationsdat[df_correlationsdat.AttentionTrained == "Feature"], x="ClassifierAccuracy", y="Feature_Sensitivity_trainefc", ax=ax[1], color=settings.lightteal_)
+    sns.scatterplot(data=df_correlationsdat[df_correlationsdat.AttentionTrained == "Space"], x="ClassifierAccuracy", y="Space_Sensitivity_trainefc", ax=ax[1], color=settings.yellow_)
+    ax[1].set_title("Classifier Acc Vs. Sensitivity (d') train effect")
+    ax[1].set_ylabel("Change in Sensitivity for trained attention type")
+    ax[1].legend(settings.string_attntrained, title="Attention Trained")
+    ax[1].spines['top'].set_visible(False)
+    ax[1].spines['right'].set_visible(False)
+
+    titlestring = "Effect of classifier accuracy on training"
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+
+    # plot Retest Reliability of measures
+    fig, ax = plt.subplots(2, 2, figsize=(12, 12))
+    sns.set(style="ticks")
+    colors = [settings.yellow_, settings.lightteal_]
+
+    sns.scatterplot(data=df_correlationsdat, x="Space_Selectivity_pre", y="Space_Selectivity_post", hue="AttentionTrained",palette=sns.color_palette(colors), ax=ax[0][0])
+    ax[0][0].set_title("Space Selectivity Pre Vs. Post")
+
+    sns.scatterplot(data=df_correlationsdat, x="Feature_Selectivity_pre", y="Feature_Selectivity_post", hue="AttentionTrained", palette=sns.color_palette(colors), ax=ax[0][1])
+    ax[0][1].set_title("Feature Selectivity Pre Vs. Post")
+
+    sns.scatterplot(data=df_correlationsdat, x="Space_Sensitivity_pre", y="Space_Sensitivity_post", hue="AttentionTrained", palette=sns.color_palette(colors), ax=ax[1][0])
+    ax[1][0].set_title("Space Sensitivity Pre Vs. Post")
+
+    sns.scatterplot(data=df_correlationsdat, x="Feature_Sensitivity_pre", y="Feature_Sensitivity_post", hue="AttentionTrained", palette=sns.color_palette(colors), ax=ax[1][1])
+    ax[1][1].set_title("Feature Selectivity Pre Vs. Post")
+
+    titlestring = "Retest reliability of attention measures"
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+
+    # Plot Construct validity
+
+    fig, ax = plt.subplots(1, 3, figsize=(16, 6))
+    sns.set(style="ticks")
+    colors = [settings.yellow_, settings.lightteal_]
+
+    sns.scatterplot(data=df_correlationsdat[df_correlationsdat.AttentionTrained == "Space"], x="Space_Selectivity_pre", y="Space_Sensitivity_pre", ax=ax[0], color=settings.yellow_)
+    sns.scatterplot(data=df_correlationsdat[df_correlationsdat.AttentionTrained == "Feature"], x="Feature_Selectivity_pre", y="Feature_Sensitivity_pre", ax=ax[0], color = settings.lightteal_)
+    ax[0].set_title("SSVEP Selectivity Vs. Behave Sensitivity (pre train)")
+    ax[0].set_ylabel("Sensitivity (d')")
+    ax[0].set_xlabel("SSVEP Selectivity")
+    ax[0].legend(settings.string_attntrained, title="Attention Trained")
+    ax[0].spines['top'].set_visible(False)
+    ax[0].spines['right'].set_visible(False)
+
+    sns.scatterplot(data=df_correlationsdat, x="Space_Selectivity_pre", y="Feature_Selectivity_pre", hue="AttentionTrained",palette=sns.color_palette(colors), ax=ax[1])
+    ax[1].set_title("Selectivity Space Vs Feature (pre train)")
+    ax[1].set_ylabel("Feature_Selectivity_pre")
+    ax[1].set_xlabel("Space_Selectivity_pre")
+    ax[1].spines['top'].set_visible(False)
+    ax[1].spines['right'].set_visible(False)
+
+    sns.scatterplot(data=df_correlationsdat, x="Space_Sensitivity_pre", y="Feature_Sensitivity_pre", hue="AttentionTrained",palette=sns.color_palette(colors), ax=ax[2])
+    ax[2].set_title("Sensitivity Space Vs Feature (pre train)")
+    ax[2].set_ylabel("Feature_Sensitivity_pre")
+    ax[2].set_xlabel("Space_Sensitivity_pre")
+    ax[2].spines['top'].set_visible(False)
+    ax[2].spines['right'].set_visible(False)
+
+    titlestring = "Construct validity"
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
