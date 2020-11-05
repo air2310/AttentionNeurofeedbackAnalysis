@@ -51,14 +51,14 @@ class SetupMetaData:
 
         # get correct subject indices
         if (self.attntrained == 0): # Space
-            self.subsIDX = np.array(([10, 11, 19, 22, 28, 29,38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90,94,97, 99, 104  ]))
-            self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29,38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90,94,97, 99, 104 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
-            self.subsIDXall = np.array(([10, 11, 19, 22, 28, 29,38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104]))
+            self.subsIDX = np.array(([ 22 ]))
+            self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112, 113, 123 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
+            self.subsIDXall =     np.array(([10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112, 113, 123]))
 
         else: # Feature
-            self.subsIDX = np.array(([ 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89, 92, 100, 101, 102])) # 1, 2,
-            self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58,63, 66, 67,68, 69, 70, 72, 73, 76, 77, 78, 80,  87, 89, 92, 100, 101, 102 ])) #np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
-            self.subsIDXall = np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89,92, 100, 101, 102]))
+            self.subsIDX = np.array(([ 118 ])) # 1, 2,
+            self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80,     87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 118, 119, 120])) #np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
+            self.subsIDXall =     np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 118, 119, 120]))
 
         self.num_subs = len(self.subsIDXcollate)
 
@@ -264,7 +264,7 @@ def get_eeg_data(bids, day_count, settings):
     # raw.plot(remove_dc = False, scalings=dict(eeg=50))
 
     # pick events
-    if np.any(np.isin(np.array(['sub-68', 'sub-89']), bids.substring)): #(bids.substring == 'sub-68'):
+    if np.any(np.isin(np.array(['sub-68', 'sub-89', 'sub-119']), bids.substring)): #(bids.substring == 'sub-68'): Sometimes an especially short trigger is detected and we need to set a shorter min duration for triggers.
                 events = mne.find_events(raw, stim_channel="TRIG", min_duration=4/raw.info['sfreq'])
     else:
         events = mne.find_events(raw, stim_channel="TRIG")
@@ -280,6 +280,7 @@ def get_eeg_data(bids, day_count, settings):
     if (np.logical_and(bids.substring == 'sub-47', day_count == 0)):        raw.info['bads'] = ['PO8']
     if (np.logical_and(bids.substring == 'sub-53', day_count == 0)):        raw.info['bads'] = ['Iz']
     if (np.logical_and(bids.substring == 'sub-70', day_count == 0)):        raw.info['bads'] = ['O2', 'Iz']
+    if (bids.substring == 'sub-112'):        raw.info['bads'] = ['O1', 'O2']
 
     if (np.logical_and(bids.substring == 'sub-02', np.logical_and(day_count == 1, settings.testtrain == 1))):
         raw.info['bads'] = ['Oz']

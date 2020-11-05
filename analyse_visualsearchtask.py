@@ -35,11 +35,12 @@ def analyse_visualsearchtask(settings, sub_val):
         for setcount, set_val in enumerate(settings.string_setsize):
             # reaction time data - exclude outliers
             tmp = np.array(F['RT'][set_val])
-            outliers = tmp > (
-                    np.nanmean(tmp) + np.nanstd(tmp) * 3)  # exclude data points 3 times greater than the mean
-            tmp[outliers] = np.nan
 
-            rt_vissearch[:, setcount, day_count] = tmp
+            if np.any(np.logical_not(np.isnan(tmp))):
+                outliers = tmp > (np.nanmean(tmp) + np.nanstd(tmp) * 3)  # exclude data points 3 times greater than the mean
+                tmp[outliers] = np.nan
+
+                rt_vissearch[:, setcount, day_count] = tmp
 
             # Accuracy data - exclude outliers
             tmp = np.array(F['ACC'][set_val])

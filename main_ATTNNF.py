@@ -15,11 +15,18 @@ import Analysis_Code.analyse_visualsearchtask as avissearch
 import Analysis_Code.analyse_nbacktask as anback
 import Analysis_Code.analyse_motiontask_prepost as analyse_motion_prepost
 
-# P86 super artifacty throughout - maybe exclude? frequency spectrum looks weird. look into this.
+# P86 super artifacty throughout - exlude? - frequency spectrum looks weird. look into this. - can we exclude a specific channel?
+# P106 - exclude day 1 phase train
+# exclude chance level vis search Ps
+# figure out whats happening with visual search collation.
 
 # TODO:
 
 #### New Analyses
+# analyse the neurofeedback - how much time are we spending in each state and does that actually have an effect
+# analyse the latency - are we changing the amount of time people spend in each state? (sustained attn feedback)
+
+
 # correlate behaviour with ssvep selectivity
 # look at differences between classifiable and unclassifiable participants.
 # analyse feedback - how long in each state? how does it correspond to behaviour?
@@ -32,27 +39,28 @@ import Analysis_Code.analyse_motiontask_prepost as analyse_motion_prepost
 ## Changes to Code
 # stats on behaviour
 # group average topoplots
+# individual trial independance of spatial and feature based-attention measure - how correlated are they really?
 
 ######## Decide which single subject analyses to do ########
 
-# analyse_behaviour_prepost = True # Analyse Behaviour Pre Vs. Post Training
-analyse_behaviour_prepost = False # Analyse Behaviour Pre Vs. Post Training
+analyse_behaviour_prepost = True # Analyse Behaviour Pre Vs. Post Training
+# analyse_behaviour_prepost = False # Analyse Behaviour Pre Vs. Post Training
 
-# analyse_behaviour_duringNF = True # Analyse Behaviour Pre Vs. Post Training
-analyse_behaviour_duringNF = False # Analyse Behaviour Pre Vs. Post Training
-#
+analyse_behaviour_duringNF = True # Analyse Behaviour Pre Vs. Post Training
+# analyse_behaviour_duringNF = False # Analyse Behaviour Pre Vs. Post Training
+
 # analyse_EEG_prepost =True # analyse EEG Pre Vs. Post Training
 analyse_EEG_prepost =False # analyse EEG Pre Vs. Post Training
-
+#
 # analyse_EEG_duringNF = True # analyse EEG during Neurofeedback
 analyse_EEG_duringNF = False # analyse EEG during Neurofeedback
-#
+
 # analyse_visualsearchtask = True # Analyse Visual Search Task
 analyse_visualsearchtask = False # Analyse Visual Search Task
-#
+
 # analyse_nbacktask = True # Analyse N-back Task
 analyse_nbacktask = False # Analyse N-back Task
-#
+
 
 ######## Decide which group analyses to do ########
 
@@ -64,24 +72,24 @@ collate_behaviour_duringNF = False # Collate Behaviour Pre Vs. Post Training
 
 # collateEEGprepost = True# Collate EEG Pre Vs. Post Training across subjects
 collateEEGprepost = False# Collate EEG Pre Vs. Post Training across subjects
-#
+
 # collateEEGprepostcompare = True # Collate EEG Pre Vs. Post Training across subjects
 collateEEGprepostcompare = False # Collate EEG Pre Vs. Post Training across subjects
-
+#
 # collateEEG_duringNF = True # Collate EEG during Neurofeedback
 collateEEG_duringNF = False # Collate EEG during Neurofeedback
 #
-# collate_visualsearchtask = True# Collate Visual Search results
+# collate_visualsearchtask = True # Collate Visual Search results
 collate_visualsearchtask = False # Collate Visual Search results
 
 # collate_nbacktask = True # Analyse N-back Task
 collate_nbacktask = False # Analyse N-back Task
 
-classification_acc_correlations = True # Assess whether classification accuracy correlated with training effects
-# classification_acc_correlations = False # Assess whether classification accuracy correlated with training effects
+# classification_acc_correlations = True # Assess whether classification accuracy correlated with training effects
+classification_acc_correlations = False # Assess whether classification accuracy correlated with training effects
 
 # setup generic settings
-attntrained =1 # ["Space", "Feature"]
+attntrained = 0 # ["Space", "Feature"]
 settings = helper.SetupMetaData(attntrained)
 
 print("Analysing Data for condition train: " + settings.string_attntrained[settings.attntrained])
@@ -272,11 +280,11 @@ if (collate_behaviour_duringNF):
     sns.set(style="ticks")
 
     # Reaction time Grouped violinplot
-    colors = ["#C11F3A", "#F2B035", "#EC553A"]
+    colors = [settings.red_, settings.orange_, settings.yellow_]
 
     sns.violinplot(x="Testday", y="Reaction Time", data=behdat_all_avg,
-                   palette=sns.color_palette(colors), style="ticks", ax=ax1)
-    sns.swarmplot("Testday", y="Reaction Time", data=behdat_all_avg, ax=ax1, color=".2")
+                   palette=sns.color_palette(colors), style="ticks", ax=ax1, order = ["Day 1", "Day 2", "Day 3"])
+    sns.swarmplot("Testday", y="Reaction Time", data=behdat_all_avg, ax=ax1, color=".2", order = ["Day 1", "Day 2", "Day 3"])
 
     ax1.spines['top'].set_visible(False)
     ax1.spines['right'].set_visible(False)
@@ -322,7 +330,7 @@ if (collate_behaviour_duringNF):
     fig, (ax1) = plt.subplots(2, 2, figsize=(10, 10))
     ax1 = ax1.flatten()
     sns.set(style="ticks")
-    colors = ["#C11F3A", "#F2B035", "#EC553A"]
+    colors = [settings.red_, settings.orange_, settings.yellow_]
     # Reaction time Grouped violinplot
     for ii in np.arange(4):
         sns.violinplot(x="Testday", y=plots[ii], data=accdat_all_avg,
@@ -586,13 +594,13 @@ if (collate_visualsearchtask):
     if (attntrained == 1):  # correct for lost data for sub 21 (feature train)
         settings.subsIDXcollate = np.delete(settings.subsIDXcollate,
                                             np.isin(settings.subsIDXcollate, np.array([89])))
-        settings.num_subs = settings.num_subs - 2
+        settings.num_subs = settings.num_subs - 1
     if (attntrained == 0):  # correct for lost data for sub 21 (feature train)
         settings.subsIDXcollate = np.delete(settings.subsIDXcollate, np.isin(settings.subsIDXcollate, np.array([90])))
         settings.num_subs = settings.num_subs - 1
 
     # preallocate group mean variables
-    num_subs = settings.num_subs
+    num_subs = settings.num_subs +1
     acc_vissearch_all = np.empty((settings.num_trialscond, settings.num_setsizes, settings.num_days, num_subs))
     rt_vissearch_all = np.empty((settings.num_trialscond, settings.num_setsizes, settings.num_days, num_subs))
     mean_acc_all = np.empty((settings.num_setsizes, settings.num_days, num_subs))
@@ -704,8 +712,8 @@ if (collate_visualsearchtask):
         # correct for lost data
         if (attntrained == 1):  # correct for lost data for sub 21 (feature train)
             settings.subsIDXcollate = np.delete(settings.subsIDXcollate,
-                                                np.isin(settings.subsIDXcollate, np.array([21, 89])))
-            settings.num_subs = settings.num_subs - 2
+                                                np.isin(settings.subsIDXcollate, np.array([ 89])))
+            settings.num_subs = settings.num_subs - 1
         if (attntrained == 0):  # correct for lost data for sub 21 (feature train)
             settings.subsIDXcollate = np.delete(settings.subsIDXcollate,
                                                 np.isin(settings.subsIDXcollate, np.array([90])))
@@ -852,7 +860,7 @@ if (collate_nbacktask):
         if (attntrained == 1):  # correct for lost data for sub 21 (feature train)
             settings.subsIDXcollate = np.delete(settings.subsIDXcollate,
                                                 np.isin(settings.subsIDXcollate, np.array([ 89])))
-            settings.num_subs = settings.num_subs - 2
+            settings.num_subs = settings.num_subs - 1
         if (attntrained == 0):  # correct for lost data for sub 21 (feature train)
             settings.subsIDXcollate = np.delete(settings.subsIDXcollate,
                                                 np.isin(settings.subsIDXcollate, np.array([90])))
@@ -989,6 +997,34 @@ if (classification_acc_correlations):
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
+    # plot results - both used and unused
+    df_classifier_used = df_classifier.loc[df_classifier.AttentionTrained == df_classifier.ClassifierType, :].copy()
+    df_classifier_unused = df_classifier.loc[df_classifier.AttentionTrained != df_classifier.ClassifierType, :].copy()
+
+    fig, ax = plt.subplots(1, 1, figsize=(5,5))
+    sns.set(style="ticks")
+    colors = [settings.medteal_, settings.lightteal_]
+
+    # Accuracy Grouped violinplot
+    sns.violinplot(x="ClassifierType", y="ClassifierAccuracy", data=df_classifier,
+                   palette=sns.color_palette(colors), style="ticks", ax=ax)
+    sns.swarmplot(x="ClassifierType", y="ClassifierAccuracy", data=df_classifier_used, color="0.5")
+    sns.swarmplot(x="ClassifierType", y="ClassifierAccuracy", data=df_classifier_unused, color="0.5", order=['Space', 'Feature'])
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    # ax.set_ylim(0, 100)
+    ax.set_title("Accuracy")
+
+    titlestring = 'Classification Accuracy used vs unused'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+    df_classifier[df_classifier['ClassifierType']=='Space'].mean() # 65.744799
+    df_classifier[df_classifier['ClassifierType'] == 'Space'].std()  # 12.483115
+
+    df_classifier[df_classifier['ClassifierType']=='Feature'].mean() # 54.375419
+    df_classifier[df_classifier['ClassifierType'] == 'Feature'].std()  #  5.715636
     ########## Get SSVEP Selectivity Data #############
 
     print('collating SSVEP amplitudes pre Vs. post training compareing Space Vs. Feat Training')
