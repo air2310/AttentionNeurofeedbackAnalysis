@@ -17,6 +17,7 @@ import Analysis_Code.analyse_motiontask_prepost as analyse_motion_prepost
 
 # P86 super artifacty throughout - exlude? - frequency spectrum looks weird. look into this. - can we exclude a specific channel?
 # P106 - exclude day 1 phase train
+# exclude P118 from everything for horrifically bad performance.
 # exclude chance level vis search Ps
 # figure out whats happening with visual search collation.
 
@@ -25,7 +26,7 @@ import Analysis_Code.analyse_motiontask_prepost as analyse_motion_prepost
 #### New Analyses
 # analyse the neurofeedback - how much time are we spending in each state and does that actually have an effect
 # analyse the latency - are we changing the amount of time people spend in each state? (sustained attn feedback)
-
+# variance in results
 
 # correlate behaviour with ssvep selectivity
 # look at differences between classifiable and unclassifiable participants.
@@ -45,9 +46,9 @@ import Analysis_Code.analyse_motiontask_prepost as analyse_motion_prepost
 
 analyse_behaviour_prepost = True # Analyse Behaviour Pre Vs. Post Training
 # analyse_behaviour_prepost = False # Analyse Behaviour Pre Vs. Post Training
-
-analyse_behaviour_duringNF = True # Analyse Behaviour Pre Vs. Post Training
-# analyse_behaviour_duringNF = False # Analyse Behaviour Pre Vs. Post Training
+#
+# analyse_behaviour_duringNF = True # Analyse Behaviour Pre Vs. Post Training
+analyse_behaviour_duringNF = False # Analyse Behaviour Pre Vs. Post Training
 
 # analyse_EEG_prepost =True # analyse EEG Pre Vs. Post Training
 analyse_EEG_prepost =False # analyse EEG Pre Vs. Post Training
@@ -60,7 +61,7 @@ analyse_visualsearchtask = False # Analyse Visual Search Task
 
 # analyse_nbacktask = True # Analyse N-back Task
 analyse_nbacktask = False # Analyse N-back Task
-
+#
 
 ######## Decide which group analyses to do ########
 
@@ -72,10 +73,10 @@ collate_behaviour_duringNF = False # Collate Behaviour Pre Vs. Post Training
 
 # collateEEGprepost = True# Collate EEG Pre Vs. Post Training across subjects
 collateEEGprepost = False# Collate EEG Pre Vs. Post Training across subjects
-
+#
 # collateEEGprepostcompare = True # Collate EEG Pre Vs. Post Training across subjects
 collateEEGprepostcompare = False # Collate EEG Pre Vs. Post Training across subjects
-#
+
 # collateEEG_duringNF = True # Collate EEG during Neurofeedback
 collateEEG_duringNF = False # Collate EEG during Neurofeedback
 #
@@ -89,7 +90,7 @@ collate_nbacktask = False # Analyse N-back Task
 classification_acc_correlations = False # Assess whether classification accuracy correlated with training effects
 
 # setup generic settings
-attntrained = 0 # ["Space", "Feature"]
+attntrained = 0# ["Space", "Feature"]
 settings = helper.SetupMetaData(attntrained)
 
 print("Analysing Data for condition train: " + settings.string_attntrained[settings.attntrained])
@@ -180,7 +181,7 @@ if (collate_behaviour_prepost):
     # Reaction time Grouped violinplot
     colors = ["#F2B035", "#EC553A"]
 
-    sns.violinplot(x="Attention Type", y="Reaction Time", hue="Testday",data=behdat_all_avg , palette=sns.color_palette(colors), style="ticks", ax=ax1, split=True, inner="quartile")
+    sns.violinplot(x="Attention Type", y="Reaction Time", hue="Testday",data=behdat_all_avg , palette=sns.color_palette(colors), style="ticks", ax=ax1, split=True, inner="stick")
 
     ax1.spines['top'].set_visible(False)
     ax1.spines['right'].set_visible(False)
@@ -195,6 +196,12 @@ if (collate_behaviour_prepost):
     # average and plot reaction time data
     accdat_all_avg = accdat_all.groupby(["subID", "Testday", "Attention Type"]).mean()
     accdat_all_avg = accdat_all_avg.reset_index() # plot this like reaction time above
+
+    # accdat_all_avg[accdat_all_avg['Attention Type'] == "Space"]
+    # tmpdat[tmpdat.idxmax()]
+    #
+    # tmpdat.w
+
 
     # Sensitivity    # https://www.frontiersin.org/articles/10.3389/fpubh.2017.00307/full
     # accdat_all_avg['Sensitivity'] = np.nan
@@ -228,7 +235,7 @@ if (collate_behaviour_prepost):
     colors = ["#F2B035", "#EC553A"]
     # Reaction time Grouped violinplot
     for ii in np.arange(4):
-        sns.violinplot(x="Attention Type", y=plots[ii], hue="Testday",data=accdat_all_avg , palette=sns.color_palette(colors), style="ticks", ax=ax1[ii], split=True, inner="quartile")
+        sns.violinplot(x="Attention Type", y=plots[ii], hue="Testday",data=accdat_all_avg , palette=sns.color_palette(colors), style="ticks", ax=ax1[ii], split=True, inner="stick")
 
         ax1[ii].spines['top'].set_visible(False)
         ax1[ii].spines['right'].set_visible(False)
@@ -516,7 +523,7 @@ if (collateEEGprepostcompare):
     colors = ["#F2B035", "#EC553A"]
 
     # Accuracy Grouped violinplot
-    sns.violinplot(x="Attention Trained", y= "Selectivity (ΔµV)" , hue = "Testday", data=df_selctivity[df_selctivity["Attention Type"].isin([settings.string_attntrained[0]])], palette=sns.color_palette(colors), ax=ax1, split=True, inner="quartile")
+    sns.violinplot(x="Attention Trained", y= "Selectivity (ΔµV)" , hue = "Testday", data=df_selctivity[df_selctivity["Attention Type"].isin([settings.string_attntrained[0]])], palette=sns.color_palette(colors), ax=ax1, split=True, inner="stick")
     ax1.spines['top'].set_visible(False)
     ax1.spines['right'].set_visible(False)
 
@@ -525,7 +532,7 @@ if (collateEEGprepostcompare):
     # Accuracy Grouped violinplot
     sns.violinplot(x="Attention Trained", y="Selectivity (ΔµV)", hue="Testday",
                    data=df_selctivity[df_selctivity["Attention Type"].isin([settings.string_attntrained[1]])],
-                   palette=sns.color_palette(colors), ax=ax2, split=True, inner="quartile")
+                   palette=sns.color_palette(colors), ax=ax2, split=True, inner="stick")
     ax2.spines['top'].set_visible(False)
     ax2.spines['right'].set_visible(False)
 

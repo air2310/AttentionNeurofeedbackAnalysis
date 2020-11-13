@@ -15,7 +15,7 @@ library(tidyverse)
 # run options
 
 options.traintype =2# Feature or Space
-options.singletrial =2# ERP, single trial
+options.singletrial =1# ERP, single trial
 
 # task options
 options.task = 1 # 1 = Motion Detection,
@@ -113,6 +113,10 @@ for (SS in 2:n.subs) {
   BAYESPLOT = rbind(BAYESPLOT, tmp)
 }
 
+## invert
+BAYESPLOT['BF_space'] = 1/BAYESPLOT['BF_space']
+BAYESPLOT['BF_feature'] = 1/BAYESPLOT['BF_feature']
+
 ## plot
 
 plotdat = melt(BAYESPLOT, id = "subjects" )
@@ -130,5 +134,5 @@ i <- i + geom_vline(xintercept=30, linetype="dashed", color = orange)
 
 i <- i + scale_colour_manual(values = c(darkteal, lightteal) )
 plot(i)
-ggsave(paste(direct.resultsGroup, "/", tit, ".png", sep=""))
+ggsave(paste(direct.resultsGroup, "/", tit, "H0.png", sep=""))
 
