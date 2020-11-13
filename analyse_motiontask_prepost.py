@@ -141,14 +141,17 @@ def run(settings, sub_val, test_train):
                     elif len(idx_response) == 1:
                         # accuracy
                         if responses[idx_response, 0] == correct + 1:  # Correct Response!
+                            # Accuracy
                             resp_accuracy = np.row_stack((resp_accuracy, settings.responseopts_correct))
+
+                            # reaction time
+                            tmp = responses[idx_response, 2] / settings.mon_ref - moveonsets[ii, TT] / settings.mon_ref
+                            resp_reactiontime = np.row_stack((resp_reactiontime, tmp))
+
                         else: # incorrect response
                             resp_accuracy = np.row_stack((resp_accuracy, settings.responseopts_incorrect))
+                            resp_reactiontime = np.row_stack((resp_reactiontime, np.nan)) # don't keep track of these NAN RTs
 
-                        # reaction time
-                        tmp = responses[idx_response, 2] / settings.mon_ref - moveonsets[ii, TT] / settings.mon_ref
-
-                        resp_reactiontime = np.row_stack((resp_reactiontime, tmp))
 
                         # trial attention type (to store)
                         resp_trialattntype = np.row_stack((resp_trialattntype, trialattntype[TT]))
@@ -156,25 +159,28 @@ def run(settings, sub_val, test_train):
                     # Multiple responses to target!
                     elif len(idx_response) > 1:
                         print("double response!")
-                        idx_correct = np.where(np.squeeze(responses[idx_response, 0] == correct))
-                        idx_incorrect = np.where(np.squeeze(responses[idx_response, 0] != correct))
+                        # for now, let's just ignore all of these targets - we'll see how common this is and deal with it accordingly later.
 
-                        # Accuracy
-                        tmp = np.ones(len(idx_response)) * np.nan  # create array of NaNs of length of number of responses
-                        tmp[idx_correct] = settings.responseopts_correct  # mark correct answers as correct
-                        tmp[idx_incorrect] = settings.responseopts_incorrect  # mark incorrect answers as incorrect
-
-                        resp_accuracy = np.row_stack((resp_accuracy, np.expand_dims(tmp, axis=1)))  # stack to accuracy results
-
-                        # Response Time and Trial Attention type
-                        tmp = np.ones(len(idx_response)) * np.nan  # create array of NaNs of length of number of responses
-
-                        tmp[idx_correct] = responses[idx_response[idx_correct], 2] / settings.mon_ref - moveonsets[ii, TT] / settings.mon_ref
-                        resp_reactiontime = np.row_stack((resp_reactiontime, np.expand_dims(tmp, axis=1)))
-
-                        # trial attention type
-                        tmp = np.ones(len(idx_response)) * trialattntype[TT]
-                        resp_trialattntype = np.row_stack((resp_trialattntype, np.expand_dims(tmp, axis=1)))
+                        # old version - extra responses marked as incorrect
+                        # idx_correct = np.where(np.squeeze(responses[idx_response, 0] == correct))
+                        # idx_incorrect = np.where(np.squeeze(responses[idx_response, 0] != correct))
+                        #
+                        # # Accuracy
+                        # tmp = np.ones(len(idx_response)) * np.nan  # create array of NaNs of length of number of responses
+                        # tmp[idx_correct] = settings.responseopts_correct  # mark correct answers as correct
+                        # tmp[idx_incorrect] = settings.responseopts_incorrect  # mark incorrect answers as incorrect
+                        #
+                        # resp_accuracy = np.row_stack((resp_accuracy, np.expand_dims(tmp, axis=1)))  # stack to accuracy results
+                        #
+                        # # Response Time and Trial Attention type
+                        # tmp = np.ones(len(idx_response)) * np.nan  # create array of NaNs of length of number of responses
+                        #
+                        # tmp[idx_correct] = responses[idx_response[idx_correct], 2] / settings.mon_ref - moveonsets[ii, TT] / settings.mon_ref
+                        # resp_reactiontime = np.row_stack((resp_reactiontime, np.expand_dims(tmp, axis=1)))
+                        #
+                        # # trial attention type
+                        # tmp = np.ones(len(idx_response)) * trialattntype[TT]
+                        # resp_trialattntype = np.row_stack((resp_trialattntype, np.expand_dims(tmp, axis=1)))
 
                 else: # non target
                     # If no response to this target during the response period, allocate it as a correct reject.
@@ -184,22 +190,10 @@ def run(settings, sub_val, test_train):
                         resp_trialattntype = np.row_stack((resp_trialattntype, trialattntype[TT]))
 
                     else: # any responses in this period are false alarms.
-                        tmp = np.ones(len(idx_response)) * settings.responseopts_falsealarm  # create array of false alarms
-                        resp_accuracy = np.row_stack((resp_accuracy, np.expand_dims(tmp, axis=1)))  # stack to accuracy results
-
-                        # Response Time and Trial Attention type
-                        tmp = np.ones(len(idx_response)) * np.nan  # create array of NaNs of length of number of responses
-                        resp_reactiontime = np.row_stack((resp_reactiontime, np.expand_dims(tmp, axis=1)))
-
-                        # trial attention type
-                        tmp = np.ones(len(idx_response)) * trialattntype[TT]
-                        resp_trialattntype = np.row_stack((resp_trialattntype, np.expand_dims(tmp, axis=1)))
-
-                # (TODO)
-                # do the thing where we switch between trial type and training type to define what the target would be (probably predifine for this trial up above)
-                # if istarget - store that info with misses etc
-                # if isnotarget - store as false alarm, with info about what sort of false alarm for future breakdown.
-
+                        # (TODO) if neurofeedback - store as false alarm, with info about what sort of false alarm for future breakdown.
+                        resp_accuracy = np.row_stack((resp_accuracy, settings.responseopts_falsealarm))  # stack FA to accuracy results
+                        resp_reactiontime = np.row_stack((resp_reactiontime,np.nan)) # add NAN to RT vector
+                        resp_trialattntype = np.row_stack((resp_trialattntype,trialattntype[TT])) # trial attention type
 
         # next up! Stack across days, plot with seaborn :)
 
@@ -264,33 +258,32 @@ def run(settings, sub_val, test_train):
     # next up, plot accuracy results and then save data. Functionalise then summarise!
 
     # copy data to new accuracy data frame
-    df_accuracy = df_behavedata[['Testday', 'Attention Type']].copy()
-
+    df_accuracy_targets = df_behavedata[['Testday', 'Attention Type']].copy()
 
     # fill in the columns
     tmp = np.zeros(df_behavedata.__len__())
     tmp[df_behavedata["Accuracy"].isin([settings.responseopts_correct])] = 1
-    df_accuracy.loc[:,'correct'] = pd.DataFrame({'correct': tmp})
+    df_accuracy_targets.loc[:,'correct'] = pd.DataFrame({'correct': tmp})
 
     tmp = np.zeros(df_behavedata.__len__())
     tmp[df_behavedata["Accuracy"].isin([settings.responseopts_incorrect])] = 1
-    df_accuracy.loc[:,'incorrect'] = pd.DataFrame({'incorrect': tmp})
-
-    tmp = np.zeros(df_behavedata.__len__())
-    tmp[df_behavedata["Accuracy"].isin([settings.responseopts_falsealarm])] = 1
-    df_accuracy.loc[:,'falsealarm'] = pd.DataFrame({'falsealarm': tmp})
+    df_accuracy_targets.loc[:,'incorrect'] = pd.DataFrame({'incorrect': tmp})
 
     tmp = np.zeros(df_behavedata.__len__())
     tmp[df_behavedata["Accuracy"].isin([settings.responseopts_miss])] = 1
-    df_accuracy.loc[:,'miss'] = pd.DataFrame({'miss': tmp})
+    df_accuracy_targets.loc[:,'miss'] = pd.DataFrame({'miss': tmp})
+
+    # tmp = np.zeros(df_behavedata.__len__())
+    # tmp[df_behavedata["Accuracy"].isin([settings.responseopts_falsealarm])] = 1
+    # df_accuracy_targets.loc[:,'falsealarm'] = pd.DataFrame({'falsealarm': tmp})
 
     # count values for each accuracy type
     # df_accuracy.set_index(['Testday', 'Attention Type'], inplace=True)
-    acc_count = df_accuracy.groupby(['Testday', 'Attention Type']).sum()
+    acc_count = df_accuracy_targets.groupby(['Testday', 'Attention Type']).sum()
 
 
     # Normalise
-    totals = acc_count["miss"]+ acc_count['incorrect'] + acc_count["falsealarm"]+ acc_count['correct']
+    totals = acc_count["miss"]+ acc_count['incorrect'] + acc_count['correct']
     acc_count = acc_count.div(totals, axis=0)*100
 
     # Organise for plotting
@@ -304,7 +297,7 @@ def run(settings, sub_val, test_train):
         fig, (ax) = plt.subplots(1, 1, figsize=(6, 6))
 
     # style
-    colors = ["#4EB99F", "#C11F3A", "#F2B035", "#EC553A"] # light teal,red, yellow, orrange
+    colors = [settings.lightteal, settings.red, settings.yellow] # light teal,red, yellow, orrange
 
     sns.set(style="ticks", palette=sns.color_palette(colors))
 
@@ -327,12 +320,74 @@ def run(settings, sub_val, test_train):
         ax.set_ylabel('Response %')
 
 
-    titlestring = bids.substring + ' Motion Task Accuracy by Day ' +  settings.string_testtrain[test_train]
+    titlestring = bids.substring + ' Motion Task Target Response Accuracy by Day ' +  settings.string_testtrain[test_train]
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results / Path(titlestring + '.png'), format='png')
 
+    # The same thing, but for distractors
+
+    # copy data to new accuracy data frame
+    df_accuracy_distract = df_behavedata[['Testday', 'Attention Type']].copy()
+
+    # fill in the columns
+    tmp = np.zeros(df_behavedata.__len__())
+    tmp[df_behavedata["Accuracy"].isin([settings.responseopts_falsealarm])] = 1
+    df_accuracy_distract.loc[:,'falsealarm'] = pd.DataFrame({'falsealarm': tmp})
+
+    tmp = np.zeros(df_behavedata.__len__())
+    tmp[df_behavedata["Accuracy"].isin([settings.responseopts_correctreject])] = 1
+    df_accuracy_distract.loc[:,'correctreject'] = pd.DataFrame({'correctreject': tmp})
+
+    # count values for each accuracy type
+    acc_count = df_accuracy_distract.groupby(['Testday', 'Attention Type']).sum()
+
+    # Normalise
+    totals = acc_count["falsealarm"]+ acc_count['correctreject']
+    acc_count = acc_count.div(totals, axis=0)*100
+
+    # Organise for plotting
+    acc_count2 = acc_count.swaplevel()
+    acc_count2 = acc_count2.T
+
+    # plot!
+    if (test_train == 0):
+        fig, (ax) = plt.subplots(1, 2, figsize=(12, 6))
+    else:
+        fig, (ax) = plt.subplots(1, 1, figsize=(6, 6))
+
+    # style
+    colors = [settings.orange, settings.medteal] # light teal,red, yellow, orrange
+
+    sns.set(style="ticks", palette=sns.color_palette(colors))
+
+    if (test_train == 0):
+        # Reaction time Grouped violinplot
+        for attn, attn_val in enumerate(settings.string_attntype):
+            acc_count2[attn_val].T.plot(kind='bar', stacked=True,  ax=ax[attn])
+
+            ax[attn].spines['top'].set_visible(False)
+            ax[attn].spines['right'].set_visible(False)
+
+            ax[attn].set_ylabel('Response %')
+            ax[attn].set_title(attn_val)
+    else:
+        acc_count2['Both'].T.plot(kind='bar', stacked=True, ax=ax)
+
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+
+        ax.set_ylabel('Response %')
+
+
+    titlestring = bids.substring + ' Motion Task Distractor Response Accuracy by Day ' +  settings.string_testtrain[test_train]
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results / Path(titlestring + '.png'), format='png')
+
+
+
     # save results.
-    df_accuracy.to_pickle(bids.direct_results / Path(bids.substring + "motiondiscrim_acc_" +  settings.string_testtrain[test_train] + ".pkl"))
+    df_accuracy_targets.to_pickle(bids.direct_results / Path(bids.substring + "motiondiscrim_acctarget_" + settings.string_testtrain[test_train] + ".pkl"))
+    df_accuracy_distract.to_pickle(bids.direct_results / Path(bids.substring + "motiondiscrim_accdistract_" +  settings.string_testtrain[test_train] + ".pkl"))
     df_behavedata.to_pickle(bids.direct_results / Path(bids.substring + "motiondiscrim_allbehave_" +  settings.string_testtrain[test_train] + ".pkl"))
 
 

@@ -97,6 +97,7 @@ print("Analysing Data for condition train: " + settings.string_attntrained[setti
 
 # iterate through subjects for individual subject analyses
 for sub_count, sub_val in enumerate(settings.subsIDX):
+    print(sub_val)
     if (analyse_behaviour_prepost):
         test_train = 0
         analyse_motion_prepost.run(settings, sub_val, test_train)
@@ -154,20 +155,25 @@ if (collate_behaviour_prepost):
         print(bids.substring)
 
         # load results
-        accdat_sub = pd.read_pickle(bids.direct_results / Path(bids.substring + "motiondiscrim_acc_" +  settings.string_testtrain[0] + ".pkl"))
+
+        accdat_targ_sub = pd.read_pickle(bids.direct_results / Path(bids.substring + "motiondiscrim_acctarget_" +  settings.string_testtrain[0] + ".pkl"))
+        accdat_dist_sub = pd.read_pickle(bids.direct_results / Path(bids.substring + "motiondiscrim_accdistract_" + settings.string_testtrain[0] + ".pkl"))
         behdat_sub = pd.read_pickle(bids.direct_results / Path(bids.substring + "motiondiscrim_allbehave_" +  settings.string_testtrain[0] + ".pkl"))
 
         # Add Sub ID column
-        accdat_sub['subID']=sub_count
+        accdat_targ_sub['subID']=sub_count
+        accdat_dist_sub['subID'] = sub_count
         behdat_sub['subID']=sub_count
 
 
         # Stack across subjects
         if (sub_count==0): # First subject, no dataframe exists yet
-            accdat_all = accdat_sub
+            accdat_targ_all = accdat_targ_sub
+            accdat_dist_all = accdat_dist_sub
             behdat_all = behdat_sub
         else:
-            accdat_all = accdat_all.append(accdat_sub, ignore_index=True) # ignore indec just means the index will count all the way up
+            accdat_targ_all = accdat_targ_all.append(accdat_targ_sub, ignore_index=True) # ignore index just means the index will count all the way up
+            accdat_dist_all = accdat_dist_all.append(accdat_dist_sub, ignore_index=True)  # ignore index just means the index will count all the way up
             behdat_all = behdat_all.append(behdat_sub, ignore_index=True)
 
     # average and plot reaction time data
