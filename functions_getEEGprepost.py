@@ -40,6 +40,14 @@ def analyseEEGprepost(settings, sub_val):
                             baseline=(0, 1 / settings.samplingfreq), picks=np.arange(settings.num_electrodes),
                             reject=dict(eeg=400), detrend=1)  #
 
+        # epoching plan for wavelets
+        # idx = events[:, 2] ismember eventid
+        # lim_min = idx + timelimits 0
+        # lim_max = idx + timelimits 1
+        # for ii = 1: len(idx)
+        #   shorterevents = events[limmin:limax, 0]
+        #   find shorterevents ismember motioneventid.
+
         # drop bad channels
         epochs.drop_bad()
         # epochs.plot_drop_log()
@@ -557,6 +565,7 @@ def plotGroupSSVEPsprepost(SSVEPs_prepost_group, bids, ERPstring, settings):
 
         # Add some text for labels, title and custom x-axis tick labels, etc.
         axuse.set_ylabel('SSVEP amp (µV)')
+        axuse.set_ylim([np.round(np.min(M)*100)/100-0.05, np.round(np.max(M)*100)/100+0.05])
         axuse.set_title(settings.string_cuetype[attn])
         axuse.set_xticks(x)
         axuse.set_xticklabels(labels)

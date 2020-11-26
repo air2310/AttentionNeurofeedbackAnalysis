@@ -51,12 +51,12 @@ class SetupMetaData:
 
         # get correct subject indices
         if (self.attntrained == 0): # Space
-            self.subsIDX = np.array(([53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112, 113, 118, 123, 128]))
+            self.subsIDX = np.array(([  0 ]))
             self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112, 113, 118, 123, 128 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
             self.subsIDXall =     np.array(([10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112, 113, 118, 123, 128]))
 
         else: # Feature
-            self.subsIDX = np.array(([ 86 ])) # 1, 2,
+            self.subsIDX =        np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80,     87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 119, 120])) # 1, 2,
             self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80,     87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 119, 120])) #np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
             self.subsIDXall =     np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 119, 120]))
 
@@ -98,10 +98,12 @@ class SetupMetaData:
 
         # response options
         self.responseopts_miss = 0
-        self.responseopts_incorrect = 1
-        self.responseopts_falsealarm = 2
-        self.responseopts_correct = 3
-        self.responseopts_correctreject = 4
+        self.responseopts_correct = 1
+        self.responseopts_incorrect = 2
+
+        self.responseopts_correctreject = 3
+        self.responseopts_falsealarm = 4
+        self.responseopts_falsealarm_incorrect = 5
 
         # timing settings
         self.mon_ref = 144
@@ -124,10 +126,13 @@ class SetupMetaData:
 
         # response options
         self.responseopts_miss = 0
-        self.responseopts_incorrect = 1
-        self.responseopts_falsealarm = 2
-        self.responseopts_correct = 3
-        self.responseopts_correctreject = 4
+        self.responseopts_correct = 1
+        self.responseopts_incorrect = 2
+
+
+        self.responseopts_correctreject = 3
+        self.responseopts_falsealarm = 4
+        self.responseopts_falsealarm_incorrect = 5
 
         # timing settings
         self.mon_ref = 144
