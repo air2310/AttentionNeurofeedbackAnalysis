@@ -1,0 +1,306 @@
+---
+title: "MotionDiscrimBehaveStats_test"
+author: "Angela Renton"
+date: "26/11/2020"
+output: html_document
+---
+
+## Description
+
+These are the stats we ran on the main behavioural results for the motion descrimination task (pre vs. post training)
+
+We start by loading in and organising our data. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load data, results = FALSE, message=FALSE, warning=FALSE}
+library(dplyr)
+library(BayesFactor)
+library(imager)
+
+#reference for Bayesian Anova method applied here: Rouder et al 2012.
+# https://www.sciencedirect.com/science/article/pii/S0022249612000806?casa_token=7qVp7duocU0AAAAA:isxnVW-Oi6-62_oaPg-PJx1oPB4uNliU9GsP__W_bAOFozswKTky_VH9mq94omHGQb9yWyUKxU7g
+
+# setup directories
+
+direct.Root = "//data.qbi.uq.edu.au/VISATTNNF-Q1357/"
+direct.resultsRoot = paste(direct.Root, "Results/CompareSpaceFeat/group/", sep = "")
+
+
+# load data
+behavedata = read.csv(paste(direct.resultsRoot, "motiondiscrim_behaveresults_ALL.csv", sep = ""))
+
+#### create factors
+
+behavedata_orig = behavedata
+
+behavedata$AttentionTrained = factor(behavedata$AttentionTrained)
+levels(behavedata$AttentionTrained) = c( "Feature", "Space")
+
+behavedata$Attention.Type = factor(behavedata$Attention.Type)
+levels(behavedata$Attention.Type) = c( "Feature", "Space")
+
+behavedata$Testday = factor(behavedata$Testday)
+levels(behavedata$Testday) = c( "Day 1", "Day 4")
+
+behavedata$subID = factor(behavedata$subID)
+
+behavedata_RT = na.omit(behavedata)
+
+```
+
+
+## We fist assess whether there was there an overall training effect? i.e. did people improve overall after training for:
+
+### Reaction Time on correct target responses
+```{r RT}
+# visualise result:
+image = load.image(paste(direct.resultsRoot, "Motion Task RT by Day pre Vs. post.png", sep = ""))
+plot(image, axes=FALSE)
+
+# describe data
+dat = behavedata %>% group_by(Testday)
+dat %>% summarise(M=mean(RT), SD=sd(RT))
+
+# get Bayes Factor
+bf = anovaBF(RT ~ Testday + subID , data=behavedata_RT, whichRandom="subID")
+bf #  Print to console
+
+```
+
+### Sensitivity (d')
+
+```{r Sensitivity}
+# visualise result:
+image = load.image(paste(direct.resultsRoot, "Motion Task Sensitivity by Day pre Vs. post.png", sep = ""))
+plot(image, axes=FALSE)
+
+# describe data
+dat = behavedata %>% group_by(Testday)
+dat %>% summarise(M=mean(Sensitivity), SD=sd(Sensitivity))
+
+# get Bayes Factor
+bf = anovaBF(Sensitivity ~ Testday + subID , data=behavedata, whichRandom="subID")
+bf #  Print to console
+
+```
+
+## Criterion (c)
+
+```{r Criterion}
+# visualise result:
+image = load.image(paste(direct.resultsRoot, "Motion Task Criterion by Day pre Vs. post.png", sep = ""))
+plot(image, axes=FALSE)
+
+# describe data
+dat = behavedata %>% group_by(Testday)
+dat %>% summarise(M=mean(Criterion), SD=sd(Criterion))
+
+# get Bayes Factor
+bf = anovaBF(Criterion ~ Testday + subID , data=behavedata, whichRandom="subID")
+bf #  Print to console
+
+```
+
+
+### % Correct (H)
+```{r correct}
+# visualise result:
+image = load.image(paste(direct.resultsRoot, "Motion Task Correct Rate by Day pre Vs. post.png", sep = ""))
+plot(image, axes=FALSE)
+
+# describe data
+dat = behavedata %>% group_by(Testday)
+dat %>% summarise(M=mean(correct), SD=sd(correct))
+
+# get Bayes Factor
+bf = anovaBF(correct ~ Testday + subID , data=behavedata, whichRandom="subID")
+bf #  Print to console
+
+```
+
+### Likelihood Ratio (B)
+
+```{r Likelihood Ratio}
+# visualise result:
+image = load.image(paste(direct.resultsRoot, "Motion Task Likelihood Ratio by Day pre Vs. post.png", sep = ""))
+plot(image, axes=FALSE)
+
+# describe data
+dat = behavedata %>% group_by(Testday)
+dat %>% summarise(M=mean(LikelihoodRatio), SD=sd(LikelihoodRatio))
+
+# get Bayes Factor
+bf = anovaBF(LikelihoodRatio ~ Testday + subID , data=behavedata, whichRandom="subID")
+bf #  Print to console
+
+```
+
+## Create Training effect vector 
+To assess how training effects interact with Attention type and Attention type trained, create vectors comparing day 4 and day 1 results. 
+
+```{r Create Training Vector}
+
+idx_d1 =behavedata$Testday=="Day 1"
+idx_d4 =behavedata$Testday=="Day 4"
+
+tmp_d1 = behavedata[idx_d1,]
+tmp_d4 = behavedata[idx_d4,]
+
+behavedata_train = tmp_d1[,0:4]
+behavedata_train$Sensitivity_TrEfct = tmp_d4$Sensitivity - tmp_d1$Sensitivity
+behavedata_train$Criterion_TrEfct = tmp_d4$Criterion - tmp_d1$Criterion
+behavedata_train$LikelihoodRatio_TrEfct = tmp_d4$LikelihoodRatio - tmp_d1$LikelihoodRatio
+behavedata_train$correct_TrEfct = tmp_d4$correct - tmp_d1$correct
+behavedata_train$RT_TrEfct = tmp_d4$RT - tmp_d1$RT
+
+behavedata_RT_train = na.omit(behavedata_train)
+
+# summarised data from plots
+marginals = behavedata_train %>% group_by(AttentionTrained, Attention.Type)
+marginals_AttnTr = behavedata_train %>% group_by(AttentionTrained)
+marginals_AttnTyp = behavedata_train %>% group_by(Attention.Type)
+
+```
+## Assess whether this training effect differs across the levels of Attention Trained and attention type
+
+what is the best model?
+Test for Interaction - is the full model better than the full model with interaction knocked out?
+test for main effects - is the full model better than the full model with the main effect of the factor knocked out? 
+
+
+### Reaction Time Training effects
+
+```{r Reaction Time training effects}
+# visualise result:
+image = load.image(paste(direct.resultsRoot, "Motion Task RT training effect by attention.png", sep = ""))
+plot(image, axes=FALSE)
+
+# describe data
+marginals %>% summarise(M=mean(RT_TrEfct), SD=sd(RT_TrEfct))
+marginals_AttnTr %>% summarise(M=mean(RT_TrEfct), SD=sd(RT_TrEfct))
+marginals_AttnTyp %>% summarise(M=mean(RT_TrEfct), SD=sd(RT_TrEfct))
+
+# get Bayes Factor
+bf = anovaBF(RT_TrEfct ~ AttentionTrained * Attention.Type + subID , data=behavedata_RT_train, whichRandom="subID",  whichModels="all")
+bfInteraction = bf[7]/bf[4] # is the full model better than just strait main effects?
+bf_main_AttnTrain = bf[7]/bf[6] # is the full model better than the attention train knock out?
+bf_main_AttnType = bf[7]/bf[5] # is the full model better than the attention type knock out?
+
+# display results
+bf
+bfInteraction
+bf_main_AttnTrain
+bf_main_AttnType
+
+```
+
+### Sensitivity (d') training effects
+
+```{r Sensitivity training effects}
+# visualise result:
+image = load.image(paste(direct.resultsRoot, "Motion Task Sensitivity training effect by attention.png", sep = ""))
+plot(image, axes=FALSE)
+
+# describe data
+marginals %>% summarise(M=mean(Sensitivity_TrEfct), SD=sd(Sensitivity_TrEfct))
+marginals_AttnTr %>% summarise(M=mean(Sensitivity_TrEfct), SD=sd(Sensitivity_TrEfct))
+marginals_AttnTyp %>% summarise(M=mean(Sensitivity_TrEfct), SD=sd(Sensitivity_TrEfct))
+
+# get Bayes Factor
+bf = anovaBF(Sensitivity_TrEfct ~ AttentionTrained * Attention.Type + subID , data=behavedata_train, whichRandom="subID",  whichModels="all")
+bfInteraction = bf[7]/bf[4] # is the full model better than just strait main effects?
+bf_main_AttnTrain = bf[7]/bf[6] # is the full model better than the attention train knock out?
+bf_main_AttnType = bf[7]/bf[5] # is the full model better than the attention type knock out?
+
+# display results
+bf
+bfInteraction
+bf_main_AttnTrain
+bf_main_AttnType
+
+```
+
+### Criterion (d') training effects
+
+```{r Criterion  training effects}
+# visualise result:
+image = load.image(paste(direct.resultsRoot, "Motion Task Criterion training effect by attention.png", sep = ""))
+plot(image, axes=FALSE)
+
+# describe data
+marginals %>% summarise(M=mean(Criterion_TrEfct), SD=sd(Criterion_TrEfct))
+marginals_AttnTr %>% summarise(M=mean(Criterion_TrEfct), SD=sd(Criterion_TrEfct))
+marginals_AttnTyp %>% summarise(M=mean(Criterion_TrEfct), SD=sd(Criterion_TrEfct))
+
+# get Bayes Factor
+bf = anovaBF(Criterion_TrEfct ~ AttentionTrained * Attention.Type + subID , data=behavedata_train, whichRandom="subID",  whichModels="all")
+bfInteraction = bf[7]/bf[4] # is the full model better than just strait main effects?
+bf_main_AttnTrain = bf[7]/bf[6] # is the full model better than the attention train knock out?
+bf_main_AttnType = bf[7]/bf[5] # is the full model better than the attention type knock out?
+
+# display results
+bf
+bfInteraction
+bf_main_AttnTrain
+bf_main_AttnType
+
+```
+
+### % Correct (H) training effects
+
+```{r Correct training effects}
+# visualise result:
+image = load.image(paste(direct.resultsRoot, "Motion Task Correct training effect by attention.png", sep = ""))
+plot(image, axes=FALSE)
+
+# describe data
+marginals %>% summarise(M=mean(correct_TrEfct), SD=sd(correct_TrEfct))
+marginals_AttnTr %>% summarise(M=mean(correct_TrEfct), SD=sd(correct_TrEfct))
+marginals_AttnTyp %>% summarise(M=mean(correct_TrEfct), SD=sd(correct_TrEfct))
+
+# get Bayes Factor
+bf = anovaBF(correct_TrEfct ~ AttentionTrained * Attention.Type + subID , data=behavedata_train, whichRandom="subID",  whichModels="all")
+bfInteraction = bf[7]/bf[4] # is the full model better than just strait main effects?
+bf_main_AttnTrain = bf[7]/bf[6] # is the full model better than the attention train knock out?
+bf_main_AttnType = bf[7]/bf[5] # is the full model better than the attention type knock out?
+
+# display results
+bf
+bfInteraction
+bf_main_AttnTrain
+bf_main_AttnType
+
+```
+
+### Likelihood Ratio (B)
+```{r Likelihood Ratio training effects}
+# visualise result:
+image = load.image(paste(direct.resultsRoot, "Motion Task Likelihood Ratio training effect by attention.png", sep = ""))
+plot(image, axes=FALSE)
+
+# describe data
+marginals %>% summarise(M=mean(LikelihoodRatio_TrEfct), SD=sd(LikelihoodRatio_TrEfct))
+marginals_AttnTr %>% summarise(M=mean(LikelihoodRatio_TrEfct), SD=sd(LikelihoodRatio_TrEfct))
+marginals_AttnTyp %>% summarise(M=mean(LikelihoodRatio_TrEfct), SD=sd(LikelihoodRatio_TrEfct))
+
+# get Bayes Factor
+bf = anovaBF(LikelihoodRatio_TrEfct ~ AttentionTrained * Attention.Type + subID , data=behavedata_train, whichRandom="subID",  whichModels="all")
+bfInteraction = bf[7]/bf[4] # is the full model better than just strait main effects?
+bf_main_AttnTrain = bf[7]/bf[6] # is the full model better than the attention train knock out?
+bf_main_AttnType = bf[7]/bf[5] # is the full model better than the attention type knock out?
+
+# display results
+bf
+bfInteraction
+bf_main_AttnTrain
+bf_main_AttnType
+
+```
+## R Markdown background
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:

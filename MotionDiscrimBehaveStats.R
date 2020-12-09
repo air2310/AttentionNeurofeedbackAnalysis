@@ -5,7 +5,7 @@ library(BayesFactor)
 # https://www.sciencedirect.com/science/article/pii/S0022249612000806?casa_token=7qVp7duocU0AAAAA:isxnVW-Oi6-62_oaPg-PJx1oPB4uNliU9GsP__W_bAOFozswKTky_VH9mq94omHGQb9yWyUKxU7g
 
 # load data
-behavedata = read.csv("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Results/TrainFeature/group/motiondiscrim_behaveresults_ALL.csv")
+behavedata = read.csv("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Results/CompareSpaceFeat/group/motiondiscrim_behaveresults_ALL.csv")
 
 #### step 1 - visualise the data 
 coplot(Sensitivity ~ AttentionTrained |  Testday, data = behavedata, panel = panel.smooth,
@@ -50,6 +50,20 @@ bf = anovaBF(RT ~ Testday + subID , data=behavedata_RT, whichRandom="subID")
 bf #  Print to console
 plot(bf) # plot
 
+# Were there overall effects of training group?
+
+bf = anovaBF(Sensitivity ~ AttentionTrained + subID , data=behavedata, whichRandom="subID")
+bf #  Print to console
+plot(bf) # plot
+
+bf = anovaBF(Criterion ~ AttentionTrained + Attention.Type + subID , data=behavedata[behavedata$Testday=='Day 4',], whichRandom="subID")
+bf #  Print to console
+plot(bf) # plot
+
+
+bf = anovaBF(RT ~ AttentionTrained + subID , data=behavedata_RT, whichRandom="subID")
+bf #  Print to console
+plot(bf) # plot
 
 #### Step 4 - Create Training effect vector (sensitivity on day 1 vs. day 4)
 
@@ -59,7 +73,7 @@ idx_d4 =behavedata$Testday=="Day 4"
 tmp_d1 = behavedata[idx_d1,]
 tmp_d4 = behavedata[idx_d4,]
 
-behavedata_train = tmp_d1[,0:3]
+behavedata_train = tmp_d1[,0:4]
 behavedata_train$Sensitivity_TrEfct = tmp_d4$Sensitivity - tmp_d1$Sensitivity
 behavedata_train$Criterion_TrEfct = tmp_d4$Criterion - tmp_d1$Criterion
 behavedata_train$LikelihoodRatio_TrEfct = tmp_d4$LikelihoodRatio - tmp_d1$LikelihoodRatio
