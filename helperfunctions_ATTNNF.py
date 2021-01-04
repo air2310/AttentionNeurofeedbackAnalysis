@@ -306,7 +306,7 @@ def get_eeg_data(bids, day_count, settings):
     eeg_data_interp.filter(l_freq=1, h_freq=45, h_trans_bandwidth=0.1)
 
     #plot results
-    eeg_data_interp.plot(remove_dc=False, scalings=dict(eeg=50))
+    # eeg_data_interp.plot(remove_dc=False, scalings=dict(eeg=50))
 
     return raw, events, eeg_data_interp
 

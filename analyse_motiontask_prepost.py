@@ -8,7 +8,7 @@ import seaborn as sns
 import pandas as pd
 import sys
 
-import Analysis_Code.helperfunctions_ATTNNF as helper
+import helperfunctions_ATTNNF as helper
 
 
 def run(settings, sub_val, test_train):

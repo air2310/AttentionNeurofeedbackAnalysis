@@ -1,7 +1,7 @@
 import numpy as np
 from pathlib import Path
 import mne
-import Analysis_Code.helperfunctions_ATTNNF as helper
+import helperfunctions_ATTNNF as helper
 
 def analyseEEGprepost(settings, sub_val):
     print('analysing SSVEP amplitudes pre Vs. post training')
@@ -125,6 +125,8 @@ def analyseEEGprepost(settings, sub_val):
              SSVEPs_prepost_channelmean_snr=SSVEPs_prepost_channelmean_snr,
              SSVEPs_prepost_channelmean_epochs=SSVEPs_prepost_channelmean_epochs,
              SSVEPs_prepost_channelmean=SSVEPs_prepost_channelmean,
+             SSVEPs_prepost_epochs=SSVEPs_prepost_epochs,
+             SSVEPs_prepost=SSVEPs_prepost,
              wavelets_prepost=wavelets_prepost,
              timepoints_zp=timepoints_zp,
              erps_days_wave=erps_days_wave,
@@ -495,6 +497,73 @@ def plotResultsPrePost_subjects(SSVEPs_prepost_mean, settings, ERPstring, bids):
     fig.suptitle(titlestring)
     plt.savefig(bids.direct_results / Path(titlestring + '.png'), format='png')
 
+
+def topoplot_SSVEPs_group(raw, SSVEPs, ERPstring, settings, bids):
+    import matplotlib.pyplot as plt
+    from pathlib import Path
+    SSVEPs_mean = np.nanmean(SSVEPs, axis=4)
+    # define expanded montage
+    montage = {'Iz': [0, -140, -40],
+               'Oz': [0, -130, -15],
+               'POz': [0, -120, 15],
+               'O1': [-45, -125, -15],
+               'O2': [45, -125, -15],
+               'PO3': [-45, -120, 10],
+               'PO4': [45, -120, 10],
+               'PO7': [-70, -130, -10],
+               'PO8': [70, -130, -10],
+               'Pz': [0, -95, 45],
+               'P9': [-80, -110, 15],
+               'P10': [80, -110, 15]}
+
+    montageuse = mne.channels.make_dig_montage(ch_pos=montage, lpa=[-82.5, -19.2, -46], nasion=[0, 83.2, -38.3],
+                                               rpa=[82.2, -19.2,
+                                                    -46])  # based on mne help file on setting 10-20 montage
+
+    # make new fake channels to add to dat so we can expand info out and add our extra (empty) channels for plotting
+    tmp = raw.copy().pick_types(eeg=True, exclude=['TRIG'])
+    tmp.rename_channels({"Iz": "Pz"})
+    tmp.rename_channels({"Oz": "P9"})
+    tmp.rename_channels({"POz": "P10"})
+    tmp.pick_channels([tmp.ch_names[pick] for pick in np.arange(3)])
+
+    # Add the empty channels to our dopodat (just to get the info) and apply the expanded montage
+    topodat = raw.copy().pick_types(eeg=True, exclude=['TRIG'])
+    topodat.add_channels([tmp])
+
+    topodat.info.set_montage(montageuse)
+
+    # attntype, day, attd = 0, 0, 0
+    # plot topomap
+    vmin, vmax = np.min(SSVEPs_mean[:]), np.max(SSVEPs_mean[:])  # get limits
+
+    fig, (ax1, ax2) = plt.subplots(2, 4, figsize=(15, 6))
+    count = -1
+    for attntype in np.arange(2):
+        for day in np.arange(2):
+            count += 1
+            for attd in np.arange(2):
+                if (attd == 0): axuse = ax1
+                if (attd == 1): axuse = ax2
+
+                plt.axes(axuse[count])
+                dataplot = SSVEPs_mean[:, day, attd, attntype]  # chans, # daycount, # attd unattd, # space/feat
+                dataplot = np.append(dataplot, [0, 0, 0])
+
+                im = mne.viz.plot_topomap(dataplot, topodat.info, cmap="viridis", show_names=False,
+                                          names=list(('Iz', 'Oz', 'POz', 'O1', 'O2', 'PO3', 'PO4', 'PO7', 'PO8', 'Pz',
+                                                      'P9', 'P10')), vmin=vmin, vmax=vmax, contours=0)
+
+                plt.title(settings.string_attntrained[attntype] + " " + settings.string_attd_unattd[attd] + " " +
+                          settings.string_prepost[day])
+
+                # plt.colorbar(plt.cm.ScalarMappable(cmap=im[0].cmap))
+                plt.colorbar(im[0], shrink=0.5)
+
+    titlestring = bids.substring + ' ' + ERPstring + ' Topoplots pre-post'
+    fig.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
+
 def plotGroupFFTSpectrum(fftdat_ave, bids, ERPstring, settings, freq):
     import matplotlib.pyplot as plt
     from pathlib import Path
@@ -536,7 +605,7 @@ def plotGroupFFTSpectrum(fftdat_ave, bids, ERPstring, settings, freq):
 def plotGroupSSVEPsprepost(SSVEPs_prepost_group, bids, ERPstring, settings):
     import matplotlib.pyplot as plt
     from pathlib import Path
-    import Analysis_Code.helperfunctions_ATTNNF as helper
+    import helperfunctions_ATTNNF as helper
 
     M = np.mean(SSVEPs_prepost_group, axis=3)
 
@@ -615,3 +684,4 @@ def plotGroupSSVEPsprepost(SSVEPs_prepost_group, bids, ERPstring, settings):
         settings.attntrained]
     fig.suptitle(titlestring)
     plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
+

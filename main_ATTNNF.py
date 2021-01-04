@@ -8,12 +8,12 @@ import seaborn as sns
 import pandas as pd
 import sys
 
-import Analysis_Code.helperfunctions_ATTNNF as helper
-import Analysis_Code.functions_getEEGprepost as geegpp
-import Analysis_Code.functions_getEEG_duringNF as geegdnf
-import Analysis_Code.analyse_visualsearchtask as avissearch
-import Analysis_Code.analyse_nbacktask as anback
-import Analysis_Code.analyse_motiontask_prepost as analyse_motion_prepost
+import helperfunctions_ATTNNF as helper
+import functions_getEEGprepost as geegpp
+import functions_getEEG_duringNF as geegdnf
+import analyse_visualsearchtask as avissearch
+import analyse_nbacktask as anback
+import analyse_motiontask_prepost as analyse_motion_prepost
 
 # dispay all rows
 pd.set_option('display.max_rows', None)
@@ -54,8 +54,8 @@ analyse_behaviour_prepost = False # Analyse Behaviour Pre Vs. Post Training
 # analyse_behaviour_duringNF = True # Analyse Behaviour Pre Vs. Post Training
 analyse_behaviour_duringNF = False # Analyse Behaviour Pre Vs. Post Training
 
-# analyse_EEG_prepost =True # analyse EEG Pre Vs. Post Training
-analyse_EEG_prepost =False # analyse EEG Pre Vs. Post Training
+analyse_EEG_prepost =True # analyse EEG Pre Vs. Post Training
+# analyse_EEG_prepost =False # analyse EEG Pre Vs. Post Training
 #
 # analyse_EEG_duringNF = True # analyse EEG during Neurofeedback
 analyse_EEG_duringNF = False # analyse EEG during Neurofeedback
@@ -81,8 +81,8 @@ collate_behaviour_duringNF = False # Collate Behaviour during Training
 # collate_behaviour_duringNF_compare = True # Collate Behaviourduring Training compare training groups
 collate_behaviour_duringNF_compare = False # Collate Behaviour during Training compare training groups
 
-# collateEEGprepost = True# Collate EEG Pre Vs. Post Training across subjects
-collateEEGprepost = False# Collate EEG Pre Vs. Post Training across subjects
+collateEEGprepost = True# Collate EEG Pre Vs. Post Training across subjects
+# collateEEGprepost = False# Collate EEG Pre Vs. Post Training across subjects
 #
 # collateEEGprepostcompare = True # Collate EEG Pre Vs. Post Training across subjects
 collateEEGprepostcompare = False # Collate EEG Pre Vs. Post Training across subjects
@@ -96,8 +96,8 @@ collate_visualsearchtask = False # Collate Visual Search results
 # collate_nbacktask = True # Analyse N-back Task
 collate_nbacktask = False # Analyse N-back Task
 
-classification_acc_correlations = True # Assess whether classification accuracy correlated with training effects
-# classification_acc_correlations = False # Assess whether classification accuracy correlated with training effects
+# classification_acc_correlations = True # Assess whether classification accuracy correlated with training effects
+classification_acc_correlations = False # Assess whether classification accuracy correlated with training effects
 
 # setup generic settings
 attntrained = 0 # ["Space", "Feature"]
@@ -898,41 +898,52 @@ if (collate_behaviour_duringNF_compare):
 
 # Collate EEG prepost
 if (collateEEGprepost):
-
     print('collating SSVEP amplitudes pre Vs. post training')
     # get settings specific to this analysis
     settings = settings.get_settings_EEG_prepost()
 
     # Get timing settings
-    timelimits_data_zp, timepoints_zp, frequencypoints_zp, zeropoint_zp = helper.get_timing_variables(settings.timelimits_zeropad, settings.samplingfreq)
+    timelimits_data_zp, timepoints_zp, frequencypoints_zp, zeropoint_zp = helper.get_timing_variables(
+        settings.timelimits_zeropad, settings.samplingfreq)
 
     # preallocate group mean variables
     num_subs = settings.num_subs
     SSVEPs_prepost_group = np.empty((settings.num_attd_unattd, settings.num_days, settings.num_attnstates, num_subs))
-    SSVEPs_epochs_prepost_group = np.empty((settings.num_attd_unattd, settings.num_days, settings.num_attnstates, num_subs))
-    fftdat_group = np.empty((settings.num_electrodes, len(timepoints_zp) + 1, settings.num_attnstates, settings.num_levels, settings.num_days, num_subs))
-    fftdat_epochs_group = np.empty((settings.num_electrodes, len(timepoints_zp) + 1, settings.num_attnstates, settings.num_levels, settings.num_days, num_subs))
-    wavelets_prepost_group = np.empty((len(timepoints_zp) + 1, settings.num_days, settings.num_attd_unattd, settings.num_attnstates, num_subs))
+    SSVEPs_topodat_group = np.empty(
+        (settings.num_electrodes, settings.num_attd_unattd, settings.num_days, settings.num_attnstates, num_subs))
+    SSVEPs_epochs_prepost_group = np.empty(
+        (settings.num_attd_unattd, settings.num_days, settings.num_attnstates, num_subs))
+    fftdat_group = np.empty((settings.num_electrodes, len(timepoints_zp) + 1, settings.num_attnstates,
+                             settings.num_levels, settings.num_days, num_subs))
+    fftdat_epochs_group = np.empty((settings.num_electrodes, len(timepoints_zp) + 1, settings.num_attnstates,
+                                    settings.num_levels, settings.num_days, num_subs))
+    wavelets_prepost_group = np.empty(
+        (len(timepoints_zp) + 1, settings.num_days, settings.num_attd_unattd, settings.num_attnstates, num_subs))
 
     # iterate through subjects for individual subject analyses
     for sub_count, sub_val in enumerate(settings.subsIDXcollate):
         # get directories and file names
-        bids = helper.BIDS_FileNaming(int(sub_val), settings, 0)
+        bids = helper.BIDS_FileNaming(int(sub_val), settings, 1)
         print(bids.substring)
 
         # load results
-        results = np.load(bids.direct_results / Path(bids.substring + "EEG_pre_post_results.npz"), allow_pickle=True) #
-        #saved vars: SSVEPs_prepost_channelmean, SSVEPs_prepost_channelmean_epochs, wavelets_prepost, timepoints_zp, erps_days_wave, fftdat, fftdat_epochs, freq)
+        results = np.load(bids.direct_results / Path(bids.substring + "EEG_pre_post_results.npz"), allow_pickle=True)  #
+        # saved vars: SSVEPs_prepost_channelmean, SSVEPs_prepost_channelmean_epochs, wavelets_prepost, timepoints_zp, erps_days_wave, fftdat, fftdat_epochs, freq)
 
         # store results
         SSVEPs_prepost_group[:, :, :, sub_count] = results['SSVEPs_prepost_channelmean']
         SSVEPs_epochs_prepost_group[:, :, :, sub_count] = results['SSVEPs_prepost_channelmean_epochs']
-        fftdat_group[:,:,:,:,:,sub_count] = results['fftdat']
+        SSVEPs_topodat_group[:, :, :, :, sub_count] = results['SSVEPs_prepost_epochs']
+        fftdat_group[:, :, :, :, :, sub_count] = results['fftdat']
         fftdat_epochs_group[:, :, :, :, :, sub_count] = results['fftdat_epochs']
-        wavelets_prepost_group[:,:,:,:,sub_count] = results['wavelets_prepost']
+        wavelets_prepost_group[:, :, :, :, sub_count] = results['wavelets_prepost']
 
         timepoints_use = results['timepoints_zp']
         freq = results['freq']
+
+        if sub_count == 1:
+            # get EEG data
+            raw, events, eeg_data_interp = helper.get_eeg_data(bids, day_count=1, settings=settings)
 
     np.savez(bids.direct_results_group / Path("EEGResults_prepost"),
              SSVEPs_prepost_group=SSVEPs_prepost_group,
@@ -942,7 +953,6 @@ if (collateEEGprepost):
              wavelets_prepost_group=wavelets_prepost_group,
              timepoints_use=timepoints_use,
              freq=freq)
-
 
     # plot grand average frequency spectrum
     fftdat_ave = np.mean(fftdat_group, axis = 5)
@@ -954,6 +964,8 @@ if (collateEEGprepost):
     # plot average SSVEP results
     geegpp.plotGroupSSVEPsprepost(SSVEPs_prepost_group, bids, ERPstring='ERP', settings=settings)
     geegpp.plotGroupSSVEPsprepost(SSVEPs_epochs_prepost_group, bids, ERPstring='Single Trial', settings=settings)
+
+    geegpp.topoplot_SSVEPs_group(raw, SSVEPs_topodat_group, ERPstring='ERP', settings=settings, bids=bids)
 
     # plot wavelet results
     wavelets_prepost_ave = np.mean(wavelets_prepost_group, axis=4)

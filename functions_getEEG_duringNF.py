@@ -1,7 +1,7 @@
 import numpy as np
 from pathlib import Path
 import mne
-import Analysis_Code.helperfunctions_ATTNNF as helper
+import helperfunctions_ATTNNF as helper
 
 def analyseEEG_duringNF(settings, sub_val):
     settings = settings.get_settings_EEG_duringNF()
