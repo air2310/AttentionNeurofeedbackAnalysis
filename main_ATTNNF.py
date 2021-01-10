@@ -54,8 +54,8 @@ analyse_behaviour_prepost = False # Analyse Behaviour Pre Vs. Post Training
 # analyse_behaviour_duringNF = True # Analyse Behaviour Pre Vs. Post Training
 analyse_behaviour_duringNF = False # Analyse Behaviour Pre Vs. Post Training
 
-analyse_EEG_prepost =True # analyse EEG Pre Vs. Post Training
-# analyse_EEG_prepost =False # analyse EEG Pre Vs. Post Training
+# analyse_EEG_prepost =True # analyse EEG Pre Vs. Post Training
+analyse_EEG_prepost =False # analyse EEG Pre Vs. Post Training
 #
 # analyse_EEG_duringNF = True # analyse EEG during Neurofeedback
 analyse_EEG_duringNF = False # analyse EEG during Neurofeedback
@@ -71,7 +71,7 @@ analyse_nbacktask = False # Analyse N-back Task
 
 # collate_behaviour_prepost = True # Collate Behaviour Pre Vs. Post Training
 collate_behaviour_prepost = False # Collate Behaviour Pre Vs. Post Training
-
+#
 # collate_behaviour_prepost_compare = True # Collate Behaviour Pre Vs. Post Training compare training groups
 collate_behaviour_prepost_compare = False # Collate Behaviour Pre Vs. Post Training compare training groups
 
@@ -81,8 +81,8 @@ collate_behaviour_duringNF = False # Collate Behaviour during Training
 # collate_behaviour_duringNF_compare = True # Collate Behaviourduring Training compare training groups
 collate_behaviour_duringNF_compare = False # Collate Behaviour during Training compare training groups
 
-collateEEGprepost = True# Collate EEG Pre Vs. Post Training across subjects
-# collateEEGprepost = False# Collate EEG Pre Vs. Post Training across subjects
+# collateEEGprepost = True# Collate EEG Pre Vs. Post Training across subjects
+collateEEGprepost = False# Collate EEG Pre Vs. Post Training across subjects
 #
 # collateEEGprepostcompare = True # Collate EEG Pre Vs. Post Training across subjects
 collateEEGprepostcompare = False # Collate EEG Pre Vs. Post Training across subjects
@@ -96,8 +96,8 @@ collate_visualsearchtask = False # Collate Visual Search results
 # collate_nbacktask = True # Analyse N-back Task
 collate_nbacktask = False # Analyse N-back Task
 
-# classification_acc_correlations = True # Assess whether classification accuracy correlated with training effects
-classification_acc_correlations = False # Assess whether classification accuracy correlated with training effects
+classification_acc_correlations = True # Assess whether classification accuracy correlated with training effects
+# classification_acc_correlations = False # Assess whether classification accuracy correlated with training effects
 
 # setup generic settings
 attntrained = 0 # ["Space", "Feature"]
@@ -202,6 +202,13 @@ if (collate_behaviour_prepost):
     behdat_all_avg = behdat_all.groupby(["subID", "Testday", "Attention Type"]).mean()
     behdat_all_avg=behdat_all_avg.reset_index()
 
+    # get standard dev
+    behdat_all_std = behdat_all.groupby(["subID", "Testday", "Attention Type"]).std()
+    behdat_all_std = behdat_all_std.reset_index()
+
+    # get inverse efficiency
+    behdat_all_avg["InverseEfficiency"] = behdat_all_avg["Reaction Time"] / (accdat_targ_all["correct"] / 100)
+
     # plot results
     fig, (ax1) = plt.subplots(1, 1, figsize=(6, 6))
     sns.set(style="ticks")
@@ -218,6 +225,44 @@ if (collate_behaviour_prepost):
     titlestring =  'Motion Task RT by Day Train ' + settings.string_attntrained[settings.attntrained]
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
+
+
+
+    # plot results - standard deviation
+    fig, (ax1) = plt.subplots(1, 1, figsize=(6, 6))
+    sns.set(style="ticks")
+
+    # Reaction time Grouped violinplot
+    colors = ["#F2B035", "#EC553A"]
+
+    sns.violinplot(x="Attention Type", y="Reaction Time", hue="Testday",data=behdat_all_std , palette=sns.color_palette(colors), style="ticks", ax=ax1, split=True, inner="stick")
+
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+    # ax1.set_ylim([0.4, 1.2])
+
+    titlestring =  'Motion Task RT Std Dev by Day Train ' + settings.string_attntrained[settings.attntrained]
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
+
+
+    # plot results - inverse efficiency
+    fig, (ax1) = plt.subplots(1, 1, figsize=(6, 6))
+    sns.set(style="ticks")
+
+    # Reaction time Grouped violinplot
+    colors = ["#F2B035", "#EC553A"]
+
+    sns.violinplot(x="Attention Type", y="InverseEfficiency", hue="Testday", data=behdat_all_avg , palette=sns.color_palette(colors), style="ticks", ax=ax1, split=True, inner="stick")
+
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+    # ax1.set_ylim([0.4, 1.2])
+
+    titlestring =  'Motion Task RT Inverse Efficiency by Day Train ' + settings.string_attntrained[settings.attntrained]
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
+
 
     # Plot Accuracy Data
 
@@ -329,6 +374,8 @@ if (collate_behaviour_prepost):
 
     # Save results out for collation later
     accdat_targ_all['RT'] = behdat_all_avg['Reaction Time']
+    accdat_targ_all['RT_STD'] = behdat_all_std['Reaction Time']
+    accdat_targ_all["InverseEfficiency"] = behdat_all_avg["InverseEfficiency"]
     accdat_targ_all.to_pickle(bids.direct_results_group / Path("motiondiscrim_behaveresults_" + settings.string_testtrain[0] + ".pkl"))
 
 if (collate_behaviour_prepost_compare):
@@ -350,10 +397,10 @@ if (collate_behaviour_prepost_compare):
         df_behaveresults_tmp['AttentionTrained'] = attntrained
 
         if (attntrainedcount == 0):
-            df_behaveresults = df_behaveresults_tmp[['subID','subIDval', 'AttentionTrained', 'Attention Type', 'Testday', 'Sensitivity', 'Criterion', 'correct', 'LikelihoodRatio', 'RT']]
+            df_behaveresults = df_behaveresults_tmp[['subID','subIDval', 'AttentionTrained', 'Attention Type', 'Testday', 'Sensitivity', 'Criterion', 'correct', 'LikelihoodRatio', 'RT', 'RT_STD', 'InverseEfficiency']]
         else:
             df_behaveresults_tmp['subID'] = df_behaveresults_tmp['subID'] + 34
-            df_behaveresults = df_behaveresults.append(df_behaveresults_tmp[['subID', 'subIDval', 'AttentionTrained', 'Attention Type', 'Testday', 'Sensitivity', 'Criterion', 'correct', 'LikelihoodRatio', 'RT']])
+            df_behaveresults = df_behaveresults.append(df_behaveresults_tmp[['subID', 'subIDval', 'AttentionTrained', 'Attention Type', 'Testday', 'Sensitivity', 'Criterion', 'correct', 'LikelihoodRatio', 'RT', 'RT_STD', 'InverseEfficiency']])
 
     # Exclude extremely poor performers.
     tmp = df_behaveresults.groupby('subIDval').mean()['correct']
@@ -381,6 +428,43 @@ if (collate_behaviour_prepost_compare):
     ax1.spines['right'].set_visible(False)
 
     titlestring =  'Motion Task RT by Day pre Vs. post'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+    #### RT data - STD ####
+
+    fig, (ax1) = plt.subplots(1, 1, figsize=(6, 6))
+
+    # Reaction time Grouped violinplot
+    colors = [settings.lightteal]
+
+    sns.swarmplot(x="Testday", y="RT_STD", data=df_behaveresults_clean, color="0", alpha=0.3)
+    sns.violinplot(x="Testday", y="RT_STD", data=df_behaveresults_clean, palette=sns.color_palette(colors), style="ticks",
+                   ax=ax1, inner="box", alpha=0.6)
+
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+
+    titlestring = 'Motion Task RT Std Dev by Day pre Vs. post'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+    #### RT data - Inverse Efficiency ####
+
+    fig, (ax1) = plt.subplots(1, 1, figsize=(6, 6))
+
+    # Reaction time Grouped violinplot
+    colors = [settings.lightteal]
+
+    sns.swarmplot(x="Testday", y="InverseEfficiency", data=df_behaveresults_clean, color="0", alpha=0.3)
+    sns.violinplot(x="Testday", y="InverseEfficiency", data=df_behaveresults_clean, palette=sns.color_palette(colors),
+                   style="ticks",
+                   ax=ax1, inner="box", alpha=0.6)
+
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+
+    titlestring = 'Motion Task RT Inverse Efficiency by Day pre Vs. post'
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
@@ -467,6 +551,8 @@ if (collate_behaviour_prepost_compare):
     df_behtraineffects["∆Criterion"] = tmpd4['Criterion'] - tmpd1['Criterion']
     df_behtraineffects["∆Correct"] = tmpd4['correct'] - tmpd1['correct']
     df_behtraineffects["∆RT"] = tmpd4['RT'] - tmpd1['RT']
+    df_behtraineffects["∆RT_STD"] = tmpd4['RT_STD'] - tmpd1['RT_STD']
+    df_behtraineffects["∆InverseEfficiency"] = tmpd4['InverseEfficiency'] - tmpd1['InverseEfficiency']
     df_behtraineffects["∆LikelihoodRatio"] = tmpd4['LikelihoodRatio'] - tmpd1['LikelihoodRatio']
 
     # df_behtraineffects = df_behtraineffects.reset_index()
@@ -489,6 +575,50 @@ if (collate_behaviour_prepost_compare):
         ax[i].set_title(settings.string_attntrained[i])
 
     titlestring = 'Motion Task RT training effect by attention'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+    #### Reaction Time - STD ####
+    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+
+    # Reaction time Grouped violinplot
+    colors = [settings.yellow, settings.orange]
+    for i in np.arange(2):
+        datplot = df_behtraineffects[df_behtraineffects["AttentionTrained"] == settings.string_attntrained[i]]
+
+        sns.swarmplot(x="Attention Type", y="∆RT_STD", data=datplot, color="0", alpha=0.3, ax=ax[i])
+        sns.violinplot(x="Attention Type", y="∆RT_STD", data=datplot, palette=sns.color_palette(colors), style="ticks",
+                       ax=ax[i], inner="box", alpha=0.6)
+
+        ax[i].spines['top'].set_visible(False)
+        ax[i].spines['right'].set_visible(False)
+
+        ax[i].set_title(settings.string_attntrained[i])
+
+    titlestring = 'Motion Task RT Std Dev training effect by attention'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+
+    #### Reaction Time - Inverse Efficiency ####
+    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+
+    # Reaction time Grouped violinplot
+    colors = [settings.yellow, settings.orange]
+    for i in np.arange(2):
+        datplot = df_behtraineffects[df_behtraineffects["AttentionTrained"] == settings.string_attntrained[i]]
+
+        sns.swarmplot(x="Attention Type", y="∆InverseEfficiency", data=datplot, color="0", alpha=0.3, ax=ax[i])
+        sns.violinplot(x="Attention Type", y="∆InverseEfficiency", data=datplot, palette=sns.color_palette(colors), style="ticks",
+                       ax=ax[i], inner="box", alpha=0.6)
+
+        ax[i].spines['top'].set_visible(False)
+        ax[i].spines['right'].set_visible(False)
+
+        ax[i].set_title(settings.string_attntrained[i])
+        ax[i].set_ylim([-15, 10])
+
+    titlestring = 'Motion Task RT InverseEfficiency training effect by attention'
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
@@ -1388,7 +1518,7 @@ if (collate_visualsearchtask):
 
     # Reaction time Grouped violinplot
     colors = ["#F2B035", "#EC553A"]
-    df_rt_SSmean= df_rt_SSmean[df_rt_SSmean["Reaction Time (s)"] < 3]
+    df_rt_SSmean = df_rt_SSmean[df_rt_SSmean["Reaction Time (s)"] < 3]
     sns.violinplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", data=df_rt_SSmean,
                    palette=sns.color_palette(colors), style="ticks", ax=ax2, split=True, inner="stick")
     ax2.spines['top'].set_visible(False)
@@ -1399,6 +1529,10 @@ if (collate_visualsearchtask):
     titlestring = 'Visual Search Results Compare Training Set Size Ave'
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+    # save out
+    np.save(bids.direct_results_group / Path("group_visualsearch.npy"), df_rt_SSmean)
+
 
 # Collate N-Back Task
 if (collate_nbacktask):
@@ -1591,7 +1725,7 @@ if (classification_acc_correlations):
     df_classifier[df_classifier['ClassifierType'] == 'Feature'].std()  #  5.715636
     ########## Get SSVEP Selectivity Data #############
 
-    print('collating SSVEP amplitudes pre Vs. post training compareing Space Vs. Feat Training')
+    print('collating SSVEP amplitudes pre Vs. post training comparing Space Vs. Feat Training')
 
     # preallocate
     num_subs = np.zeros((settings.num_attnstates))
@@ -1789,43 +1923,7 @@ if (classification_acc_correlations):
     ax[1].legend(['Feature', 'Space'], title="Attention Trained")
     ax[1].spines['top'].set_visible(False)
     ax[1].spines['right'].set_visible(False)
-    #
-    # # Criterion
-    # i = df_correlationsdat.loc[df_correlationsdat.AttentionTrained == "Space", ["ClassifierAccuracy"]]
-    # j = df_correlationsdat.loc[df_correlationsdat.AttentionTrained == "Space", ["Space_Criterion_trainefc"]]
-    # k = df_correlationsdat.loc[df_correlationsdat.AttentionTrained == "Feature", ["ClassifierAccuracy"]]
-    # l = df_correlationsdat.loc[df_correlationsdat.AttentionTrained == "Feature", ["Feature_Criterion_trainefc"]]
-    # corrs_space = stats.pearsonr(i["ClassifierAccuracy"], j["Space_Criterion_trainefc"])
-    # corrs_feat = stats.pearsonr(k["ClassifierAccuracy"], l["Feature_Criterion_trainefc"])
-    # corrs_both = stats.pearsonr(pd.concat([i["ClassifierAccuracy"], k["ClassifierAccuracy"]], axis=0), pd.concat([j["Space_Criterion_trainefc"], l["Feature_Criterion_trainefc"]], axis=0))
-    #
-    # sns.scatterplot(data=df_correlationsdat[df_correlationsdat.AttentionTrained == "Feature"], x="ClassifierAccuracy", y="Feature_Criterion_trainefc", ax=ax[1][0], color=settings.lightteal_)
-    # sns.scatterplot(data=df_correlationsdat[df_correlationsdat.AttentionTrained == "Space"], x="ClassifierAccuracy", y="Space_Criterion_trainefc", ax=ax[1][0], color=settings.yellow_)
-    # ax[1][0].set_title("r = " + str(corrs_both[0]) + ', p = ' + str(corrs_both[1]))
-    # # ax[1].set_title("Classifier Acc Vs. Sensitivity (d') train effect")
-    # ax[1][0].set_ylabel("Change in Criterion for trained attention type")
-    # ax[1][0].legend(['Feature', 'Space'], title="Attention Trained")
-    # ax[1][0].spines['top'].set_visible(False)
-    # ax[1][0].spines['right'].set_visible(False)
-    #
-    # # Criterion
-    # i = df_correlationsdat.loc[df_correlationsdat.AttentionTrained == "Space", ["ClassifierAccuracy"]]
-    # j = df_correlationsdat.loc[df_correlationsdat.AttentionTrained == "Space", ["Space_RT_trainefc"]]
-    # k = df_correlationsdat.loc[df_correlationsdat.AttentionTrained == "Feature", ["ClassifierAccuracy"]]
-    # l = df_correlationsdat.loc[df_correlationsdat.AttentionTrained == "Feature", ["Feature_RT_trainefc"]]
-    # corrs_space = stats.pearsonr(i["ClassifierAccuracy"], j["Space_RT_trainefc"])
-    # corrs_feat = stats.pearsonr(k["ClassifierAccuracy"], l["Feature_RT_trainefc"])
-    # corrs_both = stats.pearsonr(pd.concat([i["ClassifierAccuracy"], k["ClassifierAccuracy"]], axis=0), pd.concat([j["Space_RT_trainefc"], l["Feature_RT_trainefc"]], axis=0))
-    #
-    # sns.scatterplot(data=df_correlationsdat[df_correlationsdat.AttentionTrained == "Feature"], x="ClassifierAccuracy", y="Feature_RT_trainefc", ax=ax[1][1], color=settings.lightteal_)
-    # sns.scatterplot(data=df_correlationsdat[df_correlationsdat.AttentionTrained == "Space"], x="ClassifierAccuracy", y="Space_RT_trainefc", ax=ax[1][1], color=settings.yellow_)
-    # ax[1][1].set_title("r = " + str(corrs_both[0]) + ', p = ' + str(corrs_both[1]))
-    # # ax[1].set_title("Classifier Acc Vs. Sensitivity (d') train effect")
-    # ax[1][1].set_ylabel("Change in RT for trained attention type")
-    # ax[1][1].legend(['Feature', 'Space'], title="Attention Trained")
-    # ax[1][1].spines['top'].set_visible(False)
-    # ax[1][1].spines['right'].set_visible(False)
-    #
+
 
     titlestring = "Effect of classifier accuracy on training"
     plt.suptitle(titlestring)
@@ -1886,3 +1984,50 @@ if (classification_acc_correlations):
     titlestring = "Construct validity"
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+    # Does improvement on transfer tasks relate to improvement on training task?
+
+    vissearchrt = np.load(bids.direct_results_group / Path("group_visualsearch.npy"))
+
+    # Add data to correlations dat - get indices
+    idx_space_pre = np.logical_and(df_behaveresults.Testday == 'Day 1', df_behaveresults["Attention Type"] == "Space")
+    idx_feature_pre = np.logical_and(df_behaveresults.Testday == 'Day 1',
+                                     df_behaveresults["Attention Type"] == "Feature")
+
+    idx_space_post = np.logical_and(df_behaveresults.Testday == 'Day 4', df_behaveresults["Attention Type"] == "Space")
+    idx_feature_post = np.logical_and(df_behaveresults.Testday == 'Day 4',
+                                      df_behaveresults["Attention Type"] == "Feature")
+
+    # Add data to correlations dat
+    dattype = "RT"
+    df_correlationsdat["Space_" + dattype + "_pre"] = df_behaveresults.loc[idx_space_pre, :].reset_index().loc[:,
+                                                      dattype]
+    df_correlationsdat["Feature_" + dattype + "_pre"] = df_behaveresults.loc[idx_feature_pre, :].reset_index().loc[:,
+                                                        dattype]
+
+    df_correlationsdat["Space_" + dattype + "_post"] = df_behaveresults.loc[idx_space_post, :].reset_index().loc[:,
+                                                       dattype]
+    df_correlationsdat["Feature_" + dattype + "_post"] = df_behaveresults.loc[idx_feature_post, :].reset_index().loc[:,
+                                                         dattype]
+
+    # Add training effect
+    df_correlationsdat["Space_" + dattype + "_trainefc"] = df_behaveresults.loc[idx_space_post, :].reset_index().loc[:,
+                                                           dattype] - df_behaveresults.loc[idx_space_pre,
+                                                                      :].reset_index().loc[:, dattype]
+    df_correlationsdat["Feature_" + dattype + "_trainefc"] = df_behaveresults.loc[idx_feature_post,
+                                                             :].reset_index().loc[:, dattype] - df_behaveresults.loc[
+                                                                                                idx_feature_pre,
+                                                                                                :].reset_index().loc[:,
+                                                                                                dattype]
+
+    # plot classification accuracy vs. Selectivity
+    import scipy.stats as stats
+
+    i = df_correlationsdat.loc[df_correlationsdat.AttentionTrained == "Space", ["ClassifierAccuracy"]]
+    j = df_correlationsdat.loc[df_correlationsdat.AttentionTrained == "Space", ["Space_Selectivity_pre"]]
+    k = df_correlationsdat.loc[df_correlationsdat.AttentionTrained == "Feature", ["ClassifierAccuracy"]]
+    l = df_correlationsdat.loc[df_correlationsdat.AttentionTrained == "Feature", ["Feature_Selectivity_pre"]]
+    corrs_space = stats.pearsonr(i["ClassifierAccuracy"], j["Space_Selectivity_pre"])
+    corrs_feat = stats.pearsonr(k["ClassifierAccuracy"], l["Feature_Selectivity_pre"])
+    corrs_both = stats.pearsonr(pd.concat([i["ClassifierAccuracy"], k["ClassifierAccuracy"]], axis=0),
+                                pd.concat([j["Space_Selectivity_pre"], l["Feature_Selectivity_pre"]], axis=0))
