@@ -560,7 +560,7 @@ def topoplot_SSVEPs_group(raw, SSVEPs, ERPstring, settings, bids):
                 # plt.colorbar(plt.cm.ScalarMappable(cmap=im[0].cmap))
                 plt.colorbar(im[0], shrink=0.5)
 
-    titlestring = bids.substring + ' ' + ERPstring + ' Topoplots pre-post'
+    titlestring = ERPstring + ' Topoplots pre-post'
     fig.suptitle(titlestring)
     plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
 
