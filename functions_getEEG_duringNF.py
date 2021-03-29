@@ -203,6 +203,7 @@ def getfft_sigtonoise(settings, epochs, fftdat, freq):
 
     return snr
 
+
 def getSSVEPS_conditions(settings, fftdat, freq):
     # get indices for frequencies of interest
     hz_attn_index = np.empty((settings.num_spaces, settings.num_features))
@@ -338,7 +339,6 @@ def plotResultsPrePost_subjects(SSVEPs_prepost_mean, settings, ERPstring, bids):
     plt.savefig(bids.direct_results / Path(titlestring + '.png'), format='png')
 
 
-
 def plotGroupFFTSpectrum(fftdat_ave, bids, ERPstring, settings, freq):
     import matplotlib.pyplot as plt
     from pathlib import Path
@@ -376,6 +376,7 @@ def plotGroupFFTSpectrum(fftdat_ave, bids, ERPstring, settings, freq):
     titlestring = 'During NF Group Mean '+ ERPstring +' FFT Spectrum' + settings.string_attntrained[settings.attntrained]
     fig.suptitle(titlestring)
     plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
+
 
 def plotGroupSSVEPs(SSVEPs_group, bids, ERPstring, settings):
     import matplotlib.pyplot as plt
@@ -456,3 +457,52 @@ def plotGroupSSVEPs(SSVEPs_group, bids, ERPstring, settings):
         settings.attntrained]
     fig.suptitle(titlestring)
     plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
+
+
+def collateEEG_duringNF(settings):
+    print('collating SSVEP amplitudes during NF')
+    # get settings specific to this analysis
+    settings = settings.get_settings_EEG_duringNF()
+
+    # Get timing settings
+    timelimits_data_zp, timepoints_zp, frequencypoints_zp, zeropoint_zp = helper.get_timing_variables(
+        settings.timelimits_zeropad, settings.samplingfreq)
+
+    # preallocate group mean variables
+    num_subs = settings.num_subs
+    SSVEPs_group = np.empty((settings.num_attd_unattd, settings.num_days, settings.num_attnstates, num_subs))
+    SSVEPs_epochs_group = np.empty((settings.num_attd_unattd, settings.num_days, settings.num_attnstates, num_subs))
+    fftdat_group = np.empty((settings.num_electrodes, len(timepoints_zp) + 1, settings.num_attnstates,
+                             settings.num_levels, settings.num_days, num_subs))
+    fftdat_epochs_group = np.empty((settings.num_electrodes, len(timepoints_zp) + 1, settings.num_attnstates,
+                                    settings.num_levels, settings.num_days, num_subs))
+
+    # iterate through subjects for individual subject analyses
+    for sub_count, sub_val in enumerate(settings.subsIDXcollate):
+        # get directories and file names
+        bids = helper.BIDS_FileNaming(int(sub_val), settings, 0)
+        print(bids.substring)
+
+        # load results
+        results = np.load(bids.direct_results / Path(bids.substring + "EEG_duringNF_results.npz"), allow_pickle=True)  #
+        # saved vars: SSVEPs_prepost_channelmean, SSVEPs_prepost_channelmean_epochs, wavelets_prepost, timepoints_zp, erps_days_wave, fftdat, fftdat_epochs, freq)
+
+        # store results
+        SSVEPs_group[:, :, :, sub_count] = results['SSVEPs_prepost_channelmean']
+        SSVEPs_epochs_group[:, :, :, sub_count] = results['SSVEPs_prepost_channelmean_epochs']
+        fftdat_group[:, :, :, :, :, sub_count] = results['fftdat']
+        fftdat_epochs_group[:, :, :, :, :, sub_count] = results['fftdat_epochs']
+
+        timepoints_use = results['timepoints_zp']
+        freq = results['freq']
+
+    # plot grand average frequency spectrum
+    fftdat_ave = np.nanmean(fftdat_group, axis=5)
+    plotGroupFFTSpectrum(fftdat_ave, bids, ERPstring='ERP', settings=settings, freq=freq)
+
+    fftdat_epochs_ave = np.nanmean(fftdat_epochs_group, axis=5)
+    plotGroupFFTSpectrum(fftdat_epochs_ave, bids, ERPstring='Single Trial', settings=settings, freq=freq)
+
+    # plot average SSVEP results
+    plotGroupSSVEPs(SSVEPs_group, bids, ERPstring='ERP', settings=settings)
+    plotGroupSSVEPs(SSVEPs_epochs_group, bids, ERPstring='Single Trial', settings=settings)

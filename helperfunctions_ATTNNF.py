@@ -1,6 +1,5 @@
 import numpy as np
 from pathlib import Path
-import mne
 
 # setup Classes and functions
 class SetupMetaData:

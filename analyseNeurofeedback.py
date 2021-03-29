@@ -1,13 +1,8 @@
 # Import nescescary packages
 import numpy as np
 from pathlib import Path
-# import mne
 import h5py
 import matplotlib.pyplot as plt
-import seaborn as sns
-# import pandas as pd
-# import sys
-
 import helperfunctions_ATTNNF as helper
 
 
@@ -204,6 +199,212 @@ def run(settings, sub_val):
              runlength=runlength,
              numruns=numruns_short,
              feedbackERP=feedbackERP)
+
+
+def collate_Neurofeedback(settings):
+    print('collating Neurofeedback for Space Vs. Feat Training')
+    settings = settings.get_settings_behave_duringNF()
+
+    # pre-allocate
+    timelims = [-1 * settings.mon_ref, 3 * settings.mon_ref]
+    n_datapoints = len(np.arange(timelims[0], timelims[1]))
+
+    feedbackERPALL = np.empty((n_datapoints, settings.num_days, settings.num_attnstates))
+    feedbackERPALL_error = np.empty((n_datapoints, settings.num_days, settings.num_attnstates))
+
+    string_correct = ["correct", "incorrect"]
+    string_feedback = ["Sustained Correct", "Correct", "Incorrect", "Sustained Incorrect"]
+
+    numruns = []
+    runlengths = []
+    daystrings = []
+    correctstrings = []
+    attnstrings = []
+    substrings = []
+    substrings_fb = []
+    daystrings_fb = []
+    feedbackstrings = []
+    attnstrings_fb = []
+    feedback = []
+
+    # cycle trough space and feature train groups
+    for attntrained in np.arange(settings.num_attnstates):  # cycle trough space and feature train groups
+
+        # get task specific settings
+        settings = helper.SetupMetaData(attntrained)
+        settings = settings.get_settings_behave_duringNF()
+
+        # pre-allocate
+        feedbackERPcond = np.empty(
+            (n_datapoints, settings.num_days, settings.num_subs, settings.num_trials * settings.num_movements))
+        numrunscond = np.empty((2, settings.num_days, settings.num_subs))
+        runlengthcond = np.empty((2, settings.num_days, settings.num_subs))
+        feedbackproportioncond = np.empty((4, settings.num_days, settings.num_subs))
+
+        substring_short = []
+
+        # iterate through subjects for individual subject analyses
+        for sub_count, sub_val in enumerate(settings.subsIDXcollate):
+            # get directories and file names
+            bids = helper.BIDS_FileNaming(int(sub_val), settings, 0)
+            print(bids.substring)
+
+            # load results
+            results = np.load(bids.direct_results / Path(bids.substring + "NeurofeedbackSummaries.npz"),
+                              allow_pickle=True)
+
+            runlengthcond[:, :, sub_count] = results["runlength"] / settings.mon_ref
+            numrunscond[:, :, sub_count] = results["numruns"]
+            feedbackERPcond[:, :, sub_count, :] = results["feedbackERP"]
+            feedbackproportioncond[:, :, sub_count] = results["feedback_proportion"]
+
+            substring_short = np.concatenate((substring_short, [bids.substring]))
+
+        # summarise feedback ERP
+        feedbackERPALL[:, :, attntrained] = np.nanmean(np.nanmean(feedbackERPcond, 3), 2)
+
+        tmp = np.nanmean(feedbackERPcond, 3)
+        suberr = np.nanmean(tmp, 0)
+        granderr = np.nanmean(suberr, 1)
+        x = tmp - (suberr - np.tile(granderr, (settings.num_subs, 1)).T)
+        feedbackERPALL_error[:, :, attntrained] = np.nanstd(x) / np.sqrt(settings.num_subs)
+
+        # Summarise runs
+        for attentiontype in np.arange(2):
+            for testday in np.arange(settings.num_days):
+                substrings = np.concatenate((substrings, substring_short))
+                daystrings = np.concatenate((daystrings, [settings.string_testday[testday]] * settings.num_subs))
+                correctstrings = np.concatenate((correctstrings, [string_correct[attentiontype]] * settings.num_subs))
+                attnstrings = np.concatenate(
+                    (attnstrings, [settings.string_attntrained[attntrained]] * settings.num_subs))
+
+                runlengths = np.concatenate((runlengths, runlengthcond[attentiontype, testday, :]))
+                numruns = np.concatenate((numruns, numrunscond[attentiontype, testday, :]))
+
+        print(np.mean(feedbackproportioncond, 2))
+
+        # Summarise feedbackproportion
+        for feedbacktype in np.arange(4):
+            for testday in np.arange(settings.num_days):
+                substrings_fb = np.concatenate((substrings_fb, substring_short))
+                daystrings_fb = np.concatenate((daystrings_fb, [settings.string_testday[testday]] * settings.num_subs))
+                feedbackstrings = np.concatenate((feedbackstrings, [string_feedback[feedbacktype]] * settings.num_subs))
+                attnstrings_fb = np.concatenate(
+                    (attnstrings_fb, [settings.string_attntrained[attntrained]] * settings.num_subs))
+
+                feedback = np.concatenate((feedback, feedbackproportioncond[feedbacktype, testday, :]))
+
+    data = {'SubID': substrings, 'Testday': daystrings, 'Attentionstate': correctstrings,
+            'AttentionTrained': attnstrings,
+            'RunLengths': runlengths, 'NumberofRuns': numruns}
+    df_runs = pd.DataFrame(data)
+
+    df_runs.loc[(np.abs(stats.zscore(df_runs['RunLengths'])) > 3), ["RunLengths", "NumberofRuns"]] = np.nan
+
+    data = {'SubID': substrings_fb, 'Testday': daystrings_fb, 'FeedbackType': feedbackstrings,
+            'AttentionTrained': attnstrings_fb,
+            'FeedbackProportion (s)': feedback}
+    df_feedback = pd.DataFrame(data)
+
+    ## Plot results - run lengths
+    fig, (ax1) = plt.subplots(1, 2, figsize=(12, 6))
+    sns.set(style="ticks")
+
+    # Reaction time Grouped violinplot
+    colors = ["#F2B035", "#EC553A"]
+
+    for attn, attnstring in enumerate(settings.string_attntrained):
+        sns.violinplot(x="Testday", y="RunLengths", hue="Attentionstate",
+                       data=df_runs[df_runs["AttentionTrained"].isin([attnstring])],
+                       palette=sns.color_palette(colors), style="ticks", ax=ax1[attn], split=True, inner="stick")
+
+        ax1[attn].spines['top'].set_visible(False)
+        ax1[attn].spines['right'].set_visible(False)
+
+        ax1[attn].set_title(attnstring)
+        ax1[attn].set_ylim([0.2, 0.9])
+        ax1[attn].set_ylabel("Time attended / trial (s)")
+
+    titlestring = 'Attention States categorised Time per trial'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+    ## Plot results - number of runs
+    fig, (ax1) = plt.subplots(1, 2, figsize=(12, 6))
+    sns.set(style="ticks")
+
+    # Reaction time Grouped violinplot
+    colors = ["#F2B035", "#EC553A"]
+
+    for attn, attnstring in enumerate(settings.string_attntrained):
+        sns.violinplot(x="Testday", y="NumberofRuns", hue="Attentionstate",
+                       data=df_runs[df_runs["AttentionTrained"].isin([attnstring])],
+                       palette=sns.color_palette(colors), style="ticks", ax=ax1[attn], split=True, inner="stick")
+
+        ax1[attn].spines['top'].set_visible(False)
+        ax1[attn].spines['right'].set_visible(False)
+
+        ax1[attn].set_title(attnstring)
+        ax1[attn].set_ylim([4, 14])
+        ax1[attn].set_ylabel("Time attended / trial (s)")
+
+    titlestring = 'Attention States categorised Number of runs per trial'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+    ## Plot results - feedback
+    fig, (ax1) = plt.subplots(1, 3, figsize=(18, 6))
+    sns.set(style="ticks")
+
+    # Reaction time Grouped violinplot
+    colors = ["#F2B035", "#EC553A"]
+
+    for day, daystring in enumerate(settings.string_testday[0:3]):
+        sns.violinplot(x="FeedbackType", y="FeedbackProportion (s)", hue="AttentionTrained",
+                       data=df_feedback[df_feedback["Testday"].isin([daystring])],
+                       palette=sns.color_palette(colors), style="ticks", ax=ax1[day], split=True, inner="stick")
+
+        ax1[day].spines['top'].set_visible(False)
+        ax1[day].spines['right'].set_visible(False)
+
+        ax1[day].set_title(daystring)
+        ax1[day].set_ylim([0, 4])
+        ax1[day].set_ylabel("Time attended / trial (s)")
+
+    titlestring = 'Feedback proportions by training day'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+    # plot "ERPs" to motion epochs
+    # feedbackERPALL[:, :, attntrained] = np.nanmean(np.nanmean(feedbackERPcond, 3), 2)
+    # feedbackERPALL_error[:, :, attntrained] = np.nanstd(np.nanmean(feedbackERPcond, 3), 2)
+    fig, (ax1) = plt.subplots(1, 2, figsize=(12, 6))
+    colours = [settings.yellow, settings.lightteal, settings.medteal]
+    t = np.arange(timelims[0], timelims[1]) / settings.mon_ref
+
+    for attn, attnstring in enumerate(settings.string_attntrained):
+        for day, daystring in enumerate(settings.string_testday[0:3]):
+            datplot = feedbackERPALL[:, day, attn] - np.nanmean(feedbackERPALL[0:settings.mon_ref, day, attn], 0)
+            ax1[attn].plot(t, datplot, color=colours[day])
+            ax1[attn].fill_between(t, datplot - feedbackERPALL_error[:, day, attn],
+                                   datplot + feedbackERPALL_error[:, day, attn], facecolor=colours[day], alpha=0.2)
+
+        ax1[attn].vlines([0, 0.5], -1, 1, 'k')
+
+        ax1[attn].set_xlim([-1, 2])
+        ax1[attn].set_title(attnstring)
+        ax1[attn].set_xlabel('Time relative to movement (s)')
+        ax1[attn].legend(settings.string_testday[0:3])
+
+    ax1[0].set_ylim([-0.1, 0.1])
+    ax1[1].set_ylim([-0.1, 0.1])
+
+    titlestring = 'Neurofeedback motion ERPs'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+    motdiff = - np.mean(feedbackERPALL[np.logical_and(t > -0.5, t < 0), :, :], 0) + np.mean(
+        feedbackERPALL[np.logical_and(t > 1.5, t < 2.0), :, :], 0)
 
 
 
