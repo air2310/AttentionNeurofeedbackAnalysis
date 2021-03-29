@@ -269,7 +269,7 @@ def getSSVEPS_conditions(settings, fftdat, freq):
     BEST = np.empty((settings.num_best, settings.num_days, settings.num_attnstates))
     SSVEPs_prepost_mean = np.empty((settings.num_attd_unattd, settings.num_days, settings.num_attnstates))
     for day_count, day_val in enumerate(settings.daysuse):
-        for attn_count, attn_val in enumerate(settings.string_attntrained):
+        for attn_count, attn_val in enumerate(settings.string_cuetype):
             tmp = np.mean(SSVEPs_prepost[:, day_count, :, attn_count], axis=1)
             BEST[:, day_count, attn_count] = tmp.argsort()[-settings.num_best:]
 
@@ -475,7 +475,7 @@ def plotResultsPrePost_subjects(SSVEPs_prepost_mean, settings, ERPstring, bids):
     # next step - compute differences and plot
     fig, ax = plt.subplots(figsize=(5, 5))
 
-    labels = settings.string_attntrained
+    labels = settings.string_cuetype
     x = np.arange(len(labels))
     width = 0.35
 
@@ -554,7 +554,7 @@ def topoplot_SSVEPs_group(raw, SSVEPs, ERPstring, settings, bids):
                                           names=list(('Iz', 'Oz', 'POz', 'O1', 'O2', 'PO3', 'PO4', 'PO7', 'PO8', 'Pz',
                                                       'P9', 'P10')), vmin=vmin, vmax=vmax, contours=0)
 
-                plt.title(settings.string_attntrained[attntype] + " " + settings.string_attd_unattd[attd] + " " +
+                plt.title(settings.string_cuetype[attntype] + " " + settings.string_attd_unattd[attd] + " " +
                           settings.string_prepost[day])
 
                 # plt.colorbar(plt.cm.ScalarMappable(cmap=im[0].cmap))
@@ -658,7 +658,7 @@ def plotGroupSSVEPsprepost(SSVEPs_prepost_group, bids, ERPstring, settings):
 
     fig, ax = plt.subplots(figsize=(5, 5))
 
-    labels = settings.string_attntrained
+    labels = settings.string_cuetype
     x = np.arange(len(labels))
     width = 0.35
     xpos = np.array((x - width / 2, x + width / 2))

@@ -107,7 +107,7 @@ def analyse_visualsearchtask(settings, sub_val):
     ax.set_xticklabels(labels)
 
     plt.ylabel('Reaction Time (s)')
-    plt.legend()
+    # plt.legend()
     ax.set_frame_on(False)
 
     titlestring = bids.substring + ' Visual Search Reaction Time train ' + settings.string_attntrained[

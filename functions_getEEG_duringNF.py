@@ -21,46 +21,59 @@ def analyseEEG_duringNF(settings, sub_val):
     # iterate through test days to get data
     for day_count, day_val in enumerate(settings.daysuse):
         # TODO: save daily plots for events, drop logs, ERPs and FFTs
+
         # get file names
         bids = helper.BIDS_FileNaming(sub_val, settings, day_val)
         print(bids.casestring)
 
-        # get EEG data
-        raw, events, eeg_data_interp = helper.get_eeg_data(bids, day_count, settings)
+        # make sure file exists
+        possiblefiles = []
+        filesizes = []
+        for filesfound in bids.direct_data_eeg.glob(bids.filename_eeg + "*.eeg"):
+            filesizes.append(filesfound.stat().st_size)
+            possiblefiles.append(filesfound)
 
-        # % Cue Start trig.cuestart(attended
-        # trig.cuestart(i.spaceattd,i.featattd)
-        #  1 - black | 2 - white | 1 - \ | 2 - / '
-        # trig.cuestart = [
-        #     111 112
-        #     113 114];
+        if any(possiblefiles):
 
-        # Epoch to events of interest
-        event_id = {'Black/Left_diag': 111, 'White/Left_diag': 112,
-                    'Black/Right_diag': 113, 'White/Right_diag': 114}  # will be different triggers for training days
+            # get EEG data
+            raw, events, eeg_data_interp = helper.get_eeg_data(bids, day_count, settings)
 
-        epochs = mne.Epochs(eeg_data_interp, events, event_id=event_id, tmin=settings.timelimits_zeropad[0],
-                            tmax=settings.timelimits_zeropad[1],
-                            baseline=(0, 1 / settings.samplingfreq), picks=np.arange(settings.num_electrodes),
-                            reject=dict(eeg=400), detrend=1)  #
+            # % Cue Start trig.cuestart(attended
+            # trig.cuestart(i.spaceattd,i.featattd)
+            #  1 - black | 2 - white | 1 - \ | 2 - / '
+            # trig.cuestart = [
+            #     111 112
+            #     113 114];
 
-        # drop bad channels
-        epochs.drop_bad()
-        epochs.plot_drop_log()
-        # epochs2 = epochs.equalize_event_counts(event_id, method='mintime')
+            # Epoch to events of interest
+            event_id = {'Black/Left_diag': 111, 'White/Left_diag': 112,
+                        'Black/Right_diag': 113, 'White/Right_diag': 114}  # will be different triggers for training days
 
-        # visualise topo
-        # epochs.plot_psd_topomap()
+            epochs = mne.Epochs(eeg_data_interp, events, event_id=event_id, tmin=settings.timelimits_zeropad[0],
+                                tmax=settings.timelimits_zeropad[1],
+                                baseline=(0, 1 / settings.samplingfreq), picks=np.arange(settings.num_electrodes),
+                                reject=dict(eeg=400), detrend=1)  #
 
-        # get data for each  condition
-        epochs_days[0:sum(elem == [] for elem in epochs['Black/Left_diag'].drop_log), :, :, 0, 0, day_count] = epochs[
-            'Black/Left_diag'].get_data()
-        epochs_days[0:sum(elem == [] for elem in epochs['Black/Right_diag'].drop_log), :, :, 0, 1, day_count] = epochs[
-            'Black/Right_diag'].get_data()
-        epochs_days[0:sum(elem == [] for elem in epochs['White/Left_diag'].drop_log), :, :, 1, 0, day_count] = epochs[
-            'White/Left_diag'].get_data()
-        epochs_days[0:sum(elem == [] for elem in epochs['White/Right_diag'].drop_log), :, :, 1, 1, day_count] = epochs[
-            'White/Right_diag'].get_data()
+            # drop bad channels
+            epochs.drop_bad()
+            epochs.plot_drop_log()
+            # epochs2 = epochs.equalize_event_counts(event_id, method='mintime')
+
+            # visualise topo
+            # epochs.plot_psd_topomap()
+
+            # get data for each  condition
+            epochs_days[0:sum(elem == [] for elem in epochs['Black/Left_diag'].drop_log), :, :, 0, 0, day_count] = epochs[
+                'Black/Left_diag'].get_data()
+            epochs_days[0:sum(elem == [] for elem in epochs['Black/Right_diag'].drop_log), :, :, 0, 1, day_count] = epochs[
+                'Black/Right_diag'].get_data()
+            epochs_days[0:sum(elem == [] for elem in epochs['White/Left_diag'].drop_log), :, :, 1, 0, day_count] = epochs[
+                'White/Left_diag'].get_data()
+            epochs_days[0:sum(elem == [] for elem in epochs['White/Right_diag'].drop_log), :, :, 1, 1, day_count] = epochs[
+                'White/Right_diag'].get_data()
+
+        else:
+            continue
 
     # average across trials
     erps_days = np.squeeze(np.nanmean(epochs_days, axis=0))
@@ -99,8 +112,6 @@ def analyseEEG_duringNF(settings, sub_val):
 
     ERPstring = 'Single Trial SNR'
     plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_epochs_snr, settings, ERPstring, bids)
-
-    # TODO: figure out if this script is wrong or if the matlab script is.
 
     np.savez(bids.direct_results / Path(bids.substring + "EEG_duringNF_results"),
              SSVEPs_prepost_channelmean_epochs_snr=SSVEPs_prepost_channelmean_epochs_snr,
@@ -253,7 +264,7 @@ def getSSVEPS_conditions(settings, fftdat, freq):
     BEST = np.empty((settings.num_best, settings.num_days, settings.num_attnstates))
     SSVEPs_prepost_mean = np.empty((settings.num_attd_unattd, settings.num_days, settings.num_attnstates))
     for day_count, day_val in enumerate(settings.daysuse):
-        for attn_count, attn_val in enumerate(settings.string_attntrained):
+        for attn_count, attn_val in enumerate(settings.string_cuetype):
             tmp = np.mean(SSVEPs_prepost[:, day_count, :, attn_count], axis=1)
             BEST[:, day_count, attn_count] = tmp.argsort()[-settings.num_best:]
 
@@ -300,7 +311,7 @@ def plotResultsPrePost_subjects(SSVEPs_prepost_mean, settings, ERPstring, bids):
     # next step - compute differences and plot
     fig, ax = plt.subplots(figsize=(5, 5))
 
-    labels = settings.string_attntrained
+    labels = settings.string_cuetype
     x = np.arange(len(labels))
     width = 0.25
 
@@ -369,7 +380,7 @@ def plotGroupFFTSpectrum(fftdat_ave, bids, ERPstring, settings, freq):
 def plotGroupSSVEPs(SSVEPs_group, bids, ERPstring, settings):
     import matplotlib.pyplot as plt
     from pathlib import Path
-    import Analysis_Code.helperfunctions_ATTNNF as helper
+    import helperfunctions_ATTNNF as helper
 
     M = np.nanmean(SSVEPs_group, axis=3)
 
@@ -423,7 +434,7 @@ def plotGroupSSVEPs(SSVEPs_group, bids, ERPstring, settings):
 
     fig, ax = plt.subplots(figsize=(5, 5))
 
-    labels = settings.string_attntrained
+    labels = settings.string_cuetype
     x = np.arange(len(labels))
     width = 0.25
     xpos = np.array((x - width , x, x + width ))

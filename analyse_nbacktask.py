@@ -4,6 +4,7 @@ import h5py
 import matplotlib.pyplot as plt
 import helperfunctions_ATTNNF as helper
 
+
 def analyse_nbacktask(settings, sub_val):
     # get task specific settings
     settings = settings.get_settings_nbacktask()
@@ -90,78 +91,77 @@ def analyse_nbacktask(settings, sub_val):
     np.savez(bids.direct_results / Path(bids.substring + "Nback_results"),
              meanacc=meanacc, meanrt=meanrt, acc_nback=acc_nback, rt_nback=rt_nback)
 
-
 # old collation script - doesn't group space and feature data
 
-    # print('Collating Visual Search Task')
-    #
-    # # get task specific settings
-    # settings = settings.get_settings_nbacktask()
-    #
-    # # pre-allocate
-    # num_subs = settings.num_subs
-    # acc_nback_all = np.empty((settings.num_trials, settings.num_days, num_subs))
-    # rt_nback_all = np.empty((settings.num_trials, settings.num_days, num_subs))
-    # mean_acc_all = np.empty((settings.num_days, num_subs))
-    # mean_rt_all = np.empty((settings.num_days, num_subs))
-    #
-    # # iterate through subjects for individual subject analyses
-    # for sub_count, sub_val in enumerate(settings.subsIDXcollate):
-    #     # get directories and file names
-    #     bids = helper.BIDS_FileNaming(int(sub_val), settings, 0)
-    #     print(bids.substring)
-    #
-    #     # load results
-    #     results = np.load(bids.direct_results / Path(bids.substring + "Nback_results.npz"),
-    #                       allow_pickle=True)  #
-    #     # saved vars: meanacc=meanacc, meanrt=meanrt, acc_vissearch=acc_nback, rt_vissearch=rt_nback
-    #
-    #     # store results
-    #     acc_nback_all[ :, :, sub_count] = results['acc_vissearch']
-    #     mean_acc_all[ :, sub_count] = results['meanacc']
-    #
-    #     rt_nback_all[ :, :, sub_count] = results['rt_vissearch']
-    #     mean_rt_all[ :, sub_count] = results['meanrt']
-    #
-    #
-    # import seaborn as sns
-    # import pandas as pd
-    #
-    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
-    # sns.set(style="ticks")
-    # colors = ["#112F41", "#4CB99F"]
-    # # Accuracy
-    #
-    # data = {'Testday': [settings.string_prepost[0]] * num_subs + [
-    #     settings.string_prepost[1]] * num_subs,
-    #         'Accuracy (%)': np.concatenate((mean_acc_all[0, :], mean_acc_all[1, :]))
-    #         }
-    # df = pd.DataFrame(data)
-    #
-    # # Grouped violinplot
-    # sns.violinplot(x="Testday", y="Accuracy (%)", data=df, palette=sns.color_palette(colors), style="ticks", ax=ax1)
-    # ax1.spines['top'].set_visible(False)
-    # ax1.spines['right'].set_visible(False)
-    #
-    # ax1.set_title("Accuracy")
-    #
-    # # Reaction time
-    # data = {'Testday': [settings.string_prepost[0]] * num_subs + [
-    #     settings.string_prepost[1]] * num_subs,
-    #         'Reaction Time (s)': np.concatenate((mean_rt_all[0 ,: ], mean_rt_all[1 ,: ]))
-    #         }
-    # df = pd.DataFrame(data)
-    #
-    # # Grouped violinplot
-    #
-    # sns.violinplot(x="Testday", y="Reaction Time (s)", data=df, palette=sns.color_palette(colors), style="ticks", ax=ax2)
-    # ax2.spines['top'].set_visible(False)
-    # ax2.spines['right'].set_visible(False)
-    #
-    # ax2.set_title("Reaction time")
-    #
-    # titlestring = 'Nback Results train ' + settings.string_attntrained[
-    #     settings.attntrained]
-    # plt.suptitle(titlestring)
+# print('Collating Visual Search Task')
+#
+# # get task specific settings
+# settings = settings.get_settings_nbacktask()
+#
+# # pre-allocate
+# num_subs = settings.num_subs
+# acc_nback_all = np.empty((settings.num_trials, settings.num_days, num_subs))
+# rt_nback_all = np.empty((settings.num_trials, settings.num_days, num_subs))
+# mean_acc_all = np.empty((settings.num_days, num_subs))
+# mean_rt_all = np.empty((settings.num_days, num_subs))
+#
+# # iterate through subjects for individual subject analyses
+# for sub_count, sub_val in enumerate(settings.subsIDXcollate):
+#     # get directories and file names
+#     bids = helper.BIDS_FileNaming(int(sub_val), settings, 0)
+#     print(bids.substring)
+#
+#     # load results
+#     results = np.load(bids.direct_results / Path(bids.substring + "Nback_results.npz"),
+#                       allow_pickle=True)  #
+#     # saved vars: meanacc=meanacc, meanrt=meanrt, acc_vissearch=acc_nback, rt_vissearch=rt_nback
+#
+#     # store results
+#     acc_nback_all[ :, :, sub_count] = results['acc_vissearch']
+#     mean_acc_all[ :, sub_count] = results['meanacc']
+#
+#     rt_nback_all[ :, :, sub_count] = results['rt_vissearch']
+#     mean_rt_all[ :, sub_count] = results['meanrt']
+#
+#
+# import seaborn as sns
+# import pandas as pd
+#
+# fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+# sns.set(style="ticks")
+# colors = ["#112F41", "#4CB99F"]
+# # Accuracy
+#
+# data = {'Testday': [settings.string_prepost[0]] * num_subs + [
+#     settings.string_prepost[1]] * num_subs,
+#         'Accuracy (%)': np.concatenate((mean_acc_all[0, :], mean_acc_all[1, :]))
+#         }
+# df = pd.DataFrame(data)
+#
+# # Grouped violinplot
+# sns.violinplot(x="Testday", y="Accuracy (%)", data=df, palette=sns.color_palette(colors), style="ticks", ax=ax1)
+# ax1.spines['top'].set_visible(False)
+# ax1.spines['right'].set_visible(False)
+#
+# ax1.set_title("Accuracy")
+#
+# # Reaction time
+# data = {'Testday': [settings.string_prepost[0]] * num_subs + [
+#     settings.string_prepost[1]] * num_subs,
+#         'Reaction Time (s)': np.concatenate((mean_rt_all[0 ,: ], mean_rt_all[1 ,: ]))
+#         }
+# df = pd.DataFrame(data)
+#
+# # Grouped violinplot
+#
+# sns.violinplot(x="Testday", y="Reaction Time (s)", data=df, palette=sns.color_palette(colors), style="ticks", ax=ax2)
+# ax2.spines['top'].set_visible(False)
+# ax2.spines['right'].set_visible(False)
+#
+# ax2.set_title("Reaction time")
+#
+# titlestring = 'Nback Results train ' + settings.string_attntrained[
+#     settings.attntrained]
+# plt.suptitle(titlestring)
 
-    # plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+# plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')

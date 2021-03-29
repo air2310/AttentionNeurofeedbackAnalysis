@@ -5,7 +5,7 @@ import mne
 # setup Classes and functions
 class SetupMetaData:
     # Describe the options for settings
-    string_attntrained = ["Space", "Feature"]
+    string_attntrained = ["Space", "Feature", "Sham"]
     string_tasknames =  ['AttnNFMotion', 'AttnNFVisualSearch', 'AttnNFnback']
     string_testday = ['Day 1', 'Day 2', 'Day 3', 'Day 4']
     string_prepost = ['pre-training', 'post-training'];
@@ -51,14 +51,19 @@ class SetupMetaData:
 
         # get correct subject indices
         if (self.attntrained == 0): # Space
-            self.subsIDX = np.array(([ 10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112, 113, 118, 123, 128]))
+            self.subsIDX = np.array(([  ]))  # to analyse
             self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112, 113, 118, 123, 128 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
             self.subsIDXall =     np.array(([10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112, 113, 118, 123, 128]))
 
-        else: # Feature
-            self.subsIDX =        np.array(([ 110, 116, 117, 119, 120])) # 1, 2,
+        if (self.attntrained == 1):  # Feature
+            self.subsIDX =        np.array(([])) # 1, 2,
             self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80,     87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 119, 120])) #np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
             self.subsIDXall =     np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 119, 120]))
+
+        if (self.attntrained == 2):  # Sham
+            self.subsIDX = np.array(([ 15]))
+            self.subsIDXcollate = np.array(([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]))
+            self.subsIDXall =     np.array(([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]))
 
         self.num_subs = len(self.subsIDXcollate)
 
@@ -293,11 +298,12 @@ def get_eeg_data(bids, day_count, settings):
     if (np.logical_and(bids.substring == 'sub-53', day_count == 0)):        raw.info['bads'] = ['Iz']
     if (np.logical_and(bids.substring == 'sub-70', day_count == 0)):        raw.info['bads'] = ['O2', 'Iz']
     if (bids.substring == 'sub-112'):        raw.info['bads'] = ['O1', 'O2']
-
     if (np.logical_and(bids.substring == 'sub-02', np.logical_and(day_count == 1, settings.testtrain == 1))):
         raw.info['bads'] = ['Oz']
     if (np.logical_and(bids.substring == 'sub-10', np.logical_and(day_count == 1, settings.testtrain == 1))):
         raw.info['bads'] = ['Oz']
+    if (np.logical_and(bids.substring == 'sub-03', day_count == 3)):        raw.info['bads'] = ['PO3']
+
     # sub 52 day 4- particularly noisy everywhere...
 
     # plt.show()
