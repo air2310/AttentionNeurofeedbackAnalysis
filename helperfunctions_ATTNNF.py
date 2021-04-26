@@ -60,9 +60,9 @@ class SetupMetaData:
             self.subsIDXall =     np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 119, 120]))
 
         if (self.attntrained == 2):  # Sham
-            self.subsIDX = np.array(([ 15]))
-            self.subsIDXcollate = np.array(([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]))
-            self.subsIDXall =     np.array(([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]))
+            self.subsIDX = np.array(([ 22 ]))
+            self.subsIDXcollate = np.array(([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]))
+            self.subsIDXall =     np.array(([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 ,21, 22]))
 
         self.num_subs = len(self.subsIDXcollate)
 
@@ -297,11 +297,18 @@ def get_eeg_data(bids, day_count, settings):
     if (np.logical_and(bids.substring == 'sub-53', day_count == 0)):        raw.info['bads'] = ['Iz']
     if (np.logical_and(bids.substring == 'sub-70', day_count == 0)):        raw.info['bads'] = ['O2', 'Iz']
     if (bids.substring == 'sub-112'):        raw.info['bads'] = ['O1', 'O2']
+
     if (np.logical_and(bids.substring == 'sub-02', np.logical_and(day_count == 1, settings.testtrain == 1))):
         raw.info['bads'] = ['Oz']
     if (np.logical_and(bids.substring == 'sub-10', np.logical_and(day_count == 1, settings.testtrain == 1))):
         raw.info['bads'] = ['Oz']
-    if (np.logical_and(bids.substring == 'sub-03', day_count == 3)):        raw.info['bads'] = ['PO3']
+
+    if np.logical_and(bids.substring == 'sub-03', np.logical_and(day_count == 3, settings.attntrained == 2)):
+        raw.info['bads'] = ['PO3']
+    if np.logical_and(bids.substring == 'sub-19', np.logical_and(day_count == 1, settings.attntrained == 2)):
+        raw.info['bads'] = ['POz']
+    if np.logical_and(bids.substring == 'sub-20', np.logical_and(day_count == 2, settings.attntrained == 2)):
+        raw.info['bads'] = ['POz']
 
     # sub 52 day 4- particularly noisy everywhere...
 

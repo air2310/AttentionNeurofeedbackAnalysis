@@ -651,8 +651,7 @@ def collate_behaviour_prepost_compare(settings):
     settings = settings.get_settings_behave_prepost()
 
     # cycle trough space and feature train groups
-    for attntrainedcount, attntrained in enumerate(
-            settings.string_attntrained):  # cycle trough space and feature train groups
+    for attntrainedcount, attntrained in enumerate(settings.string_attntrained):  # cycle trough space and feature train groups
         # setup generic settings
         settings = helper.SetupMetaData(attntrainedcount)
         settings = settings.get_settings_behave_prepost()
@@ -835,64 +834,64 @@ def collate_behaviour_prepost_compare(settings):
     # df_behtraineffects = df_behtraineffects.reset_index()
     ##########################################  plot training effects against attention trained and attention type ##########################################
     #### Reaction Time ####
-    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
 
-    # Reaction time Grouped violinplot
-    colors = [settings.yellow, settings.orange]
-    for i in np.arange(2):
-        datplot = df_behtraineffects[df_behtraineffects["AttentionTrained"] == settings.string_attntrained[i]]
+    fig, ax = plt.subplots(1, settings.num_attnstates, figsize=(15, 6))
 
-        sns.swarmplot(x="Attention Type", y="∆RT", data=datplot, color="0", alpha=0.3, ax=ax[i])
-        sns.violinplot(x="Attention Type", y="∆RT", data=datplot, palette=sns.color_palette(colors), style="ticks",
+    colors = [settings.yellow, settings.orange, settings.red]
+    for i in np.arange(settings.num_attnstates):
+        datplot = df_behtraineffects[df_behtraineffects["Attention Type"] == settings.string_attntype[i]]
+
+        sns.swarmplot(x="AttentionTrained", y="∆RT", data=datplot, color="0", alpha=0.3, ax=ax[i])
+        sns.violinplot(x="AttentionTrained", y="∆RT", data=datplot, palette=sns.color_palette(colors), style="ticks",
                        ax=ax[i], inner="box", alpha=0.6)
 
         ax[i].spines['top'].set_visible(False)
         ax[i].spines['right'].set_visible(False)
 
-        ax[i].set_title(settings.string_attntrained[i])
+        ax[i].set_title(settings.string_attntype[i])
+        ax[i].set_ylim([-0.4, 0.4])
 
     titlestring = 'Motion Task RT training effect by attention'
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
     #### Reaction Time - STD ####
-    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+    fig, ax = plt.subplots(1, settings.num_attnstates, figsize=(15, 6))
 
-    # Reaction time Grouped violinplot
-    colors = [settings.yellow, settings.orange]
-    for i in np.arange(2):
-        datplot = df_behtraineffects[df_behtraineffects["AttentionTrained"] == settings.string_attntrained[i]]
+    colors = [settings.yellow, settings.orange, settings.red]
+    for i in np.arange(settings.num_attnstates):
+        datplot = df_behtraineffects[df_behtraineffects["Attention Type"] == settings.string_attntype[i]]
 
-        sns.swarmplot(x="Attention Type", y="∆RT_STD", data=datplot, color="0", alpha=0.3, ax=ax[i])
-        sns.violinplot(x="Attention Type", y="∆RT_STD", data=datplot, palette=sns.color_palette(colors), style="ticks",
+        sns.swarmplot(x="AttentionTrained", y="∆RT_STD", data=datplot, color="0", alpha=0.3, ax=ax[i])
+        sns.violinplot(x="AttentionTrained", y="∆RT_STD", data=datplot, palette=sns.color_palette(colors), style="ticks",
                        ax=ax[i], inner="box", alpha=0.6)
 
         ax[i].spines['top'].set_visible(False)
         ax[i].spines['right'].set_visible(False)
 
-        ax[i].set_title(settings.string_attntrained[i])
+        ax[i].set_title(settings.string_attntype[i])
+        ax[i].set_ylim([-0.15, 0.15])
 
     titlestring = 'Motion Task RT Std Dev training effect by attention'
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
     #### Reaction Time - Inverse Efficiency ####
-    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+    fig, ax = plt.subplots(1, settings.num_attnstates, figsize=(15, 6))
 
-    # Reaction time Grouped violinplot
-    colors = [settings.yellow, settings.orange]
-    for i in np.arange(2):
-        datplot = df_behtraineffects[df_behtraineffects["AttentionTrained"] == settings.string_attntrained[i]]
+    colors = [settings.yellow, settings.orange, settings.red]
+    for i in np.arange(settings.num_attnstates):
+        datplot = df_behtraineffects[df_behtraineffects["Attention Type"] == settings.string_attntype[i]]
 
-        sns.swarmplot(x="Attention Type", y="∆InverseEfficiency", data=datplot, color="0", alpha=0.3, ax=ax[i])
-        sns.violinplot(x="Attention Type", y="∆InverseEfficiency", data=datplot, palette=sns.color_palette(colors),
+        sns.swarmplot(x="AttentionTrained", y="∆InverseEfficiency", data=datplot, color="0", alpha=0.3, ax=ax[i])
+        sns.violinplot(x="AttentionTrained", y="∆InverseEfficiency", data=datplot, palette=sns.color_palette(colors),
                        style="ticks",
                        ax=ax[i], inner="box", alpha=0.6)
 
         ax[i].spines['top'].set_visible(False)
         ax[i].spines['right'].set_visible(False)
 
-        ax[i].set_title(settings.string_attntrained[i])
+        ax[i].set_title(settings.string_attntype[i])
         ax[i].set_ylim([-15, 10])
 
     titlestring = 'Motion Task RT InverseEfficiency training effect by attention'
@@ -900,84 +899,88 @@ def collate_behaviour_prepost_compare(settings):
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
     #### Sensitivity ####
-    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+    fig, ax = plt.subplots(1, settings.num_attnstates, figsize=(15, 6))
 
-    # Reaction time Grouped violinplot
-    colors = [settings.yellow, settings.orange]
-    for i in np.arange(2):
-        datplot = df_behtraineffects[df_behtraineffects["AttentionTrained"] == settings.string_attntrained[i]]
+    colors = [settings.yellow, settings.orange, settings.red]
+    for i in np.arange(settings.num_attnstates):
+        datplot = df_behtraineffects[df_behtraineffects["Attention Type"] == settings.string_attntype[i]]
 
-        sns.swarmplot(x="Attention Type", y="∆Sensitivity", data=datplot, color="0", alpha=0.3, ax=ax[i])
-        sns.violinplot(x="Attention Type", y="∆Sensitivity", data=datplot, palette=sns.color_palette(colors),
-                       style="ticks", ax=ax[i], inner="box", alpha=0.6)
+        sns.swarmplot(x="AttentionTrained", y="∆Sensitivity", data=datplot, color="0", alpha=0.3, ax=ax[i])
+        sns.violinplot(x="AttentionTrained", y="∆Sensitivity", data=datplot, palette=sns.color_palette(colors),
+                       style="ticks",
+                       ax=ax[i], inner="box", alpha=0.6)
 
         ax[i].spines['top'].set_visible(False)
         ax[i].spines['right'].set_visible(False)
 
-        ax[i].set_title(settings.string_attntrained[i])
+        ax[i].set_title(settings.string_attntype[i])
+        ax[i].set_ylim([-1, 2])
 
     titlestring = 'Motion Task Sensitivity training effect by attention'
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
     #### Correct rate ####
-    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+    fig, ax = plt.subplots(1, settings.num_attnstates, figsize=(15, 6))
 
-    # Reaction time Grouped violinplot
-    colors = [settings.yellow, settings.orange]
-    for i in np.arange(2):
-        datplot = df_behtraineffects[df_behtraineffects["AttentionTrained"] == settings.string_attntrained[i]]
+    colors = [settings.yellow, settings.orange, settings.red]
+    for i in np.arange(settings.num_attnstates):
+        datplot = df_behtraineffects[df_behtraineffects["Attention Type"] == settings.string_attntype[i]]
 
-        sns.swarmplot(x="Attention Type", y="∆Correct", data=datplot, color="0", alpha=0.3, ax=ax[i])
-        sns.violinplot(x="Attention Type", y="∆Correct", data=datplot, palette=sns.color_palette(colors), style="ticks",
+        sns.swarmplot(x="AttentionTrained", y="∆Correct", data=datplot, color="0", alpha=0.3, ax=ax[i])
+        sns.violinplot(x="AttentionTrained", y="∆Correct", data=datplot, palette=sns.color_palette(colors),
+                       style="ticks",
                        ax=ax[i], inner="box", alpha=0.6)
 
         ax[i].spines['top'].set_visible(False)
         ax[i].spines['right'].set_visible(False)
 
-        ax[i].set_title(settings.string_attntrained[i])
+        ax[i].set_title(settings.string_attntype[i])
+        ax[i].set_ylim([-25, 60])
 
     titlestring = 'Motion Task Correct training effect by attention'
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
     #### Criterion rate ####
-    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+    fig, ax = plt.subplots(1, settings.num_attnstates, figsize=(15, 6))
 
-    # Reaction time Grouped violinplot
-    colors = [settings.yellow, settings.orange]
-    for i in np.arange(2):
-        datplot = df_behtraineffects[df_behtraineffects["AttentionTrained"] == settings.string_attntrained[i]]
+    colors = [settings.yellow, settings.orange, settings.red]
+    for i in np.arange(settings.num_attnstates):
+        datplot = df_behtraineffects[df_behtraineffects["Attention Type"] == settings.string_attntype[i]]
 
-        sns.swarmplot(x="Attention Type", y="∆Criterion", data=datplot, color="0", alpha=0.3, ax=ax[i])
-        sns.violinplot(x="Attention Type", y="∆Criterion", data=datplot, palette=sns.color_palette(colors),
-                       style="ticks", ax=ax[i], inner="box", alpha=0.6)
+        sns.swarmplot(x="AttentionTrained", y="∆Criterion", data=datplot, color="0", alpha=0.3, ax=ax[i])
+        sns.violinplot(x="AttentionTrained", y="∆Criterion", data=datplot, palette=sns.color_palette(colors),
+                       style="ticks",
+                       ax=ax[i], inner="box", alpha=0.6)
 
         ax[i].spines['top'].set_visible(False)
         ax[i].spines['right'].set_visible(False)
 
-        ax[i].set_title(settings.string_attntrained[i])
+        ax[i].set_title(settings.string_attntype[i])
+        ax[i].set_ylim([-1, 1.5])
 
     titlestring = 'Motion Task Criterion training effect by attention'
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
     #### Likelihood Ratio ####
-    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+    fig, ax = plt.subplots(1, settings.num_attnstates, figsize=(15, 6))
 
-    # Reaction time Grouped violinplot
-    colors = [settings.yellow, settings.orange]
-    for i in np.arange(2):
-        datplot = df_behtraineffects[df_behtraineffects["AttentionTrained"] == settings.string_attntrained[i]]
+    colors = [settings.yellow, settings.orange, settings.red]
+    for i in np.arange(settings.num_attnstates):
+        datplot = df_behtraineffects[df_behtraineffects["Attention Type"] == settings.string_attntype[i]]
 
-        sns.swarmplot(x="Attention Type", y="∆LikelihoodRatio", data=datplot, color="0", alpha=0.3, ax=ax[i])
-        sns.violinplot(x="Attention Type", y="∆LikelihoodRatio", data=datplot, palette=sns.color_palette(colors),
-                       style="ticks", ax=ax[i], inner="box", alpha=0.6)
+        sns.swarmplot(x="AttentionTrained", y="∆LikelihoodRatio", data=datplot, color="0", alpha=0.3, ax=ax[i])
+        sns.violinplot(x="AttentionTrained", y="∆LikelihoodRatio", data=datplot, palette=sns.color_palette(colors),
+                       style="ticks",
+                       ax=ax[i], inner="box", alpha=0.6)
 
         ax[i].spines['top'].set_visible(False)
         ax[i].spines['right'].set_visible(False)
 
-        ax[i].set_title(settings.string_attntrained[i])
+        ax[i].set_title(settings.string_attntype[i])
+        ax[i].set_ylim([-3, 2])
 
     titlestring = 'Motion Task Likelihood Ratio training effect by attention'
     plt.suptitle(titlestring)

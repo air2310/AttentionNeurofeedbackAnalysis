@@ -16,7 +16,9 @@ import CorrelationAnalyses as analyse_corr
 # TODO: individual trial independance of spatial and feature based-attention measure - how correlated are they really?
 # TODO: Sync to main thread
 # TODO: fix interping
-
+# look at ERP
+# What about just the people who did really well?
+# fix up channel interp.
 
 # setup generic settings
 attntrained = 2  # 0 = Space, 1 = Feature, 2 = Sham
@@ -28,22 +30,22 @@ print("Analysing Data for condition train: " + settings.string_attntrained[setti
 
 # analyse_behaviour_prepost = True # Analyse Behaviour Pre Vs. Post Training
 analyse_behaviour_prepost = False  # Analyse Behaviour Pre Vs. Post Training
-#
+
 # analyse_behaviour_duringNF = True # Analyse Behaviour during Training
 analyse_behaviour_duringNF = False  # Analyse Behaviour duringTraining
-#
+
 # analyse_EEG_prepost =True # analyse EEG Pre Vs. Post Training
 analyse_EEG_prepost = False  # analyse EEG Pre Vs. Post Training
-#
+
 # analyse_EEG_duringNF = True # analyse EEG during Neurofeedback
 analyse_EEG_duringNF = False  # analyse EEG during Neurofeedback
 
 # analyse_visualsearchtask = True # Analyse Visual Search Task
 analyse_visualsearchtask = False  # Analyse Visual Search Task
-
+#
 # analyse_nbacktask = True # Analyse N-back Task
 analyse_nbacktask = False  # Analyse N-back Task
-
+#
 # analyse_Neurofeedback = True # Analyse Neurofeedback and sustained attention
 analyse_Neurofeedback = False  # Analyse Neurofeedback and sustained attention
 
@@ -52,7 +54,7 @@ analyse_Neurofeedback = False  # Analyse Neurofeedback and sustained attention
 
 # collate_behaviour_prepost = True  # Collate Behaviour Pre Vs. Post Training
 collate_behaviour_prepost = False  # Collate Behaviour Pre Vs. Post Training
-
+#
 # collate_behaviour_duringNF = True # Collate Behaviour during Training
 collate_behaviour_duringNF = False  # Collate Behaviour during Training
 
@@ -61,7 +63,7 @@ collateEEGprepost = False  # Collate EEG Pre Vs. Post Training across subjects
 
 # collateEEG_duringNF = True  # Collate EEG during Neurofeedback
 collateEEG_duringNF = False  # Collate EEG during Neurofeedback
-
+#
 # collate_visualsearchtask = True # Collate Visual Search results
 collate_visualsearchtask = False  # Collate Visual Search results
 
@@ -77,8 +79,8 @@ classification_acc_correlations = False  # Assess whether classification accurac
 # collate_Neurofeedback = True # collate Neurofeedback and sustained attention
 collate_Neurofeedback = False  # collate Neurofeedback and sustained attention
 
-# collate_behaviour_prepost_compare = True # Collate Behaviour Pre Vs. Post Training compare training groups
-collate_behaviour_prepost_compare = False  # Collate Behaviour Pre Vs. Post Training compare training groups
+collate_behaviour_prepost_compare = True # Collate Behaviour Pre Vs. Post Training compare training groups
+# collate_behaviour_prepost_compare = False  # Collate Behaviour Pre Vs. Post Training compare training groups
 
 # collate_behaviour_duringNF_compare = True # Collate Behaviour during Training compare training groups
 collate_behaviour_duringNF_compare = False  # Collate Behaviour during Training compare training groups
