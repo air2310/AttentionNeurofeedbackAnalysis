@@ -36,7 +36,7 @@ def analyseEEG_duringNF(settings, sub_val):
         if any(possiblefiles):
 
             # get EEG data
-            raw, events, eeg_data_interp = helper.get_eeg_data(bids, day_count, settings)
+            raw, events, eeg_data_interp = helper.get_eeg_data(bids, day_count, day_val, settings)
 
             # % Cue Start trig.cuestart(attended
             # trig.cuestart(i.spaceattd,i.featattd)

@@ -12,10 +12,10 @@ library(tidyverse)
 
 # Settings ----------------------------------------------------------------
 
-# run options
+# run options???
 
-options.traintype =2# Feature or Space
-options.singletrial =1# ERP, single trial
+options.traintype =3# Feature or Space or SHAM
+options.singletrial =2# ERP, single trial
 
 # task options
 options.task = 1 # 1 = Motion Detection,
@@ -37,7 +37,7 @@ lightteal = rgb(78 / 255, 185 / 255, 159 / 255)
 strings.day = c("day-1", "day-4")
 strings.task = c("AttnNFMotion",  "AttnNFVisualSearch");
 strings.TestTrain = c("Test", "Train");
-strings.traintype = c("Feature", "Space")
+strings.traintype = c("Feature", "Space",)
 strings.singletrial = c("", "_epochs")
 
 # Directories -------------------------------------------------------------
@@ -114,8 +114,8 @@ for (SS in 2:n.subs) {
 }
 
 ## invert
-BAYESPLOT['BF_space'] = 1/BAYESPLOT['BF_space']
-BAYESPLOT['BF_feature'] = 1/BAYESPLOT['BF_feature']
+#BAYESPLOT['BF_space'] = 1/BAYESPLOT['BF_space']
+#BAYESPLOT['BF_feature'] = 1/BAYESPLOT['BF_feature']
 
 ## plot
 

@@ -50,19 +50,19 @@ class SetupMetaData:
 
         # get correct subject indices
         if (self.attntrained == 0): # Space
-            self.subsIDX = np.array(([  ]))  # to analyse
-            self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112, 113, 118, 123, 128 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
-            self.subsIDXall =     np.array(([10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112, 113, 118, 123, 128]))
+            self.subsIDX =        np.array(([ 128]))  # to analyse
+            self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112, 113, 118, 123, 125, 128 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
+            self.subsIDXall =     np.array(([10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112, 113, 118, 123, 125, 128]))
 
         if (self.attntrained == 1):  # Feature
-            self.subsIDX =        np.array(([])) # 1, 2,
-            self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80,     87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 119, 120])) #np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
-            self.subsIDXall =     np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 119, 120]))
+            self.subsIDX =        np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80,     87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 119, 120, 121])) # 1, 2,
+            self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80,     87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 119, 120, 121])) #np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
+            self.subsIDXall =     np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 119, 120, 121]))
 
         if (self.attntrained == 2):  # Sham
-            self.subsIDX = np.array(([ 22 ]))
-            self.subsIDXcollate = np.array(([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]))
-            self.subsIDXall =     np.array(([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 ,21, 22]))
+            self.subsIDX =        np.array(([ 20]))
+            self.subsIDXcollate = np.array(([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39]))
+            self.subsIDXall =     np.array(([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39]))
 
         self.num_subs = len(self.subsIDXcollate)
 
@@ -246,7 +246,7 @@ def get_timing_variables(timelimits,samplingfreq):
     return timelimits_data, timepoints, frequencypoints, zeropoint
 
 
-def get_eeg_data(bids, day_count, settings):
+def get_eeg_data(bids, day_count, day_val, settings):
     import mne
     import matplotlib.pyplot as plt
     # decide which EEG file to use
@@ -289,35 +289,83 @@ def get_eeg_data(bids, day_count, settings):
     print('Found %s events, first five:' % len(events))
     print(events[:5])
 
-    # set bad chans
-    if (np.logical_and(bids.substring == 'sub-02', day_count == 0)):        raw.info['bads'] = ['O1']
-    if (np.logical_and(bids.substring == 'sub-09', day_count == 0)):        raw.info['bads'] = ['PO4']
-    if (np.logical_and(bids.substring == 'sub-23', day_count == 0)):        raw.info['bads'] = ['Iz']
-    if (np.logical_and(bids.substring == 'sub-47', day_count == 0)):        raw.info['bads'] = ['PO8']
-    if (np.logical_and(bids.substring == 'sub-53', day_count == 0)):        raw.info['bads'] = ['Iz']
-    if (np.logical_and(bids.substring == 'sub-70', day_count == 0)):        raw.info['bads'] = ['O2', 'Iz']
-    if (bids.substring == 'sub-112'):        raw.info['bads'] = ['O1', 'O2']
+    # set bad channels to interpolate
+    if settings.attntrained == 0:
+        if np.logical_and(bids.substring == 'sub-53', day_val == 1):
+            raw.info['bads'] = ['Iz']
+        if bids.substring == 'sub-112': # check on this
+            raw.info['bads'] = ['O1', 'O2']
+        if np.logical_and(bids.substring == 'sub-10', day_val == 2):
+            raw.info['bads'] = ['Oz']
+        if np.logical_and(bids.substring == 'sub-125', day_val == 1):
+            raw.info['bads'] = ['O1']
+        if np.logical_and(bids.substring == 'sub-125', day_val == 2):
+            raw.info['bads'] = ['PO4']
+        if np.logical_and(bids.substring == 'sub-125', day_val == 3):
+            raw.info['bads'] = ['PO4']
 
-    if (np.logical_and(bids.substring == 'sub-02', np.logical_and(day_count == 1, settings.testtrain == 1))):
-        raw.info['bads'] = ['Oz']
-    if (np.logical_and(bids.substring == 'sub-10', np.logical_and(day_count == 1, settings.testtrain == 1))):
-        raw.info['bads'] = ['Oz']
+    if settings.attntrained == 1:
+        if np.logical_and(bids.substring == 'sub-02', day_val == 1):
+            raw.info['bads'] = ['O1']
+        if np.logical_and(bids.substring == 'sub-02', day_val == 2):
+            raw.info['bads'] = ['Oz']
+        if np.logical_and(bids.substring == 'sub-09', day_val == 1):
+            raw.info['bads'] = ['PO4']
+        if np.logical_and(bids.substring == 'sub-23', day_val == 1):
+            raw.info['bads'] = ['Iz']
+        if np.logical_and(bids.substring == 'sub-47', day_val == 1):
+            raw.info['bads'] = ['PO8']
+        if np.logical_and(bids.substring == 'sub-70', day_val == 1):
+            raw.info['bads'] = ['O2', 'Iz']
+        if np.logical_and(bids.substring == 'sub-121', day_val == 1):
+            raw.info['bads'] = ['Iz']
 
-    if np.logical_and(bids.substring == 'sub-03', np.logical_and(day_count == 3, settings.attntrained == 2)):
-        raw.info['bads'] = ['PO3']
-    if np.logical_and(bids.substring == 'sub-19', np.logical_and(day_count == 1, settings.attntrained == 2)):
-        raw.info['bads'] = ['POz']
-    if np.logical_and(bids.substring == 'sub-20', np.logical_and(day_count == 2, settings.attntrained == 2)):
-        raw.info['bads'] = ['POz']
 
-    # sub 52 day 4- particularly noisy everywhere...
+    if settings.attntrained == 2:
+        if np.logical_and(bids.substring == 'sub-03', day_val == 4):
+            raw.info['bads'] = ['PO3']
+        if np.logical_and(bids.substring == 'sub-14', day_val == 4):
+            raw.info['bads'] = ['Oz']
+        if np.logical_and(bids.substring == 'sub-15', day_val == 4):
+            raw.info['bads'] = ['O1']
+        if np.logical_and(bids.substring == 'sub-16', day_val == 4):
+            raw.info['bads'] = ['POz']
+        if np.logical_and(bids.substring == 'sub-19', day_val == 1):
+            raw.info['bads'] = ['POz']
+        if np.logical_and(bids.substring == 'sub-20', day_val == 2):
+            raw.info['bads'] = ['POz']
+        if np.logical_and(bids.substring == 'sub-21', day_val == 1):
+            raw.info['bads'] = ['Iz']
+        if np.logical_and(bids.substring == 'sub-22', day_val == 4):
+            raw.info['bads'] = ['Iz']
+        if np.logical_and(bids.substring == 'sub-24', day_val == 1):
+            raw.info['bads'] = ['POz', 'PO4']
+        if np.logical_and(bids.substring == 'sub-28', day_val == 2):
+            raw.info['bads'] = ['POz', 'PO4']
+        if np.logical_and(bids.substring == 'sub-28', day_val == 3):
+            raw.info['bads'] = ['POz', 'PO4']
+        if np.logical_and(bids.substring == 'sub-29', day_val == 1):
+            raw.info['bads'] = ['Oz']
+        if np.logical_and(bids.substring == 'sub-30', day_val == 1):
+            raw.info['bads'] = ['POz']
+        if np.logical_and(bids.substring == 'sub-30', day_val == 4):
+            raw.info['bads'] = ['PO4']
+        if np.logical_and(bids.substring == 'sub-32', day_val == 2):
+            raw.info['bads'] = ['POz']
+        if np.logical_and(bids.substring == 'sub-34', day_val == 2):
+            raw.info['bads'] = ['PO7']
+        if np.logical_and(bids.substring == 'sub-37', day_val == 1):
+            raw.info['bads'] = ['PO4']
+        if np.logical_and(bids.substring == 'sub-37', day_val == 4):
+            raw.info['bads'] = ['Iz', 'O2']
+
 
     # plt.show()
     # tmp = input('check the eeg data')
 
     eeg_data = raw.copy().pick_types(eeg=True, exclude=['TRIG'])
     eeg_data.info.set_montage(montageuse)
-    eeg_data_interp = eeg_data.copy().interpolate_bads(reset_bads=False)
+    eeg_data_interp = eeg_data.copy().interpolate_bads(reset_bads=True)
 
     # Filter Data
     eeg_data_interp.filter(l_freq=1, h_freq=45, h_trans_bandwidth=0.1)

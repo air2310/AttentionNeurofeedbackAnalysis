@@ -1,5 +1,6 @@
 library(dplyr)
 library(BayesFactor)
+library(car)
 
 #reference for Bayesian Anova method applied here: Rouder et al 2012.
 # https://www.sciencedirect.com/science/article/pii/S0022249612000806?casa_token=7qVp7duocU0AAAAA:isxnVW-Oi6-62_oaPg-PJx1oPB4uNliU9GsP__W_bAOFozswKTky_VH9mq94omHGQb9yWyUKxU7g
@@ -8,7 +9,7 @@ library(BayesFactor)
 behavedata = read.csv("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Results/CompareSpaceFeat/group/motiondiscrim_behaveresults_ALL.csv")
 
 #### step 1 - visualise the data 
-coplot(Sensitivity ~ AttentionTrained |  Testday, data = behavedata, panel = panel.smooth,
+coplot(correct ~ AttentionTrained |  Testday, data = behavedata, panel = panel.smooth,
        xlab = "Sensitivity data: Sensitivity vs attention trained, given testday")
 
 #### Step 2 - create factors
@@ -16,7 +17,7 @@ coplot(Sensitivity ~ AttentionTrained |  Testday, data = behavedata, panel = pan
 behavedata_orig = behavedata
 
 behavedata$AttentionTrained = factor(behavedata$AttentionTrained)
-levels(behavedata$AttentionTrained) = c( "Feature", "Space")
+levels(behavedata$AttentionTrained) = c( "Feature", "Sham","Space")
 
 behavedata$Attention.Type = factor(behavedata$Attention.Type)
 levels(behavedata$Attention.Type) = c( "Feature", "Space")
@@ -50,9 +51,17 @@ bf = anovaBF(RT ~ Testday + subID , data=behavedata_RT, whichRandom="subID")
 bf #  Print to console
 plot(bf) # plot
 
+bf = anovaBF(RT_STD ~ Testday + subID , data=behavedata_RT, whichRandom="subID")
+bf #  Print to console
+plot(bf) # plot
+
+bf = anovaBF(InverseEfficiency ~ Testday + subID , data=behavedata_RT, whichRandom="subID")
+bf #  Print to console
+plot(bf) # plot
+
 # Were there overall effects of training group?
 
-bf = anovaBF(Sensitivity ~ AttentionTrained + subID , data=behavedata, whichRandom="subID")
+bf = anovaBF(Sensitivity ~ AttentionTrained  + Attention.Type + subID , data=behavedata, whichRandom="subID")
 bf #  Print to console
 plot(bf) # plot
 
@@ -78,9 +87,20 @@ behavedata_train$Sensitivity_TrEfct = tmp_d4$Sensitivity - tmp_d1$Sensitivity
 behavedata_train$Criterion_TrEfct = tmp_d4$Criterion - tmp_d1$Criterion
 behavedata_train$LikelihoodRatio_TrEfct = tmp_d4$LikelihoodRatio - tmp_d1$LikelihoodRatio
 behavedata_train$correct_TrEfct = tmp_d4$correct - tmp_d1$correct
+
 behavedata_train$RT_TrEfct = tmp_d4$RT - tmp_d1$RT
+behavedata_train$RT_STD_TrEfct = tmp_d4$RT_STD - tmp_d1$RT_STD
+behavedata_train$IE_TrEfct = tmp_d4$InverseEfficiency - tmp_d1$InverseEfficiency
 
 behavedata_RT_train = na.omit(behavedata_train)
+
+behavedata_train$Sensitivity_pre = tmp_d1$Sensitivity
+behavedata_train$Criterion_pre = tmp_d1$Criterion
+behavedata_train$LikelihoodRatio_pre = tmp_d1$LikelihoodRatio_TrEfct
+behavedata_train$correct_pre = tmp_d1$correct
+behavedata_train$RT_pre = tmp_d1$RT
+behavedata_train$RT_STD_pre = tmp_d1$RT_STD
+behavedata_train$IE_pre = tmp_d1$InverseEfficiency 
 
 #### Step 5 - Assess whether this training effect differs across the levels of Attention Trained and attention type
 
@@ -101,6 +121,9 @@ bf_main_AttnTrain
 bf_main_AttnType
 plot(bf)
 
+# Ancova
+fit2=aov(Sensitivity_TrEfct~AttentionTrained * Attention.Type + Sensitivity_pre,behavedata_train)
+Anova(fit2, type="III")
 
 
 ### Criterion
@@ -116,6 +139,9 @@ bf_main_AttnTrain
 bf_main_AttnType
 plot(bf)
 
+# Ancova
+fit2=aov(Criterion_TrEfct~AttentionTrained * Attention.Type + Criterion_pre, behavedata_train)
+Anova(fit2, type="III")
 
 
 ### LikelihoodRatio
@@ -131,6 +157,10 @@ bf_main_AttnTrain
 bf_main_AttnType
 plot(bf)
 
+# Ancova
+fit2=aov(LikelihoodRatio_TrEfct~AttentionTrained * Attention.Type + LikelihoodRatio_pre, behavedata_train)
+Anova(fit2, type="III")
+
 
 ### Correct
 bf = anovaBF(correct_TrEfct ~ AttentionTrained * Attention.Type + subID , data=behavedata_train, whichRandom="subID",  whichModels="all")
@@ -145,6 +175,10 @@ bf_main_AttnTrain
 bf_main_AttnType
 plot(bf)
 
+# Ancova
+fit2=aov(correct_TrEfct~AttentionTrained * Attention.Type + correct_pre, behavedata_train)
+Anova(fit2, type="III")
+
 
 ### RT
 bf = anovaBF(RT_TrEfct ~ AttentionTrained * Attention.Type + subID , data=behavedata_RT_train, whichRandom="subID",  whichModels="all")
@@ -158,6 +192,45 @@ bfInteraction
 bf_main_AttnTrain
 bf_main_AttnType
 plot(bf)
+
+# Ancova
+fit2=aov(RT_TrEfct~AttentionTrained * Attention.Type + RT_pre, behavedata_train)
+Anova(fit2, type="III")
+
+
+### RT STD
+bf = anovaBF(RT_STD_TrEfct ~ AttentionTrained * Attention.Type + subID , data=behavedata_RT_train, whichRandom="subID",  whichModels="all")
+bfInteraction = bf[7]/bf[4] # is the full model better than just strait main effects?
+bf_main_AttnTrain = bf[7]/bf[6] # is the full model better than the attention train knock out?
+bf_main_AttnType = bf[7]/bf[5] # is the full model better than the attention type knock out?
+
+# display results
+bf
+bfInteraction
+bf_main_AttnTrain
+bf_main_AttnType
+plot(bf)
+
+# Ancova
+fit2=aov(RT_STD_TrEfct~AttentionTrained * Attention.Type + RT_STD_pre, behavedata_train)
+Anova(fit2, type="III")
+
+### RT Inverse Efficiency
+bf = anovaBF(IE_TrEfct ~ AttentionTrained * Attention.Type + subID , data=behavedata_RT_train, whichRandom="subID",  whichModels="all")
+bfInteraction = bf[7]/bf[4] # is the full model better than just strait main effects?
+bf_main_AttnTrain = bf[7]/bf[6] # is the full model better than the attention train knock out?
+bf_main_AttnType = bf[7]/bf[5] # is the full model better than the attention type knock out?
+
+# display results
+bf
+bfInteraction
+bf_main_AttnTrain
+bf_main_AttnType
+plot(bf)
+
+# Ancova
+fit2=aov(IE_TrEfct~AttentionTrained * Attention.Type + IE_pre, behavedata_train)
+Anova(fit2, type="III")
 
 
 # 

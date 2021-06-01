@@ -97,7 +97,7 @@ def collate_nbacktask(settings):
     import pandas as pd
 
     # preallocate
-    num_subs = np.zeros((settings.num_attnstates))
+    num_subs = np.zeros((settings.num_attnstates+1))
     substring = []
     daystrings = []
     attnstrings = []
@@ -106,7 +106,7 @@ def collate_nbacktask(settings):
 
     print('Collating N-back Task for space and feature train')
 
-    for attntrained in np.arange(settings.num_attnstates):  # cycle trough space and feature train groups
+    for attntrained in np.arange(settings.num_attnstates+1):  # cycle trough space and feature train groups
 
         # get task specific settings
         settings = helper.SetupMetaData(attntrained)
@@ -174,6 +174,29 @@ def collate_nbacktask(settings):
     # data = {'SubID': substring, 'Testday': daystrings, 'Attention Trained': attnstrings, 'Reaction Time (s)': rt_compare}
     # df_rt = pd.DataFrame(data)
 
+    # Get effects
+    means=df_acc.groupby(['Attention Trained', 'SubID' ]).mean()
+
+    df_acc_effects = df_acc.copy()
+
+    for idx, str in enumerate(settings.string_attntrained):
+        for idx2, testday in enumerate(settings.string_prepost):
+            for SS in range(len(means['Accuracy (%)'][str])):
+                # get the trials we want to affect
+                trialsuse = df_acc['Attention Trained'].isin([str]) & df_acc['Testday'].isin([testday])
+                tmp = df_acc[trialsuse]['SubID'].reset_index()['SubID'][SS];
+                trialsuse2 = trialsuse & df_acc['SubID'].isin([tmp])
+
+                # get correct mean
+                tmpM = means['Accuracy (%)'][str].index == tmp
+
+                # extract data
+                dat = df_acc[trialsuse2]['Accuracy (%)'].reset_index()
+                df_acc_effects.loc[trialsuse2, 'Accuracy (%)'] = dat['Accuracy (%)'][0] - means['Accuracy (%)'][str][tmpM][0]
+
+                dat = df_acc[trialsuse2]['Reaction Time (s)'].reset_index()
+                df_acc_effects.loc[trialsuse2, 'Reaction Time (s)'] = dat['Reaction Time (s)'][0] - means['Reaction Time (s)'][str][tmpM][0]
+
     # plot results
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
@@ -181,23 +204,23 @@ def collate_nbacktask(settings):
     colors = ["#112F41", "#4CB99F"]
 
     # Accuracy Grouped violinplot
-    sns.violinplot(x="Attention Trained", y="Accuracy (%)", hue="Testday", data=df_acc,
+    sns.violinplot(x="Attention Trained", y="Accuracy (%)", hue="Testday", data=df_acc_effects,
                    palette=sns.color_palette(colors), style="ticks", ax=ax1, split=True, inner="stick")
     ax1.spines['top'].set_visible(False)
     ax1.spines['right'].set_visible(False)
-    ax1.set_ylim(0, 100)
+    # ax1.set_ylim(0, 100)
     ax1.set_title("Accuracy")
 
     # Reaction time Grouped violinplot
     colors = ["#F2B035", "#EC553A"]
-    sns.violinplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", data=df_acc,
+    sns.violinplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", data=df_acc_effects,
                    palette=sns.color_palette(colors), style="ticks", ax=ax2, split=True, inner="stick")
     ax2.spines['top'].set_visible(False)
     ax2.spines['right'].set_visible(False)
 
     ax2.set_title("Reaction time")
 
-    titlestring = 'Nback Results Compare Training'
+    titlestring = 'Nback Results Compare Training sub mean subtracted'
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 

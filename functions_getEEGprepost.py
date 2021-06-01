@@ -27,12 +27,13 @@ def analyseEEGprepost(settings, sub_val):
     # iterate through test days to get data
     for day_count, day_val in enumerate(settings.daysuse):
         # TODO: save daily plots for events, drop logs, ERPs and FFTs
+        print(day_val)
         # get file names
         bids = helper.BIDS_FileNaming(sub_val, settings, day_val)
         print(bids.casestring)
 
         # get EEG data
-        raw, events, eeg_data_interp = helper.get_eeg_data(bids, day_count, settings)
+        raw, events, eeg_data_interp = helper.get_eeg_data(bids, day_count, day_val, settings)
 
         # Epoch to events of interest
         event_id = {'Feat/Black': 121, 'Feat/White': 122,
@@ -84,11 +85,8 @@ def analyseEEGprepost(settings, sub_val):
     fftdat_snr_epochs = getfft_sigtonoise(settings, epochs, fftdat_epochs, freq)
 
     # get ssvep amplitudes
-    # @ David! This is what I'd like you to check :)
-    SSVEPs_prepost, SSVEPs_prepost_channelmean, BEST = getSSVEPS_conditions(settings, fftdat,
-                                                                                   freq)  # trial average
-    SSVEPs_prepost_epochs, SSVEPs_prepost_channelmean_epochs, BEST_epochs = getSSVEPS_conditions(settings,
-                                                                                                        fftdat_epochs,
+    SSVEPs_prepost, SSVEPs_prepost_channelmean, BEST = getSSVEPS_conditions(settings, fftdat, freq)  # trial average
+    SSVEPs_prepost_epochs, SSVEPs_prepost_channelmean_epochs, BEST_epochs = getSSVEPS_conditions(settings, fftdat_epochs,
                                                                                                         freq)  # single trial
 
     # get ssvep amplitudes SNR
@@ -115,12 +113,12 @@ def analyseEEGprepost(settings, sub_val):
     ERPstring = 'Single Trial'
     plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_epochs, settings, ERPstring, bids)
 
-    ERPstring = 'ERP SNR'
-    plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_snr, settings, ERPstring, bids)
-
-    ERPstring = 'Single Trial SNR'
-    plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_epochs_snr, settings, ERPstring, bids)
-
+    # ERPstring = 'ERP SNR'
+    # plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_snr, settings, ERPstring, bids)
+    #
+    # ERPstring = 'Single Trial SNR'
+    # plotResultsPrePost_subjects(SSVEPs_prepost_channelmean_epochs_snr, settings, ERPstring, bids)
+    #
 
 
     np.savez(bids.direct_results / Path(bids.substring + "EEG_pre_post_results"),
@@ -221,65 +219,91 @@ def getSSVEPS_conditions(settings, fftdat, freq):
         for feat_count, feat in enumerate(['Black', 'White']):
             hz_attn_index[space_count, feat_count] = np.argmin(np.abs(freq - settings.hz_attn[space_count, feat_count])) # ['\B \W'], ['/B /W']
 
+    # Get best electrodes for each frequency
+    BEST = np.empty((settings.num_best, settings.num_spaces, settings.num_features, settings.num_days))
+    for space_count, space in enumerate(['Left_diag', 'Right_diag']):
+        for feat_count, feat in enumerate(['Black', 'White']):
+            for day_count, day_val in enumerate(settings.daysuse):
+                tmp = np.mean(np.mean(fftdat[:, hz_attn_index[space_count, feat_count].astype(int), :, :, day_count], axis = 1), axis = 1)
+                BEST[:,space_count, feat_count, day_count] = tmp.argsort()[-settings.num_best:]
+                print(BEST[:,space_count, feat_count, day_count])
+
+    # Get SSVEPs for each frequency
+    SSVEPs = np.empty((settings.num_attnstates, settings.num_levels, settings.num_spaces, settings.num_features, settings.num_days))
+    SSVEPs_topo = np.empty((settings.num_electrodes,  settings.num_attnstates, settings.num_levels, settings.num_spaces, settings.num_features, settings.num_days))
+    for space_count, space in enumerate(['Left_diag', 'Right_diag']):
+        for feat_count, feat in enumerate(['Black', 'White']):
+            for day_count, day_val in enumerate(settings.daysuse):
+                for cuetype in np.arange(2):
+                    for level in np.arange(2):
+                        bestuse = BEST[:,space_count, feat_count, day_count].astype(int)
+                        hzuse = hz_attn_index[space_count, feat_count].astype(int)
+
+                        SSVEPs[cuetype, level, space_count, feat_count, day_count] = np.mean(fftdat[bestuse, hzuse, cuetype, level, day_count], axis=0)
+                        SSVEPs_topo[:, cuetype, level, space_count, feat_count, day_count] = fftdat[:, hzuse, cuetype, level, day_count]
+
     # get ssveps for space condition, sorted to represent attended vs. unattended
     cuetype = 0  # space
     left_diag, right_diag =  0, 1
 
-    spaceSSVEPs = np.empty((settings.num_electrodes, settings.num_days, settings.num_attd_unattd, settings.num_levels))
+    spaceSSVEPs = np.empty(( settings.num_attd_unattd, settings.num_days, settings.num_levels))
+    spaceSSVEPs_topo = np.empty((settings.num_electrodes, settings.num_attd_unattd, settings.num_days, settings.num_levels))
     for level_count, level in enumerate(['Left_diag', 'Right_diag']): # cycle through space trials on which the left and right diag were cued
-        if (level == 'Left_diag'): # when left diag cued
-            attendedSSVEPs = np.mean(fftdat[:, hz_attn_index[left_diag, :].astype(int), cuetype, level_count, :],
-                                     axis=1)  # average across left_diag frequencies at both features (black, white)
-            unattendedSSVEPs = np.mean(fftdat[:, hz_attn_index[right_diag, :].astype(int), cuetype, level_count, :],
-                                       axis=1)  # average across right_diag frequencies at both features (black, white)
+        if level == 'Left_diag': # when left diag cued
+            attendedSSVEPs = np.mean(SSVEPs[cuetype, level_count, left_diag, :, :], 0) #  average across left_diag frequencies at both features (black, white)
+            unattendedSSVEPs = np.mean(SSVEPs[cuetype, level_count, right_diag, :, :], 0)  # average across right_diag frequencies at both features (black, white)
 
-        if (level == 'Right_diag'): # whien right diag cued
-            attendedSSVEPs = np.mean(fftdat[:, hz_attn_index[right_diag, :].astype(int), cuetype, level_count, :],
-                                     axis=1)  # average across right_diag frequencies at both features (black, white)
-            unattendedSSVEPs = np.mean(fftdat[:, hz_attn_index[left_diag, :].astype(int), cuetype, level_count, :],
-                                       axis=1)  # average across left_diag frequencies at both features (black, white)
+            attendedSSVEPs_topo = np.mean(SSVEPs_topo[:,cuetype, level_count, left_diag, :, :], 1)  # average across left_diag frequencies at both features (black, white)
+            unattendedSSVEPs_topo = np.mean(SSVEPs_topo[:,cuetype, level_count, right_diag, :, :], 1)  # average across right_diag frequencies at both features (black, white)
 
-        spaceSSVEPs[:, :, 0, level_count] = attendedSSVEPs
-        spaceSSVEPs[:, :, 1, level_count] = unattendedSSVEPs
+        if level == 'Right_diag': # when right diag cued
+            attendedSSVEPs = np.mean(SSVEPs[cuetype, level_count, right_diag, :, :], 0)  # average across right_diag frequencies at both features (black, white)
+            unattendedSSVEPs = np.mean(SSVEPs[cuetype, level_count, left_diag, :, :], 0)  # average across left_diag frequencies at both features (black, white)
+
+            attendedSSVEPs_topo = np.mean(SSVEPs_topo[:, cuetype, level_count, right_diag, :, :], 1)  # average across left_diag frequencies at both features (black, white)
+            unattendedSSVEPs_topo = np.mean(SSVEPs_topo[:, cuetype, level_count, left_diag, :, :], 1)  # average across right_diag frequencies at both features (black, white)
+
+        spaceSSVEPs[0, :, level_count] = attendedSSVEPs
+        spaceSSVEPs[1, :, level_count] = unattendedSSVEPs
+
+        spaceSSVEPs_topo[:, 0, :,level_count] = attendedSSVEPs_topo
+        spaceSSVEPs_topo[:, 1, :, level_count] = unattendedSSVEPs_topo
 
     # get ssveps for feature condition, sorted to represent attended vs. unattended
     cuetype = 1  # feature
     black, white = 0, 1
-    featureSSVEPs = np.empty(
-        (settings.num_electrodes, settings.num_days, settings.num_attd_unattd, settings.num_levels))
+    featureSSVEPs = np.empty(( settings.num_attd_unattd, settings.num_days, settings.num_levels))
+    featureSSVEPs_topo = np.empty((settings.num_electrodes,  settings.num_attd_unattd, settings.num_days,settings.num_levels))
     for level_count, level in enumerate(['Black', 'White']): # average through trials on which black and white were cued
         if (level == 'Black'):
-            attendedSSVEPs = np.mean(fftdat[:, hz_attn_index[:, black].astype(int), cuetype, level_count, :],
-                                     axis=1)  # average across black frequencies at both spatial positions
-            unattendedSSVEPs = np.mean(fftdat[:, hz_attn_index[:, white].astype(int), cuetype, level_count, :],
-                                       axis=1)  # average across white frequencies at both spatial positions
+            attendedSSVEPs = np.mean(SSVEPs[cuetype, level_count, :, black, :], 0)  # average across black frequencies at both spatial positions
+            unattendedSSVEPs = np.mean(SSVEPs[cuetype, level_count, :, white, :], 0)  # average across white frequencies at both spatial positions
+
+            attendedSSVEPs_topo = np.mean(SSVEPs_topo[:, cuetype, level_count, :, black, :], 1)  #  average across black frequencies at both spatial positions
+            unattendedSSVEPs_topo = np.mean(SSVEPs_topo[:, cuetype, level_count, :, white, :],  1)  # average across white frequencies at both spatial positions
 
         if (level == 'White'):
-            attendedSSVEPs = np.mean(fftdat[:, hz_attn_index[:, white].astype(int), cuetype, level_count, :],
-                                     axis=1)  # average across white frequencies at both spatial positions
-            unattendedSSVEPs = np.mean(fftdat[:, hz_attn_index[:, black].astype(int), cuetype, level_count, :],
-                                       axis=1)  # average across black frequencies at both spatial positions
+            attendedSSVEPs = np.mean(SSVEPs[cuetype, level_count, :, white, :], 0)  # average across white frequencies at both spatial positions
+            unattendedSSVEPs = np.mean(SSVEPs[cuetype, level_count, :, black, :], 0)  # average across black frequencies at both spatial positions
 
-        featureSSVEPs[:, :, 0, level_count] = attendedSSVEPs
-        featureSSVEPs[:, :, 1, level_count] = unattendedSSVEPs
+            attendedSSVEPs_topo = np.mean(SSVEPs_topo[:, cuetype, level_count, :, white, :], 1)  # average across white frequencies at both spatial positions
+            unattendedSSVEPs_topo = np.mean(SSVEPs_topo[:, cuetype, level_count, :, black, :], 1)  # average across blackfrequencies at both spatial positions
+
+        featureSSVEPs[0, :, level_count] = attendedSSVEPs
+        featureSSVEPs[1, :,level_count] = unattendedSSVEPs
+
+        featureSSVEPs_topo[:, 0, :, level_count] = attendedSSVEPs_topo
+        featureSSVEPs_topo[:, 1, :, level_count] = unattendedSSVEPs_topo
 
     # average across cue types and store the SSVEPs alltogether for plotting and further analysis
-    SSVEPs_prepost = np.empty(
-        (settings.num_electrodes, settings.num_days, settings.num_attd_unattd, settings.num_attnstates))
-    SSVEPs_prepost[:, :, :, 0] = np.mean(spaceSSVEPs, axis=3) # chans, # daycount, # attd unattd, # space/feat
-    SSVEPs_prepost[:, :, :, 1] = np.mean(featureSSVEPs, axis=3)
-
-    # get best electrodes to use and mean SSVEPs for these electrodes
-    BEST = np.empty((settings.num_best, settings.num_days, settings.num_attnstates))
     SSVEPs_prepost_mean = np.empty((settings.num_attd_unattd, settings.num_days, settings.num_attnstates))
-    for day_count, day_val in enumerate(settings.daysuse):
-        for attn_count, attn_val in enumerate(settings.string_cuetype):
-            tmp = np.mean(SSVEPs_prepost[:, day_count, :, attn_count], axis=1)
-            BEST[:, day_count, attn_count] = tmp.argsort()[-settings.num_best:]
+    SSVEPs_prepost_mean[:, :, 0] = np.mean(spaceSSVEPs, axis=2)  # attd unattd, # daycount, # space/feat
+    SSVEPs_prepost_mean[:, :, 1] = np.mean(featureSSVEPs, axis=2)
 
-            SSVEPs_prepost_mean[:, day_count, attn_count] = np.mean(
-                SSVEPs_prepost[BEST[:, day_count, attn_count].astype(int), day_count, :, attn_count], axis=0)
-
+    # average across cue types and store the SSVEPs alltogether for plotting and further analysis (topos)
+    SSVEPs_prepost = np.empty((settings.num_electrodes, settings.num_attd_unattd, settings.num_days,  settings.num_attnstates))
+    SSVEPs_prepost[:, :, :, 0] = np.mean(spaceSSVEPs_topo, axis=3) # num electrodes # attd unattd, # daycount, # space/feat
+    SSVEPs_prepost[:, :, :, 1] = np.mean(featureSSVEPs_topo, axis=3)
 
     return SSVEPs_prepost, SSVEPs_prepost_mean, BEST
 
@@ -289,59 +313,61 @@ def get_wavelets_prepost(erps_days, settings, epochs, BEST, bids):
     import matplotlib.pyplot as plt
     from pathlib import Path
 
-    erps_days_wave = erps_days.transpose(4, 0, 1, 2, 3)  # [day, chans,time,cuetype, level]
+    erps_days_wave = erps_days.transpose(2, 3, 4, 0, 1 )  # [cuetype, level, day, chans,time,]
 
+    # Get wavelets for each frequency
+    wavelets = np.empty((settings.num_attnstates, settings.num_levels, len(epochs.times), settings.num_spaces, settings.num_features, settings.num_days))
+    for space_count, space in enumerate(['Left_diag', 'Right_diag']):
+        for feat_count, feat in enumerate(['Black', 'White']):
+            for day_count, day_val in enumerate(settings.daysuse):
+                bestuse = BEST[:, space_count, feat_count, day_count].astype(int)
+                hzuse = settings.hz_attn[space_count, feat_count]
+                datuse = np.mean(erps_days_wave[:, :, day_count, bestuse, :], axis=2)
+                wavelets[:, :, :, space_count, feat_count, day_count] = np.squeeze(mne.time_frequency.tfr_array_morlet(datuse, settings.samplingfreq, freqs=[hzuse],n_cycles=[hzuse], output='power'))
+
+
+    # Space wavelets
     cuetype = 0  # space
     left_diag, right_diag = 0, 1
 
+    # spaceSSVEPs = np.empty((settings.num_attd_unattd, settings.num_days, settings.num_levels))
     spacewavelets = np.empty((len(epochs.times), settings.num_days, settings.num_attd_unattd, settings.num_levels))
-    for level_count, level in enumerate(
-            ['Left_diag', 'Right_diag']):  # cycle through space trials on which the left and right diag were cued
+    for level_count, level in enumerate(['Left_diag', 'Right_diag']):  # cycle through space trials on which the left and right diag were cued
         if (level == 'Left_diag'):  # when left diag cued
-            freqs2use_attd = settings.hz_attn[left_diag, :]
-            freqs2use_unattd = settings.hz_attn[right_diag, :]
+            attendedSSVEPs = np.mean(wavelets[cuetype, level_count, :, left_diag, :, :], 1)  # average across left_diag frequencies at both features (black, white)
+            unattendedSSVEPs = np.mean(wavelets[cuetype, level_count, :, right_diag, :, :], 1) # average across right_diag frequencies at both features (black, white)
 
-        if (level == 'Right_diag'):  # whien right diag cued
-            freqs2use_attd = settings.hz_attn[right_diag, :]
-            freqs2use_unattd = settings.hz_attn[left_diag, :]
+        if (level == 'Right_diag'):  # when right diag cued
+            attendedSSVEPs = np.mean(wavelets[cuetype, level_count, :, right_diag, :, :], 1)  # average across right_diag frequencies at both features (black, white)
+            unattendedSSVEPs = np.mean(wavelets[cuetype, level_count, :, left_diag, :, :], 1)  # average across left_diag frequencies at both features (black, white)
 
-        attended_wavelets = np.mean(mne.time_frequency.tfr_array_morlet(erps_days_wave[:, :, :, cuetype, level_count],settings.samplingfreq, freqs=freqs2use_attd,n_cycles=freqs2use_attd, output='power'),axis=2)  # average across left_diag frequencies at both features (black, white)
-        unattended_wavelets = np.mean(mne.time_frequency.tfr_array_morlet(erps_days_wave[:, :, :, cuetype, level_count],settings.samplingfreq, freqs=freqs2use_unattd,n_cycles=freqs2use_unattd, output='power'),axis=2)  # average across right_diag frequencies at both features (black, white)
+        spacewavelets[:, :, 0, level_count] = attendedSSVEPs
+        spacewavelets[:, :, 1, level_count] = unattendedSSVEPs
 
-        for day_count in np.arange(settings.num_days):  # average across best electrodes for each day
-            spacewavelets[:, day_count, 0, level_count] = np.mean(
-                attended_wavelets[day_count, BEST[:, day_count, cuetype].astype(int), :], axis=0)  # attended freqs
-            spacewavelets[:, day_count, 1, level_count] = np.mean(
-                unattended_wavelets[day_count, BEST[:, day_count, cuetype].astype(int), :], axis=0)  # unattended freqs
 
     # feature wavelets
     cuetype = 1  # space
     black, white = 0, 1
 
     featurewavelets = np.empty((len(epochs.times), settings.num_days, settings.num_attd_unattd, settings.num_levels))
+    for level_count, level in enumerate(['Black', 'White']):  # cycle through space trials on which the black and white were cued
+        if (level == 'Black'):  # when left diag cued
+            attendedSSVEPs = np.mean(wavelets[cuetype, level_count, :, :, black, :],
+                                     1)  # average across left_diag frequencies at both features (black, white)
+            unattendedSSVEPs = np.mean(wavelets[cuetype, level_count, :, :, white, :],
+                                       1)  # average across right_diag frequencies at both features (black, white)
 
-    for level_count, level in enumerate(
-            ['Black', 'White']):  # average through trials on which black and white were cued
-        if (level == 'Black'):
-            freqs2use_attd= settings.hz_attn[:, black]
-            freqs2use_unattd = settings.hz_attn[:, white]
+        if (level == 'White'):  # when right diag cued
+            attendedSSVEPs = np.mean(wavelets[cuetype, level_count, :, :, white, :],
+                                     1)  # average across right_diag frequencies at both features (black, white)
+            unattendedSSVEPs = np.mean(wavelets[cuetype, level_count, :, :, black, :],
+                                       1)  # average across left_diag frequencies at both features (black, white)
 
-        if (level == 'White'):
-            freqs2use_attd = settings.hz_attn[:, white]
-            freqs2use_unattd = settings.hz_attn[:, black]
-
-        attended_wavelets = np.mean(mne.time_frequency.tfr_array_morlet(erps_days_wave[:, :, :, cuetype, level_count],settings.samplingfreq, freqs=freqs2use_attd,n_cycles=freqs2use_attd, output='power'),axis=2)  # average across left_diag frequencies at both features (black, white)
-        unattended_wavelets = np.mean(mne.time_frequency.tfr_array_morlet(erps_days_wave[:, :, :, cuetype, level_count],settings.samplingfreq, freqs=freqs2use_unattd,n_cycles=freqs2use_unattd, output='power'),axis=2)  # average across right_diag frequencies at both features (black, white)
-
-        for day_count in np.arange(settings.num_days):  # average across best electrodes
-            featurewavelets[:, day_count, 0, level_count] = np.mean(
-                attended_wavelets[day_count, BEST[:, day_count, cuetype].astype(int), :], axis=0)  # attended freqs
-            featurewavelets[:, day_count, 1, level_count] = np.mean(
-                unattended_wavelets[day_count, BEST[:, day_count, cuetype].astype(int), :], axis=0)  # unattended freqs
+        featurewavelets[:, :, 0, level_count] = attendedSSVEPs
+        featurewavelets[:, :, 1, level_count] = unattendedSSVEPs
 
     # average across cue types and store the SSVEPs alltogether for plotting and further analysis
-    wavelets_prepost = np.empty(
-        (len(epochs.times), settings.num_days, settings.num_attd_unattd, settings.num_attnstates))
+    wavelets_prepost = np.empty((len(epochs.times), settings.num_days, settings.num_attd_unattd, settings.num_attnstates))
     wavelets_prepost[:, :, :, 0] = np.mean(spacewavelets, axis=3)
     wavelets_prepost[:, :, :, 1] = np.mean(featurewavelets, axis=3)
 
@@ -423,7 +449,8 @@ def topoplot_SSVEPs(raw, SSVEPs, ERPstring, settings, bids):
                 if (attd == 1): axuse = ax2
 
                 plt.axes(axuse[count])
-                dataplot = SSVEPs[:, day, attd, attntype]  # chans, # daycount, # attd unattd, # space/feat
+                # np.empty((settings.num_electrodes, settings.num_attd_unattd, settings.num_days, settings.num_attnstates))
+                dataplot = SSVEPs[:, attd, day, attntype]  # chans, # daycount, # attd unattd, # space/feat
                 dataplot = np.append(dataplot, [0, 0, 0])
 
                 im = mne.viz.plot_topomap(dataplot, topodat.info, cmap="viridis", show_names=False,
@@ -551,7 +578,7 @@ def topoplot_SSVEPs_group(raw, SSVEPs, ERPstring, settings, bids):
                 if (attd == 1): axuse = ax2
 
                 plt.axes(axuse[count])
-                dataplot = SSVEPs_mean[:, day, attd, attntype]  # chans, # daycount, # attd unattd, # space/feat
+                dataplot = SSVEPs_mean[:,  attd, day, attntype]  # chans, # daycount, # attd unattd, # space/feat
                 dataplot = np.append(dataplot, [0, 0, 0])
 
                 im = mne.viz.plot_topomap(dataplot, topodat.info, cmap="viridis", show_names=False,
@@ -738,7 +765,7 @@ def collateEEGprepost(settings):
 
         if sub_count == 1:
             # get EEG data
-            raw, events, eeg_data_interp = helper.get_eeg_data(bids, day_count=1, settings=settings)
+            raw, events, eeg_data_interp = helper.get_eeg_data(bids, day_count=0, day_val=1,settings=settings)
 
     np.savez(bids.direct_results_group / Path("EEGResults_prepost"),
              SSVEPs_prepost_group=SSVEPs_prepost_group,
@@ -843,8 +870,8 @@ def collateEEGprepostcompare(settings):
     SSVEPs_post = []
 
     # cycle trough space and feature train groups
-    for attntrained in np.arange(settings.num_attnstates):  # cycle trough space and feature train groups
-
+    # for attntrained in np.arange(settings.num_attnstates):  # cycle trough space and feature train groups
+    for attntrained, attntrainedstr in enumerate(settings.string_attntrained):  # cycle trough space, feature and sham train groups
         # get task specific settings
         settings = helper.SetupMetaData(attntrained)
         settings = settings.get_settings_EEG_prepost()
@@ -859,7 +886,7 @@ def collateEEGprepostcompare(settings):
         # load results
         results = np.load(bids.direct_results_group / Path("EEGResults_prepost.npz"), allow_pickle=True)  #
 
-        SSVEPs_epochs_prepost_group = results['SSVEPs_epochs_prepost_group']  # results['SSVEPs_prepost_group']
+        SSVEPs_epochs_prepost_group = results['SSVEPs_prepost_group'] #results['SSVEPs_epochs_prepost_group']  #
         diffdat = SSVEPs_epochs_prepost_group[0, :, :, :] - SSVEPs_epochs_prepost_group[1, :, :, :]  # [day,attn,sub]
         predat = SSVEPs_epochs_prepost_group[0, :, :, :]
         postdat = SSVEPs_epochs_prepost_group[1, :, :, :]
@@ -904,8 +931,8 @@ def collateEEGprepostcompare(settings):
 
     attd = df_grouped[["SubID", "Attention Type", "SSVEPs_attd"]].copy()
     unattd = df_grouped[["SubID", "Attention Type", "SSVEPs_unattd"]].copy()
-    attd["attn"] = 'Attended'
-    unattd["attn"] = 'Unattended'
+    attd["Cue"] = 'Attended'
+    unattd["Cue"] = 'Unattended'
     attd = attd.rename(columns={"SSVEPs_attd": "SSVEPs"})
     unattd = unattd.rename(columns={"SSVEPs_unattd": "SSVEPs"})
 
@@ -913,13 +940,13 @@ def collateEEGprepostcompare(settings):
 
     fig, ax = plt.subplots(1, 2, figsize=(12, 6))
 
-    # Reaction time Grouped violinplot
+    # SSVEP Grouped violinplot
     colors = [settings.lightteal, settings.medteal]
     for i in np.arange(2):
         datplot = df_SSVEPs[df_SSVEPs["Attention Type"] == settings.string_attntrained[i]]
 
-        sns.swarmplot(x="attn", y="SSVEPs", data=datplot, color="0", alpha=0.3, ax=ax[i])
-        sns.violinplot(x="attn", y="SSVEPs", data=datplot, palette=sns.color_palette(colors), style="ticks",
+        sns.swarmplot(x="Cue", y="SSVEPs", data=datplot, color="0", alpha=0.3, ax=ax[i])
+        sns.violinplot(x="Cue", y="SSVEPs", data=datplot, palette=sns.color_palette(colors), style="ticks",
                        ax=ax[i], inner="box", alpha=0.6)
 
         ax[i].spines['top'].set_visible(False)
@@ -927,7 +954,7 @@ def collateEEGprepostcompare(settings):
         ax[i].set_ylim([0, 1])
         ax[i].set_title(settings.string_attntrained[i])
 
-    titlestring = 'Motion Task SSVEP Amplitudes by attention'
+    titlestring = 'Motion Task SSVEP Amplitudes by attention type'
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
@@ -947,7 +974,7 @@ def collateEEGprepostcompare(settings):
     ax1.spines['right'].set_visible(False)
 
     ax1.set_title(settings.string_attntrained[0] + " Attention")
-    ax1.set_ylim(-0.25, 0.65)
+    ax1.set_ylim(-0.5, 1.2)
     # Accuracy Grouped violinplot
     sns.violinplot(x="Attention Trained", y="Selectivity (ΔµV)", hue="Testday",
                    data=df_selctivity[df_selctivity["Attention Type"].isin([settings.string_attntrained[1]])],
@@ -996,22 +1023,23 @@ def collateEEGprepostcompare(settings):
     df_SSVEPtraineffects["∆ Selectivity"] = tmpd4['Selectivity (ΔµV)'] - tmpd1['Selectivity (ΔµV)']
 
     ##########################################  plot training effects against attention trained and attention type ##########################################
-
+    # df_SSVEPtraineffects = df_SSVEPtraineffects.drop(index=[139, 150])
     fig, ax = plt.subplots(1, 2, figsize=(12, 6))
 
     # Reaction time Grouped violinplot
-    colors = [settings.yellow, settings.orange]
-    for i in np.arange(2):
-        datplot = df_SSVEPtraineffects[df_SSVEPtraineffects["Attention Trained"] == settings.string_attntrained[i]]
+    colors = [settings.yellow, settings.orange, settings.red]
 
-        sns.swarmplot(x="Attention Type", y="∆ Selectivity", data=datplot, color="0", alpha=0.3, ax=ax[i])
-        sns.violinplot(x="Attention Type", y="∆ Selectivity", data=datplot, palette=sns.color_palette(colors),
+    for i in np.arange(2):
+        datplot = df_SSVEPtraineffects[df_SSVEPtraineffects["Attention Type"] == settings.string_attntrained[i]]
+
+        sns.swarmplot(x="Attention Trained", y="∆ Selectivity", data=datplot, color="0", alpha=0.3, ax=ax[i])
+        sns.violinplot(x="Attention Trained", y="∆ Selectivity", data=datplot, palette=sns.color_palette(colors),
                        style="ticks",
                        ax=ax[i], inner="box", alpha=0.6)
 
         ax[i].spines['top'].set_visible(False)
         ax[i].spines['right'].set_visible(False)
-        ax[i].set_ylim([-0.2, 0.2])
+        ax[i].set_ylim([-0.4, 0.4])
         ax[i].set_title(settings.string_attntrained[i])
 
     titlestring = 'Motion Task SSVEP Selectivity training effect by attention'

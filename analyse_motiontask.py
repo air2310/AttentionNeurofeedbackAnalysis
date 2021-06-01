@@ -651,7 +651,7 @@ def collate_behaviour_prepost_compare(settings):
     settings = settings.get_settings_behave_prepost()
 
     # cycle trough space and feature train groups
-    for attntrainedcount, attntrained in enumerate(settings.string_attntrained):  # cycle trough space and feature train groups
+    for attntrainedcount, attntrained in enumerate(settings.string_attntrained):  # cycle trough space, feature and sham train groups
         # setup generic settings
         settings = helper.SetupMetaData(attntrainedcount)
         settings = settings.get_settings_behave_prepost()
@@ -676,10 +676,18 @@ def collate_behaviour_prepost_compare(settings):
                                                             'LikelihoodRatio', 'RT', 'RT_STD', 'InverseEfficiency']])
 
     # Exclude extremely poor performers.
-    tmp = df_behaveresults.groupby('subIDval').mean()['correct']
-    exclude = df_behaveresults.groupby('subIDval').mean()[tmp < 10]  # SUBIDs 1,2,23, 90
+    tmp1 = df_behaveresults['Testday'].isin(['Day 1'])
+    tmp = df_behaveresults[tmp1].groupby('subIDval').mean()['Sensitivity']
+    exclude = df_behaveresults.groupby('subIDval').mean()[tmp < 0.25]
 
-    df_behaveresults_clean = df_behaveresults[~df_behaveresults['subID'].isin(exclude['subID'])]
+    tmp1 = df_behaveresults['Testday'].isin(['Day 4'])
+    tmp = df_behaveresults[tmp1].groupby('subIDval').mean()['Sensitivity']
+    exclude2 = df_behaveresults.groupby('subIDval').mean()[tmp < 0.25]
+
+    # tmp = df_behaveresults.groupby('subIDval').mean()['Sensitivity']
+    # exclude = df_behaveresults.groupby('subIDval').mean()[tmp < 0.25]
+
+    df_behaveresults_clean = df_behaveresults[~df_behaveresults['subID'].isin(exclude['subID']) & ~df_behaveresults['subID'].isin(exclude2['subID'])]
 
     # # lets run some stats with R - save it out
     df_behaveresults_clean.to_csv(bids.direct_results_group_compare / Path("motiondiscrim_behaveresults_ALL.csv"),
@@ -899,6 +907,7 @@ def collate_behaviour_prepost_compare(settings):
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
     #### Sensitivity ####
+    # df_behtraineffects = df_behtraineffects.drop(index=[139, 143])
     fig, ax = plt.subplots(1, settings.num_attnstates, figsize=(15, 6))
 
     colors = [settings.yellow, settings.orange, settings.red]
@@ -914,7 +923,7 @@ def collate_behaviour_prepost_compare(settings):
         ax[i].spines['right'].set_visible(False)
 
         ax[i].set_title(settings.string_attntype[i])
-        ax[i].set_ylim([-1, 2])
+        ax[i].set_ylim([-2, 2.5])
 
     titlestring = 'Motion Task Sensitivity training effect by attention'
     plt.suptitle(titlestring)
