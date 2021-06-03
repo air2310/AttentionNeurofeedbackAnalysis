@@ -2,6 +2,7 @@
 import pandas as pd
 import helperfunctions_ATTNNF as helper
 import functions_getEEGprepost as geegpp
+import functions_CohMotEpochEEG_Prepost as geeg_cohmotepoch
 import functions_getEEG_duringNF as geegdnf
 import analyse_visualsearchtask as avissearch
 import analyse_nbacktask as anback
@@ -9,23 +10,24 @@ import analyse_motiontask as analyse_motiontask
 import analyseNeurofeedback as analyse_NF
 import CorrelationAnalyses as analyse_corr
 import matplotlib.pyplot as plt
+
 #### New Analyses
+# TODO: fix up behave exclusion criteria
+# TODO: plotting of effects for SSVEPs
+# TODO: Statistical tests for wavelets
+
 # TODO: exclude chance level vis search Ps
 # TODO: look at differences between classifiable and unclassifiable participants.
-# TODO: analyse wavelets around movement epochs
-# TODO: individual trial independance of spatial and feature based-attention measure - how correlated are they really?
+# TODO: individual trial independance of spatial and feature based-attention neurofeedback - how correlated are they really?
 # TODO: Sync to main thread
+# TODO: What about just the people who did really well?
 
-# look at ERP
-# What about just the people who did really well?
-# fix up behave exclusion criteria
 
 
 # setup generic settings
-attntrained = 2  # 0 = Space, 1 = Feature, 2 = Sham
+attntrained = 0  # 0 = Space, 1 = Feature, 2 = Sham
 settings = helper.SetupMetaData(attntrained)
 print("Analysing Data for condition train: " + settings.string_attntrained[settings.attntrained])
-
 
 ######## Decide which single subject analyses to do ########
 
@@ -37,13 +39,16 @@ analyse_behaviour_duringNF = False  # Analyse Behaviour duringTraining
 #
 # analyse_EEG_prepost =True # analyse EEG Pre Vs. Post Training
 analyse_EEG_prepost = False  # analyse EEG Pre Vs. Post Training
+#
+# analyse_EEG_prepost_motepochs =True # analyse EEG Pre Vs. Post Training (coherent motion) geeg_cohmotepoch
+analyse_EEG_prepost_motepochs = False  # analyse EEG Pre Vs. Post Training
 
 # analyse_EEG_duringNF = True # analyse EEG during Neurofeedback
 analyse_EEG_duringNF = False  # analyse EEG during Neurofeedback
 #
 # analyse_visualsearchtask = True # Analyse Visual Search Task
 analyse_visualsearchtask = False  # Analyse Visual Search Task
-#
+
 # analyse_nbacktask = True # Analyse N-back Task
 analyse_nbacktask = False  # Analyse N-back Task
 
@@ -61,6 +66,9 @@ collate_behaviour_duringNF = False  # Collate Behaviour during Training
 #
 # collateEEGprepost = True # Collate EEG Pre Vs. Post Training across subjects
 collateEEGprepost = False  # Collate EEG Pre Vs. Post Training across subjects
+#
+# collateEEGprepost_motioncoherenceepochs = True # Collate EEG Pre Vs. Post Training across subjects
+collateEEGprepost_motioncoherenceepochs = False  # Collate EEG Pre Vs. Post Training across subjects
 
 # collateEEG_duringNF = True  # Collate EEG during Neurofeedback
 collateEEG_duringNF = False  # Collate EEG during Neurofeedback
@@ -68,8 +76,8 @@ collateEEG_duringNF = False  # Collate EEG during Neurofeedback
 # collate_visualsearchtask = True # Collate Visual Search results
 collate_visualsearchtask = False  # Collate Visual Search results
 #
-# collate_nbacktask = True  # Analyse N-back Task
-collate_nbacktask = False  # Analyse N-back Task
+collate_nbacktask = True  # Analyse N-back Task
+# collate_nbacktask = False  # Analyse N-back Task
 
 
 ######## Decide which group comparison analyses to do ########
@@ -86,13 +94,13 @@ collate_behaviour_prepost_compare = False  # Collate Behaviour Pre Vs. Post Trai
 # collate_behaviour_duringNF_compare = True # Collate Behaviour during Training compare training groups
 collate_behaviour_duringNF_compare = False  # Collate Behaviour during Training compare training groups
 
-collateEEGprepostcompare = True # Collate EEG Pre Vs. Post Training across subjects
-# collateEEGprepostcompare = False  # Collate EEG Pre Vs. Post Training across subjects
+# collateEEGprepostcompare = True # Collate EEG Pre Vs. Post Training across subjects
+collateEEGprepostcompare = False  # Collate EEG Pre Vs. Post Training across subjects
 
 
 # Some settings for how things will run
 pd.set_option('display.max_rows', None)
-pd.set_option('display.max_columns', 10)
+pd.set_option('display.max_columns', None)
 
 
 ##### iterate through subjects for individual subject analyses #####
@@ -113,6 +121,9 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
 
     if analyse_EEG_prepost:
         geegpp.analyseEEGprepost(settings, sub_val)
+
+    if analyse_EEG_prepost_motepochs:
+        geeg_cohmotepoch.analyseEEGprepost(settings, sub_val)
 
     if analyse_EEG_duringNF:
         geegdnf.analyseEEG_duringNF(settings, sub_val)
@@ -149,6 +160,10 @@ if collate_Neurofeedback:
 # Collate pre-post motion task EEG
 if collateEEGprepost:
     geegpp.collateEEGprepost(settings)
+
+# Collate pre-post motion task EEG - motion coherence
+if collateEEGprepost_motioncoherenceepochs:
+    geeg_cohmotepoch.collateEEGprepost(settings)
 
 # Compare pre-post motion task EEG between training conditions
 if collateEEGprepostcompare:

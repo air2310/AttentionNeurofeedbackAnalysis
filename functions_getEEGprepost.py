@@ -77,8 +77,7 @@ def analyseEEGprepost(settings, sub_val):
 
     # # Get SSVEPs
     fftdat, fftdat_epochs, freq = getSSVEPs(erps_days, epochs_days, epochs, settings, bids)
-    fftdat_epochs = np.nanmean(fftdat_epochs,
-                               axis=0)  # average across trials to get the same shape for single trial SSVEPs
+    fftdat_epochs = np.nanmean(fftdat_epochs,axis=0)  # average across trials to get the same shape for single trial SSVEPs
 
     # get signal to noise
     fftdat_snr = getfft_sigtonoise(settings, epochs, fftdat, freq)
@@ -137,20 +136,32 @@ def analyseEEGprepost(settings, sub_val):
 def getSSVEPs(erps_days, epochs_days, epochs, settings, bids):
     from scipy.fft import fft, fftfreq, fftshift
     import matplotlib.pyplot as plt
-    # for fft - zeropad
-    zerotimes = np.where(
-        np.logical_or(epochs.times < settings.timelimits[0], epochs.times > settings.timelimits[1]))
-    erps_days[:, zerotimes, :, :, :] = 0
-    epochs_days[:, :, zerotimes, :, :, :] = 0
+
+    # for fft - zeropad - old wat
+    # zerotimes = np.where(
+    #     np.logical_or(epochs.times < settings.timelimits[0], epochs.times > settings.timelimits[1]))
+    # erps_days[:, zerotimes, :, :, :] = 0
+    # epochs_days[:, :, zerotimes, :, :, :] = 0
+    #
+    # # for fft - fft
+    # fftdat = np.abs(fft(erps_days, axis=1)) / len(epochs.times)
+    # fftdat_epochs = np.abs(fft(epochs_days, axis=2)) / len(epochs.times)
+    #
+
+    # crop
+    zerotimes = np.where(np.logical_and(epochs.times > settings.timelimits[0], epochs.times < settings.timelimits[1]))
+    erps_days2 = erps_days[:, zerotimes[0], :, :, :]
+    epochs_days2 = epochs_days[:, :, zerotimes[0], :, :, :]
+    times2 = epochs.times[zerotimes[0]]
 
     # for fft - fft
-    fftdat = np.abs(fft(erps_days, axis=1)) / len(epochs.times)
-    fftdat_epochs = np.abs(fft(epochs_days, axis=2)) / len(epochs.times)
+    fftdat = np.abs(fft(erps_days2, axis=1)) / len(times2)
+    fftdat_epochs = np.abs(fft(epochs_days2, axis=2)) / len(times2)
 
     ## plot ERP FFT spectrum
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
-    freq = fftfreq(len(epochs.times), d=1 / settings.samplingfreq)  # get frequency bins
+    freq = fftfreq(len(times2), d=1 / settings.samplingfreq)  # get frequency bins
     chanmeanfft = np.mean(fftdat, axis=0)
 
     for day_count in np.arange(2):
@@ -172,7 +183,7 @@ def getSSVEPs(erps_days, epochs_days, epochs, settings, bids):
 
     # plot single trial FFT spectrum
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
-    freq = fftfreq(len(epochs.times), d=1 / settings.samplingfreq)  # get frequency bins
+    freq = fftfreq(len(times2), d=1 / settings.samplingfreq)  # get frequency bins
     chanmeanfft = np.nanmean(np.mean(fftdat_epochs, axis=1), axis=0)
 
     for day_count in np.arange(2):
@@ -184,7 +195,7 @@ def getSSVEPs(erps_days, epochs_days, epochs, settings, bids):
         axuse.plot(freq, chanmeanfft[:, 1, 1, day_count].T, '-', label='Feat/White', color=settings.yellow)  # 'Feat/White'
 
         axuse.set_xlim(2, 20)
-        axuse.set_ylim(0, 0.5)
+        axuse.set_ylim(0, 1)
         axuse.set_title(settings.string_prepost[day_count])
         axuse.legend()
 
@@ -200,7 +211,8 @@ def getfft_sigtonoise(settings, epochs, fftdat, freq):
     # get SNR fft
     numsnr = 10
     extradatapoints = (numsnr*2 + 1)
-    snrtmp = np.empty((settings.num_electrodes, len(epochs.times)+extradatapoints , settings.num_attnstates, settings.num_levels, settings.num_days, extradatapoints ))
+    numdatpoints = 7200
+    snrtmp = np.empty((settings.num_electrodes, numdatpoints+extradatapoints , settings.num_attnstates, settings.num_levels, settings.num_days, extradatapoints ))
     snrtmp[:] = np.NAN
 
     for i in np.arange(extradatapoints):
@@ -224,9 +236,9 @@ def getSSVEPS_conditions(settings, fftdat, freq):
     for space_count, space in enumerate(['Left_diag', 'Right_diag']):
         for feat_count, feat in enumerate(['Black', 'White']):
             for day_count, day_val in enumerate(settings.daysuse):
-                tmp = np.mean(np.mean(fftdat[:, hz_attn_index[space_count, feat_count].astype(int), :, :, day_count], axis = 1), axis = 1)
+                tmp = np.mean(np.mean(fftdat[:, hz_attn_index[space_count, feat_count].astype(int), :, :, day_count], axis = 1), axis = 1) # average across cue conditions to get best electrodes for frequencies
                 BEST[:,space_count, feat_count, day_count] = tmp.argsort()[-settings.num_best:]
-                print(BEST[:,space_count, feat_count, day_count])
+                # print(BEST[:,space_count, feat_count, day_count])
 
     # Get SSVEPs for each frequency
     SSVEPs = np.empty((settings.num_attnstates, settings.num_levels, settings.num_spaces, settings.num_features, settings.num_days))
@@ -728,6 +740,9 @@ def collateEEGprepost(settings):
     timelimits_data_zp, timepoints_zp, frequencypoints_zp, zeropoint_zp = helper.get_timing_variables(
         settings.timelimits_zeropad, settings.samplingfreq)
 
+    timelimits_data, timepoints, frequencypoints, zeropoint = helper.get_timing_variables(
+        settings.timelimits, settings.samplingfreq)
+
     # preallocate group mean variables
     num_subs = settings.num_subs
     SSVEPs_prepost_group = np.empty((settings.num_attd_unattd, settings.num_days, settings.num_attnstates, num_subs))
@@ -735,15 +750,16 @@ def collateEEGprepost(settings):
         (settings.num_electrodes, settings.num_attd_unattd, settings.num_days, settings.num_attnstates, num_subs))
     SSVEPs_epochs_prepost_group = np.empty(
         (settings.num_attd_unattd, settings.num_days, settings.num_attnstates, num_subs))
-    fftdat_group = np.empty((settings.num_electrodes, len(timepoints_zp) + 1, settings.num_attnstates,
+    fftdat_group = np.empty((settings.num_electrodes, len(timepoints), settings.num_attnstates,
                              settings.num_levels, settings.num_days, num_subs))
-    fftdat_epochs_group = np.empty((settings.num_electrodes, len(timepoints_zp) + 1, settings.num_attnstates,
+    fftdat_epochs_group = np.empty((settings.num_electrodes, len(timepoints), settings.num_attnstates,
                                     settings.num_levels, settings.num_days, num_subs))
     wavelets_prepost_group = np.empty(
         (len(timepoints_zp) + 1, settings.num_days, settings.num_attd_unattd, settings.num_attnstates, num_subs))
 
     # iterate through subjects for individual subject analyses
     for sub_count, sub_val in enumerate(settings.subsIDXcollate):
+
         # get directories and file names
         bids = helper.BIDS_FileNaming(int(sub_val), settings, 1)
         print(bids.substring)
@@ -790,6 +806,7 @@ def collateEEGprepost(settings):
     topoplot_SSVEPs_group(raw, SSVEPs_topodat_group, ERPstring='ERP', settings=settings, bids=bids)
 
     # plot wavelet results
+    wavelets_prepost_group = wavelets_prepost_group / 12001
     wavelets_prepost_ave = np.mean(wavelets_prepost_group, axis=4)
     wavelets_prepost_std = np.std(wavelets_prepost_group, axis=4) / num_subs
 
@@ -830,13 +847,46 @@ def collateEEGprepost(settings):
             axuse.set_xlim(-1, 6)
             axuse.set_xlabel('Time (s)')
             axuse.set_ylabel('MCA')
-            axuse.set_ylim(100, 1000)
+            axuse.set_ylim(0.01, 0.07)
             axuse.legend()
             axuse.set_title(settings.string_cuetype[attn] + ' ' + settings.string_prepost[dayuse])
 
     titlestring = 'Group Mean wavelets pre-post ' + settings.string_attntrained[settings.attntrained]
     fig.suptitle(titlestring)
     plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
+
+    # plot difference waves
+    diffwave = wavelets_prepost_group[:, :, 0, :, :] - wavelets_prepost_group[:, :, 1, :, :]
+    wavelets_prepost_ave = np.mean(diffwave, axis=3)
+    wavelets_prepost_std = np.std(diffwave, axis=3) / num_subs
+
+    # plot wavelet data
+    fig, (ax1) = plt.subplots(1, 2, figsize=(10, 15))
+    for attn in np.arange(settings.num_attnstates):
+        axuse = ax1[attn]
+        coluse = [settings.medteal, settings.darkteal]
+        for dayuse in np.arange(settings.num_days):
+            axuse.axvline(0, 0, 1000, linewidth=2, color='k')
+            if attn == 0:
+
+                axuse.fill_between(timepoints_use, wavelets_prepost_ave[:, dayuse, attn] - wavelets_prepost_std[:, dayuse, attn], wavelets_prepost_ave[:, dayuse, attn] + wavelets_prepost_std[:, dayuse, attn], alpha=0.3, facecolor=coluse[dayuse])
+                axuse.plot(timepoints_use, wavelets_prepost_ave[:, dayuse, attn], color=coluse[dayuse], label=settings.string_prepost[dayuse])
+
+            else:
+                axuse.fill_between(timepoints_use, wavelets_prepost_ave[:, dayuse, attn] - wavelets_prepost_std[:, dayuse, attn], wavelets_prepost_ave[:, dayuse, attn] + wavelets_prepost_std[:, dayuse, attn], alpha=0.3, facecolor=coluse[dayuse])
+                axuse.plot(timepoints_use, wavelets_prepost_ave[:, dayuse, attn], color=coluse[dayuse], label=settings.string_prepost[dayuse])
+
+            axuse.set_xlim(-1, 6)
+            axuse.set_xlabel('Time (s)')
+            axuse.set_ylabel('MCA')
+            axuse.set_ylim(-0.02, 0.05)
+            axuse.legend()
+            axuse.set_title(settings.string_cuetype[attn])
+
+    titlestring = 'Group Mean wavelets pre-post diff' + settings.string_attntrained[settings.attntrained]
+    fig.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
+
 
     # save attentional selectivity for stats - single trial
     ssvep_selectivity_prepost = SSVEPs_epochs_prepost_group[0, :, :, :] - SSVEPs_epochs_prepost_group[1, :, :, :]
@@ -879,6 +929,7 @@ def collateEEGprepostcompare(settings):
         # file names
         substrings = []
         for sub_count, sub_val in enumerate(settings.subsIDXcollate):
+
             # get directories and file names
             bids = helper.BIDS_FileNaming(int(sub_val), settings, 1)
             substrings = np.concatenate((substrings, [bids.substring]))
