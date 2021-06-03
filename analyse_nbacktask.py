@@ -111,7 +111,8 @@ def collate_nbacktask(settings):
     substring = []
     daystrings = []
     attnstrings = []
-    accuracy_compare = []
+    hits_compare = []
+    FAs_compare = []
     rt_compare = []
 
     print('Collating N-back Task for space and feature train')
@@ -139,7 +140,8 @@ def collate_nbacktask(settings):
             settings.num_subs = settings.num_subs - 1
 
         num_subs[attntrained] = settings.num_subs
-        mean_acc_all = np.empty((settings.num_days, settings.num_subs))
+        mean_hits_all = np.empty((settings.num_days, settings.num_subs))
+        mean_fas_all = np.empty((settings.num_days, settings.num_subs))
         mean_rt_all = np.empty((settings.num_days, settings.num_subs))
         substring_short = []
 
@@ -151,10 +153,11 @@ def collate_nbacktask(settings):
 
             # load results
             results = np.load(bids.direct_results / Path(bids.substring + "Nback_results.npz"),
-                              allow_pickle=True)  # saved vars: meanacc=meanacc, meanrt=meanrt, acc_nback=acc_nback, rt_nback=rt_nback
+                              allow_pickle=True)  # saved vars:  hits=HIT, falsealarms=FA, meanrt=meanrt, acc_nback=acc_nback, rt_nback=rt_nback)
 
             # store results temporarily
-            mean_acc_all[:, sub_count] = results['meanacc'] * 100
+            mean_hits_all[:, sub_count] = results['hits'] * 100
+            mean_fas_all[:, sub_count] = results['falsealarms'] *100
             mean_rt_all[:, sub_count] = results['meanrt']
 
             substring_short = np.concatenate((substring_short, [bids.substring]))
@@ -170,19 +173,48 @@ def collate_nbacktask(settings):
         tmp = [settings.string_attntrained[attntrained]] * settings.num_subs * settings.num_days
         attnstrings = np.concatenate((attnstrings, tmp))
 
-        tmp = np.concatenate((mean_acc_all[0, :], mean_acc_all[1, :]))
-        accuracy_compare = np.concatenate((accuracy_compare, tmp))
+        tmp = np.concatenate((mean_hits_all[0, :], mean_hits_all[1, :]))
+        hits_compare = np.concatenate((hits_compare, tmp))
+
+        tmp = np.concatenate((mean_fas_all[0, :], mean_fas_all[1, :]))
+        FAs_compare = np.concatenate((FAs_compare, tmp))
 
         tmp = np.concatenate((mean_rt_all[0, :], mean_rt_all[1, :]))
         rt_compare = np.concatenate((rt_compare, tmp))
 
     # create the data frames for accuracy and reaction time data
     data = {'SubID': substring, 'Testday': daystrings, 'Attention Trained': attnstrings,
-            'Accuracy (%)': accuracy_compare, 'Reaction Time (s)': rt_compare}
+            'HITS (%)': hits_compare, 'False Alarms (%)': FAs_compare, 'Reaction Time (s)': rt_compare}
     df_acc = pd.DataFrame(data)
 
     # data = {'SubID': substring, 'Testday': daystrings, 'Attention Trained': attnstrings, 'Reaction Time (s)': rt_compare}
     # df_rt = pd.DataFrame(data)
+
+    ############## Get Sensitivity
+    from scipy.stats import norm
+
+    Z = norm.ppf  # percentile point function - normal distribution between 0 and 1.
+
+    N_distractors = 132  # number of distractor events per day and condition.
+    N_targets = 60  # number of target events per day and condition.
+
+    dat = df_acc.loc[:, "HITS (%)"] / 100  # hitrate
+
+    dat[dat == 0] = 1 / (2 * N_targets)  # correct for zeros and ones (McMillan & Creelman, 2004)
+    dat[dat == 1] = 1 - 1 / (2 * N_targets)  # correct for zeros and ones (McMillan & Creelman, 2004)
+
+    hitrate_zscore = Z(dat)
+
+    dat = df_acc.loc[:, "False Alarms (%)"] / 100  # False Alarm rate
+
+    dat[dat == 0] = 1 / (2 * N_distractors)  # correct for zeros and ones (McMillan & Creelman, 2004)
+    dat[dat == 1] = 1 - 1 / (2 * N_distractors)  # correct for zeros and ones (McMillan & Creelman, 2004)
+
+    falsealarmrate_zscore = Z(dat)
+
+    df_acc.loc[:, "Sensitivity"] = hitrate_zscore - falsealarmrate_zscore
+    df_acc.loc[:, "Criterion"] = 0.5 * (hitrate_zscore + falsealarmrate_zscore)
+    df_acc.loc[:, "LikelihoodRatio"] =df_acc.loc[:, "Sensitivity"] * df_acc.loc[:, "Criterion"]
 
     # Get effects
     means=df_acc.groupby(['Attention Trained', 'SubID' ]).mean()
