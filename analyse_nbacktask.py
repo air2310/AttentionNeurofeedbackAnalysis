@@ -38,6 +38,15 @@ def analyse_nbacktask(settings, sub_val):
             settings.num_trials)  # responses.hit = 1;responses.falsealarm = 2;responses.correctreject = 3; responses.miss = 4;
         rt_nback[:, day_count] = np.array(F['RT_ALL']).reshape(settings.num_trials)
 
+    ############## Get Sensitivity
+
+    N_distractors = 132  # number of distractor events per day and condition.
+    N_targets = 60  # number of target events per day and condition.
+
+    HIT = np.array([np.sum(acc_nback[:, 0] == 1)/N_targets, np.sum(acc_nback[:, 1] == 1)/N_targets])  # hitrate
+    FA = np.array([np.sum(acc_nback[:, 0] == 2) / N_distractors, np.sum(acc_nback[:, 1] == 2) / N_distractors])  # FArate
+
+
     # Plot N-back pre vs. post Results
 
     import seaborn as sns
@@ -48,36 +57,37 @@ def analyse_nbacktask(settings, sub_val):
     colors = ["#112F41", "#4CB99F"]
     # Accuracy
 
-    data = {'Testday': settings.string_prepost,
-            'Data': [np.mean(np.logical_or(acc_nback[:, 0] == 1, acc_nback[:, 0] == 3)),
-                     np.mean(np.logical_or(acc_nback[:, 1] == 1, acc_nback[:, 1] == 3))]
-            }
-    meanacc = [np.mean(np.logical_or(acc_nback[:, 0] == 1, acc_nback[:, 0] == 3)),
-               np.mean(np.logical_or(acc_nback[:, 1] == 1, acc_nback[:, 1] == 3))]
+    data = {'Testday': settings.string_prepost, 'Hits': HIT*100, 'FAs': FA*100}
     df = pd.DataFrame(data)
 
     # Grouped violinplot
-    sns.barplot(x="Testday", y="Data", data=df, palette=sns.color_palette(colors), ax=ax1)
+    sns.barplot(x="Testday", y="Hits", data=df, palette=sns.color_palette(colors), ax=ax1)
+    sns.barplot(x="Testday", y="FAs", data=df, palette=sns.color_palette([settings.orange, settings.yellow]), ax=ax1)
     ax1.spines['top'].set_visible(False)
     ax1.spines['right'].set_visible(False)
 
-    ax1.set_ylabel('Accuracy (%)')
+    ax1.set_ylabel('Rate (%)')
 
-    ax1.set_title("Accuracy")
+    ax1.set_title("Hits and FAs")
 
     # Reaction time
     data = {'Testday': [settings.string_prepost[0]] * settings.num_trials + [
         settings.string_prepost[1]] * settings.num_trials,
-            'Data': np.concatenate((rt_nback[:, 0], rt_nback[:, 1]))
+            'RT': np.concatenate((rt_nback[:, 0], rt_nback[:, 1])),
+            'ACC': np.concatenate((acc_nback[:, 0], acc_nback[:, 1]))
             }
-    meanrt = np.nanmean(rt_nback, axis=0)
+
+    meanrt = np.array([np.mean(rt_nback[np.isin(acc_nback[:, 0], [1, 3]), 0]), np.mean(rt_nback[np.isin(acc_nback[:, 1], [1, 3]), 1])])
     df = pd.DataFrame(data)
 
     # Grouped violinplot
-
-    sns.violinplot(x="Testday", y="Data", data=df, palette=sns.color_palette(colors), style="ticks", ax=ax2)
+    # responses.hit = 1;responses.falsealarm = 2;responses.correctreject = 3; responses.miss = 4;
+    sns.violinplot(x="Testday", y="RT", hue="ACC", data=df, palette=sns.color_palette([settings.lightteal, settings.red, settings.medteal, settings.orange]), style="ticks", ax=ax2)
     ax2.spines['top'].set_visible(False)
     ax2.spines['right'].set_visible(False)
+
+    handles, labels = ax2.get_legend_handles_labels()
+    ax2.legend(handles, ['hit', 'falsealarm', 'correctreject', 'miss'])
 
     ax2.set_ylabel('Reaction Time (s)')
     ax2.set_title("Reaction time")
@@ -89,7 +99,7 @@ def analyse_nbacktask(settings, sub_val):
 
     # save results
     np.savez(bids.direct_results / Path(bids.substring + "Nback_results"),
-             meanacc=meanacc, meanrt=meanrt, acc_nback=acc_nback, rt_nback=rt_nback)
+             hits=HIT, falsealarms=FA, meanrt=meanrt, acc_nback=acc_nback, rt_nback=rt_nback)
 
 
 def collate_nbacktask(settings):
@@ -201,20 +211,30 @@ def collate_nbacktask(settings):
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
     sns.set(style="ticks")
-    colors = ["#112F41", "#4CB99F"]
+    colors = [settings.lightteal, settings.medteal]
 
     # Accuracy Grouped violinplot
-    sns.violinplot(x="Attention Trained", y="Accuracy (%)", hue="Testday", data=df_acc_effects,
-                   palette=sns.color_palette(colors), style="ticks", ax=ax1, split=True, inner="stick")
+
+    sns.swarmplot(x="Attention Trained", y="Accuracy (%)", hue="Testday", dodge=True, data=df_acc, ax=ax1, color="0", alpha=0.3)
+    sns.violinplot(x="Attention Trained", y="Accuracy (%)", hue="Testday", data=df_acc,
+                   palette=sns.color_palette(colors), style="ticks", ax=ax1, split=False)
+
+    handles, labels = ax1.get_legend_handles_labels()
+    ax1.legend(handles[:2], labels[:2])
+
     ax1.spines['top'].set_visible(False)
     ax1.spines['right'].set_visible(False)
     # ax1.set_ylim(0, 100)
     ax1.set_title("Accuracy")
 
     # Reaction time Grouped violinplot
-    colors = ["#F2B035", "#EC553A"]
-    sns.violinplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", data=df_acc_effects,
-                   palette=sns.color_palette(colors), style="ticks", ax=ax2, split=True, inner="stick")
+    colors = [settings.lightteal, settings.medteal]
+    sns.swarmplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", dodge=True, data=df_acc, ax=ax2, color="0", alpha=0.3)
+    sns.violinplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", data=df_acc,
+                   palette=sns.color_palette(colors), style="ticks", ax=ax2, split=False)
+    handles, labels = ax2.get_legend_handles_labels()
+    ax2.legend(handles[:2], labels[:2])
+
     ax2.spines['top'].set_visible(False)
     ax2.spines['right'].set_visible(False)
 

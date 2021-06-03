@@ -554,8 +554,7 @@ def collate_behaviour_prepost(settings):
 
     accdat_targ_all.loc[:, "Sensitivity"] = hitrate_zscore - falsealarmrate_zscore
     accdat_targ_all.loc[:, "Criterion"] = 0.5 * (hitrate_zscore + falsealarmrate_zscore)
-    accdat_targ_all.loc[:, "LikelihoodRatio"] = accdat_targ_all.loc[:, "Sensitivity"] * accdat_targ_all.loc[:,
-                                                                                        "Criterion"]
+    accdat_targ_all.loc[:, "LikelihoodRatio"] = accdat_targ_all.loc[:, "Sensitivity"] * accdat_targ_all.loc[:, "Criterion"]
 
     # plot results - sensitivity
     plots = ["correct", "miss", "correctreject", "falsealarm"]
@@ -678,6 +677,9 @@ def plotgroupedresult_complexNF(df_grouped, measurestring, titlestringmod, bids,
     sns.swarmplot(x="AttentionTrained", y=measurestring, hue="Testday", dodge = True, data=df_grouped, color="0", alpha=0.3)
     sns.violinplot(x="AttentionTrained", y=measurestring, hue="Testday", data=df_grouped, palette=sns.color_palette(colors), style="ticks", ax=ax1,
                    inner="box", alpha=0.6)
+
+    handles, labels = ax1.get_legend_handles_labels()
+    ax1.legend(handles[:2], labels[:2])
 
     ax1.spines['top'].set_visible(False)
     ax1.spines['right'].set_visible(False)

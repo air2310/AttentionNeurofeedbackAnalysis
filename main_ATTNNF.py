@@ -12,9 +12,11 @@ import CorrelationAnalyses as analyse_corr
 import matplotlib.pyplot as plt
 
 #### New Analyses
-# TODO: fix up behave exclusion criteria
+
 # TODO: plotting of effects for SSVEPs
 # TODO: Statistical tests for wavelets
+# TODO: Get stats for N-back task
+# TODO: Get stats for Vissearch task
 
 # TODO: exclude chance level vis search Ps
 # TODO: look at differences between classifiable and unclassifiable participants.
@@ -25,7 +27,7 @@ import matplotlib.pyplot as plt
 
 
 # setup generic settings
-attntrained = 0  # 0 = Space, 1 = Feature, 2 = Sham
+attntrained = 2  # 0 = Space, 1 = Feature, 2 = Sham
 settings = helper.SetupMetaData(attntrained)
 print("Analysing Data for condition train: " + settings.string_attntrained[settings.attntrained])
 
@@ -49,8 +51,8 @@ analyse_EEG_duringNF = False  # analyse EEG during Neurofeedback
 # analyse_visualsearchtask = True # Analyse Visual Search Task
 analyse_visualsearchtask = False  # Analyse Visual Search Task
 
-# analyse_nbacktask = True # Analyse N-back Task
-analyse_nbacktask = False  # Analyse N-back Task
+analyse_nbacktask = True # Analyse N-back Task
+# analyse_nbacktask = False  # Analyse N-back Task
 
 # analyse_Neurofeedback = True # Analyse Neurofeedback and sustained attention
 analyse_Neurofeedback = False  # Analyse Neurofeedback and sustained attention
@@ -76,8 +78,8 @@ collateEEG_duringNF = False  # Collate EEG during Neurofeedback
 # collate_visualsearchtask = True # Collate Visual Search results
 collate_visualsearchtask = False  # Collate Visual Search results
 #
-collate_nbacktask = True  # Analyse N-back Task
-# collate_nbacktask = False  # Analyse N-back Task
+# collate_nbacktask = True  # Analyse N-back Task
+collate_nbacktask = False  # Analyse N-back Task
 
 
 ######## Decide which group comparison analyses to do ########
