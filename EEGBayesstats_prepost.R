@@ -14,8 +14,8 @@ library(tidyverse)
 
 # run options???
 
-options.traintype =3# Feature or Space or SHAM
-options.singletrial =2# ERP, single trial
+options.traintype = 3# Feature or Space or SHAM
+options.singletrial = 2# ERP, single trial
 
 # task options
 options.task = 1 # 1 = Motion Detection,
@@ -37,7 +37,7 @@ lightteal = rgb(78 / 255, 185 / 255, 159 / 255)
 strings.day = c("day-1", "day-4")
 strings.task = c("AttnNFMotion",  "AttnNFVisualSearch");
 strings.TestTrain = c("Test", "Train");
-strings.traintype = c("Feature", "Space",)
+strings.traintype = c("Feature", "Space","Sham")
 strings.singletrial = c("", "_epochs")
 
 # Directories -------------------------------------------------------------
@@ -50,7 +50,7 @@ direct.resultsGroup = paste(direct.resultsRoot, "Train",strings.traintype[option
 
 # set filenames
 
-filename.bids.results = paste( "group_ssvep_selectivity_prepost", strings.singletrial[options.singletrial], ".npy", sep = "") # day 1-space, day 1 - feature, day 4 - space, day 4 - feature
+filename.bids.results = paste( "group_ssvep_selectivity_prepost", strings.singletrial[options.singletrial], "_motcoher.npy", sep = "") # day 1-space, day 1 - feature, day 4 - space, day 4 - feature
 results <- npyLoad( paste( direct.resultsGroup, "/",  filename.bids.results, sep = ""))
 
 #results = results[,sample(0:23,23, replace = FALSE)]

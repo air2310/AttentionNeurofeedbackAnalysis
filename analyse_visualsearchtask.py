@@ -48,6 +48,10 @@ def analyse_visualsearchtask(settings, sub_val):
             tmp[outliers] = np.nan
             acc_vissearch[:, setcount, day_count] = tmp
 
+        if np.nanmean(acc_vissearch[:, :, day_count] ) < 0.4:
+            acc_vissearch[:, :, day_count] = np.abs(acc_vissearch[:, :, day_count] - 1)
+            rt_vissearch[:, :, day_count] = np.nan
+
     # plot accuracy results
     meanacc = np.nanmean(acc_vissearch, axis=0) * 100
 
@@ -73,48 +77,48 @@ def analyse_visualsearchtask(settings, sub_val):
 
     # plot reaction time results
     meanrt = np.nanmean(rt_vissearch, axis=0)
+    if ~np.any(np.isnan(meanrt)):
+        fig, ax = plt.subplots(figsize=(12, 5))
 
-    fig, ax = plt.subplots(figsize=(12, 5))
+        x = np.arange(len(labels))
+        colors = [settings.lightteal, settings.medteal, settings.darkteal]
 
-    x = np.arange(len(labels))
-    colors = [settings.lightteal, settings.medteal, settings.darkteal]
+        for testday in np.arange(2):
+            for setcount, set_val in enumerate(settings.string_setsize):
+                data = rt_vissearch[:, setcount, testday]
+                data = data[~np.isnan(data)]
+                violin = ax.violinplot(dataset=data, positions=[setcount + 4 * testday], showmeans=False, showmedians=False,
+                                       showextrema=False)
 
-    for testday in np.arange(2):
-        for setcount, set_val in enumerate(settings.string_setsize):
-            data = rt_vissearch[:, setcount, testday]
-            data = data[~np.isnan(data)]
-            violin = ax.violinplot(dataset=data, positions=[setcount + 4 * testday], showmeans=False, showmedians=False,
-                                   showextrema=False)
+                for pc in violin['bodies']:
+                    pc.set_facecolor(colors[setcount])
+                    pc.set_edgecolor('black')
+                    pc.set_alpha(1)
 
-            for pc in violin['bodies']:
-                pc.set_facecolor(colors[setcount])
-                pc.set_edgecolor('black')
-                pc.set_alpha(1)
+                quartile1, medians, quartile3 = np.percentile(data, [25, 50, 75])
+                whiskersMin, whiskersMax = np.min(data), np.max(data)
 
-            quartile1, medians, quartile3 = np.percentile(data, [25, 50, 75])
-            whiskersMin, whiskersMax = np.min(data), np.max(data)
+                ax.scatter([setcount + 4 * testday], medians, marker='o', color='white', s=30, zorder=3)
+                ax.vlines([setcount + 4 * testday], quartile1, quartile3, color='k', linestyle='-', lw=5)
+                ax.vlines([setcount + 4 * testday], whiskersMin, whiskersMax, color='k', linestyle='-', lw=1)
 
-            ax.scatter([setcount + 4 * testday], medians, marker='o', color='white', s=30, zorder=3)
-            ax.vlines([setcount + 4 * testday], quartile1, quartile3, color='k', linestyle='-', lw=5)
-            ax.vlines([setcount + 4 * testday], whiskersMin, whiskersMax, color='k', linestyle='-', lw=1)
+        labels = ["", settings.string_prepost[0] + ' ' + settings.string_setsize[0],
+                  settings.string_prepost[0] + ' ' + settings.string_setsize[1],
+                  settings.string_prepost[0] + ' ' + settings.string_setsize[2], "",
+                  settings.string_prepost[1] + ' ' + settings.string_setsize[0],
+                  settings.string_prepost[1] + ' ' + settings.string_setsize[1],
+                  settings.string_prepost[1] + ' ' + settings.string_setsize[2]
+                  ]
+        ax.set_xticklabels(labels)
 
-    labels = ["", settings.string_prepost[0] + ' ' + settings.string_setsize[0],
-              settings.string_prepost[0] + ' ' + settings.string_setsize[1],
-              settings.string_prepost[0] + ' ' + settings.string_setsize[2], "",
-              settings.string_prepost[1] + ' ' + settings.string_setsize[0],
-              settings.string_prepost[1] + ' ' + settings.string_setsize[1],
-              settings.string_prepost[1] + ' ' + settings.string_setsize[2]
-              ]
-    ax.set_xticklabels(labels)
+        plt.ylabel('Reaction Time (s)')
+        # plt.legend()
+        ax.set_frame_on(False)
 
-    plt.ylabel('Reaction Time (s)')
-    # plt.legend()
-    ax.set_frame_on(False)
-
-    titlestring = bids.substring + ' Visual Search Reaction Time train ' + settings.string_attntrained[
-        settings.attntrained]
-    plt.title(titlestring)
-    plt.savefig(bids.direct_results / Path(titlestring + '.png'), format='png')
+        titlestring = bids.substring + ' Visual Search Reaction Time train ' + settings.string_attntrained[
+            settings.attntrained]
+        plt.title(titlestring)
+        plt.savefig(bids.direct_results / Path(titlestring + '.png'), format='png')
 
     # save results
     np.savez(bids.direct_results / Path(bids.substring + "visual_search_results"),
@@ -151,14 +155,21 @@ def collate_visualsearchtask(settings):
         settings = settings.get_settings_visualsearchtask()
 
         # correct for lost data
-        if (attntrained == 1):  # correct for lost data for sub 89 (feature train)
+        if attntrained == 2:  # correct for lost data for sub 90 (space train)
             settings.subsIDXcollate = np.delete(settings.subsIDXcollate,
-                                                np.isin(settings.subsIDXcollate, np.array([89])))
-            settings.num_subs = settings.num_subs - 1
-        if (attntrained == 0):  # correct for lost data for sub 90 (space train)
+                                                np.isin(settings.subsIDXcollate, np.array([27, 14])))
+            settings.num_subs = settings.num_subs - 2
+
+        if attntrained == 1:  # correct for lost data for sub 89 (feature train)
             settings.subsIDXcollate = np.delete(settings.subsIDXcollate,
-                                                np.isin(settings.subsIDXcollate, np.array([90])))
-            settings.num_subs = settings.num_subs - 1
+                                                np.isin(settings.subsIDXcollate, np.array([89, 80, 110, 116, 23, 73])))
+            settings.num_subs = settings.num_subs - 6
+
+        if attntrained == 0:  # correct for lost data for sub 90 (space train)
+            settings.subsIDXcollate = np.delete(settings.subsIDXcollate,
+                                                np.isin(settings.subsIDXcollate, np.array([90, 84, 107, 104, 118])))
+            settings.num_subs = settings.num_subs - 5
+
 
         num_subs[attntrained] = settings.num_subs
         mean_acc_all = np.empty((settings.num_setsizes, settings.num_days, settings.num_subs))
@@ -178,7 +189,7 @@ def collate_visualsearchtask(settings):
             mean_acc_all[:, :, sub_count] = results['meanacc']
             mean_rt_all[:, :, sub_count] = results['meanrt']
 
-            substring_short = np.concatenate((substring_short, [bids.substring]))
+            substring_short = np.concatenate((substring_short, ['sub' + str(sub_count + attntrained * 37)]))
 
         # store results for attention condition
         tmp = np.concatenate((substring_short, substring_short))
@@ -230,8 +241,9 @@ def collate_visualsearchtask(settings):
 
     # create the data frames for accuracy and reaction time data
     data = {'SubID': substring, 'Testday': daystrings, 'Attention Trained': attnstrings, 'Set Size': setsizestrings,
-            'Accuracy (%)': accuracy_compare}
+            'Accuracy (%)': accuracy_compare, 'Reaction Time (s)': rt_compare}
     df_acc = pd.DataFrame(data)
+    df_acc.to_csv(bids.direct_results_group_compare / Path("VISSEARCH_behaveresults_ALL.csv"), index=False)
 
     data = {'SubID': substring, 'Testday': daystrings, 'Attention Trained': attnstrings, 'Set Size': setsizestrings,
             'Reaction Time (s)': rt_compare}
@@ -248,59 +260,102 @@ def collate_visualsearchtask(settings):
     sns.set(style="ticks")
 
     # Reaction time Grouped violinplot
-    colors = ["#F2B035", "#EC553A"]
+    colors = [settings.lightteal, settings.medteal]
 
-    for attn, attnstring in enumerate(settings.string_attntrained):
-        sns.violinplot(x="Set Size", y="Reaction Time (s)", hue="Testday",
-                       data=df_rt[df_rt["Attention Trained"].isin([attnstring])],
-                       palette=sns.color_palette(colors), style="ticks", ax=ax1[attn], split=True, inner="stick")
+    for size, setsize in enumerate(settings.string_setsize):
+        sns.swarmplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", dodge=True, data=df_rt[df_rt["Set Size"].isin([setsize])], color="0", alpha=0.3, ax=ax1[size])
+        sns.violinplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", data=df_rt[df_rt["Set Size"].isin([setsize])], palette=sns.color_palette(colors), style="ticks", ax=ax1[size], split=False)
 
-        ax1[attn].spines['top'].set_visible(False)
-        ax1[attn].spines['right'].set_visible(False)
+        handles, labels = ax1[size].get_legend_handles_labels()
+        ax1[size].legend(handles[:2], labels[:2])
 
-        ax1[attn].set_title(attnstring)
-        ax1[attn].set_ylim([0.4, 2.0])
+        ax1[size].spines['top'].set_visible(False)
+        ax1[size].spines['right'].set_visible(False)
+
+        ax1[size].set_title(setsize)
+        ax1[size].set_ylim([0.4, 2.0])
     titlestring = 'Visual Search Results Compare Training'
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
+
+
+
+
     # Plot average over set sizes
     # create the data frames for accuracy and reaction time data
     data = {'SubID': meansubstring, 'Testday': meandaystrings, 'Attention Trained': meanattnstrings,
-            'Accuracy (%)': meanaccuracy_compare}
+            'Accuracy (%)': meanaccuracy_compare, 'Reaction Time (s)': meanrt_compare}
     df_acc_SSmean = pd.DataFrame(data)
 
-    data = {'SubID': meansubstring, 'Testday': meandaystrings, 'Attention Trained': meanattnstrings,
-            'Reaction Time (s)': meanrt_compare}
-    df_rt_SSmean = pd.DataFrame(data)
+    # df_acc_SSmean.loc[df_acc_SSmean['Accuracy (%)']<60,:]
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+    ## Plot Accuracy to check that everythings ok
+    fig, (ax1) = plt.subplots(1, 1, figsize=(6, 6))
     sns.set(style="ticks")
-    colors = ["#112F41", "#4CB99F"]
-
-    # Accuracy Grouped violinplot
-
+    colors = [settings.lightteal, settings.medteal]
+    sns.swarmplot(x="Attention Trained", y="Accuracy (%)", hue="Testday", dodge=True, data=df_acc_SSmean, color="0", alpha=0.3, ax=ax1)
     sns.violinplot(x="Attention Trained", y="Accuracy (%)", hue="Testday", data=df_acc_SSmean,
-                   palette=sns.color_palette(colors), style="ticks", ax=ax1, split=True, inner="stick")
+                   palette=sns.color_palette(colors), style="ticks", ax=ax1, split=False)
+    handles, labels = ax1.get_legend_handles_labels()
+    ax1.legend(handles[:2], labels[:2])
+
     ax1.spines['top'].set_visible(False)
     ax1.spines['right'].set_visible(False)
-    ax1.set_ylim(0, 100)
-    ax1.set_title("Accuracy")
 
-    # Reaction time Grouped violinplot
-    colors = ["#F2B035", "#EC553A"]
-    df_rt_SSmean = df_rt_SSmean[df_rt_SSmean["Reaction Time (s)"] < 3]
-    sns.violinplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", data=df_rt_SSmean,
-                   palette=sns.color_palette(colors), style="ticks", ax=ax2, split=True, inner="stick")
-    ax2.spines['top'].set_visible(False)
-    ax2.spines['right'].set_visible(False)
-
-    ax2.set_title("Reaction time")
-    # ax2.set_ylim([0.4, 2.0])
-    titlestring = 'Visual Search Results Compare Training Set Size Ave'
+    titlestring = 'Visual Search Accuracy by group'
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
-    # save out
-    df_rt_SSmean.to_pickle(bids.direct_results_group / Path("group_visualsearch.pkl"))
+    ## Plot Reaction time to check that everythings ok
+    fig, (ax1) = plt.subplots(1, 1, figsize=(6, 6))
+    sns.set(style="ticks")
+    colors = [settings.lightteal, settings.medteal]
+    sns.swarmplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", dodge=True, data=df_acc_SSmean, color="0", alpha=0.3, ax=ax1)
+    sns.violinplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", data=df_acc_SSmean,
+                   palette=sns.color_palette(colors), style="ticks", ax=ax1, split=False)
+    handles, labels = ax1.get_legend_handles_labels()
+    ax1.legend(handles[:2], labels[:2])
+
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+
+    titlestring = 'Visual Search Reaction Time by group'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+
+    # Calculate training effects
+    idx_d1 = df_acc_SSmean["Testday"] == "pre-training"
+    idx_d4 = df_acc_SSmean["Testday"] == "post-training"
+
+    tmpd4 = df_acc_SSmean[idx_d4].reset_index()
+    tmpd1 = df_acc_SSmean[idx_d1].reset_index()
+
+    df_behtraineffects = tmpd4[["SubID", "Attention Trained"]].copy()
+
+    df_behtraineffects["∆Accuracy (%)"] = tmpd4['Accuracy (%)'] - tmpd1['Accuracy (%)']
+    df_behtraineffects["∆Reaction Time (s)"] = tmpd4['Reaction Time (s)'] - tmpd1['Reaction Time (s)']
+
+    # Plot accuracy and reaction time training effects
+    colors = [settings.yellow, settings.orange, settings.red]
+    fig, ax = plt.subplots(2, 1, figsize=(6, 15))
+
+    measurestrings = ["∆Accuracy (%)", "∆Reaction Time (s)"]
+    for i in np.arange(2):
+        sns.swarmplot(x="Attention Trained", y=measurestrings[i], data=df_behtraineffects, color="0", alpha=0.3, ax=ax[i])
+        sns.violinplot(x="Attention Trained", y=measurestrings[i], data=df_behtraineffects, palette=sns.color_palette(colors), style="ticks",
+                       ax=ax[i], inner="box", alpha=0.6)
+
+        ax[i].spines['top'].set_visible(False)
+        ax[i].spines['right'].set_visible(False)
+
+        ax[i].set_title(measurestrings[i])
+
+    titlestring = "Visual Search task training effects"
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+# save out
+    # df_rt_SSmean.to_pickle(bids.direct_results_group / Path("group_visualsearch.pkl"))
 

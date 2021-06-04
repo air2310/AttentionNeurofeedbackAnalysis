@@ -655,6 +655,9 @@ def plotgroupedresult_complex(df_grouped, measurestring, titlestringmod, bids, c
     sns.violinplot(x="AttentionTrained", y=measurestring, hue="Testday", data=df_grouped, palette=sns.color_palette(colors), style="ticks", ax=ax1,
                    inner="box", alpha=0.6)
 
+    handles, labels = ax1.get_legend_handles_labels()
+    ax1.legend(handles[:2], labels[:2])
+
     ax1.spines['top'].set_visible(False)
     ax1.spines['right'].set_visible(False)
     ax1.set_ylim(ylims)
@@ -701,6 +704,9 @@ def plotbehavetrainingeffects(df_behtraineffects, measurestring, titlestring, bi
         sns.violinplot(x="AttentionTrained", y=measurestring, data=datplot, palette=sns.color_palette(colors), style="ticks",
                        ax=ax[i], inner="box", alpha=0.6)
 
+        handles, labels = ax[i].get_legend_handles_labels()
+        ax[i].legend(handles[:2], labels[:2])
+
         ax[i].spines['top'].set_visible(False)
         ax[i].spines['right'].set_visible(False)
 
@@ -726,8 +732,7 @@ def collate_behaviour_prepost_compare(settings):
         bids = helper.BIDS_FileNaming(subject_idx=0, settings=settings, day_val=0)
         print(bids.direct_results_group)
         # accdat_all_avg.to_pickle(bids.direct_results_group / Path("motiondiscrim_behaveresults_" + settings.string_testtrain[0] + ".pkl"))
-        df_behaveresults_tmp = pd.read_pickle(
-            bids.direct_results_group / Path("motiondiscrim_behaveresults_" + settings.string_testtrain[0] + ".pkl"))
+        df_behaveresults_tmp = pd.read_pickle(bids.direct_results_group / Path("motiondiscrim_behaveresults_" + settings.string_testtrain[0] + ".pkl"))
         df_behaveresults_tmp['AttentionTrained'] = attntrained
 
         if attntrainedcount == 0:
@@ -747,6 +752,7 @@ def collate_behaviour_prepost_compare(settings):
     tmp = df_behaveresults[tmp1].groupby('subID').mean()['correct']
     exclude2 = df_behaveresults.groupby('subID').mean()[tmp < cutoff]
 
+    toexclude = np.hstack([exclude.index.values, exclude2.index.values])
     df_behaveresults_cleanA = df_behaveresults[~df_behaveresults['subID'].isin(exclude.index) & ~df_behaveresults['subID'].isin(exclude2.index) & df_behaveresults['Attention Type'].isin(['Space'])]
 
     tmp1 = df_behaveresults['Testday'].isin(['Day 1']) & df_behaveresults['Attention Type'].isin(['Feature'])
@@ -757,9 +763,16 @@ def collate_behaviour_prepost_compare(settings):
     tmp = df_behaveresults[tmp1].groupby('subID').mean()['correct']
     exclude2 = df_behaveresults.groupby('subID').mean()[tmp < cutoff]
 
+    toexclude = np.unique(np.hstack([toexclude, exclude.index.values, exclude2.index.values]))
     df_behaveresults_cleanB = df_behaveresults[~df_behaveresults['subID'].isin(exclude.index) & ~df_behaveresults['subID'].isin(exclude2.index) & df_behaveresults['Attention Type'].isin(['Feature'])]
 
     df_behaveresults_clean = pd.concat([df_behaveresults_cleanA, df_behaveresults_cleanB])
+
+    # list excluded participants
+    tmp = df_behaveresults.loc[df_behaveresults.subID.isin(toexclude), ['subIDval', 'AttentionTrained']].copy()
+    tmp = tmp.reset_index().copy()
+    excludestrings = list()
+    for i in tmp.index: excludestrings.append(str(tmp.loc[i,'subIDval']) + tmp.loc[i,'AttentionTrained'])
 
     # tmp1 = df_behaveresults['Attention Type'].isin(['Space'])
     # tmp = df_behaveresults[tmp1].groupby('subID').mean()['correct']

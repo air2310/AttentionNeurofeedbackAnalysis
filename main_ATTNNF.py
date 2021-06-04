@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 
 # TODO: plotting of effects for SSVEPs
 # TODO: Statistical tests for wavelets
-# TODO: Get stats for N-back task
 # TODO: Get stats for Vissearch task
 
 # TODO: exclude chance level vis search Ps
@@ -27,7 +26,7 @@ import matplotlib.pyplot as plt
 
 
 # setup generic settings
-attntrained = 2  # 0 = Space, 1 = Feature, 2 = Sham
+attntrained = 1  # 0 = Space, 1 = Feature, 2 = Sham
 settings = helper.SetupMetaData(attntrained)
 print("Analysing Data for condition train: " + settings.string_attntrained[settings.attntrained])
 
@@ -51,8 +50,8 @@ analyse_EEG_duringNF = False  # analyse EEG during Neurofeedback
 # analyse_visualsearchtask = True # Analyse Visual Search Task
 analyse_visualsearchtask = False  # Analyse Visual Search Task
 
-analyse_nbacktask = True # Analyse N-back Task
-# analyse_nbacktask = False  # Analyse N-back Task
+# analyse_nbacktask = True # Analyse N-back Task
+analyse_nbacktask = False  # Analyse N-back Task
 
 # analyse_Neurofeedback = True # Analyse Neurofeedback and sustained attention
 analyse_Neurofeedback = False  # Analyse Neurofeedback and sustained attention
@@ -66,8 +65,8 @@ collate_behaviour_prepost = False  # Collate Behaviour Pre Vs. Post Training
 # collate_behaviour_duringNF = True # Collate Behaviour during Training
 collate_behaviour_duringNF = False  # Collate Behaviour during Training
 #
-# collateEEGprepost = True # Collate EEG Pre Vs. Post Training across subjects
-collateEEGprepost = False  # Collate EEG Pre Vs. Post Training across subjects
+collateEEGprepost = True # Collate EEG Pre Vs. Post Training across subjects
+# collateEEGprepost = False  # Collate EEG Pre Vs. Post Training across subjects
 #
 # collateEEGprepost_motioncoherenceepochs = True # Collate EEG Pre Vs. Post Training across subjects
 collateEEGprepost_motioncoherenceepochs = False  # Collate EEG Pre Vs. Post Training across subjects
@@ -84,8 +83,8 @@ collate_nbacktask = False  # Analyse N-back Task
 
 ######## Decide which group comparison analyses to do ########
 
-# classification_acc_correlations = True # Assess whether classification accuracy correlated with training effects
-classification_acc_correlations = False  # Assess whether classification accuracy correlated with training effects
+classification_acc_correlations = True # Assess whether classification accuracy correlated with training effects
+# classification_acc_correlations = False  # Assess whether classification accuracy correlated with training effects
 
 # collate_Neurofeedback = True # collate Neurofeedback and sustained attention
 collate_Neurofeedback = False  # collate Neurofeedback and sustained attention

@@ -160,7 +160,7 @@ def collate_nbacktask(settings):
             mean_fas_all[:, sub_count] = results['falsealarms'] *100
             mean_rt_all[:, sub_count] = results['meanrt']
 
-            substring_short = np.concatenate((substring_short, [bids.substring]))
+            substring_short = np.concatenate((substring_short, ['sub' + str(sub_count + attntrained*37)]))
 
         # store results for attention condition
         tmp = np.concatenate((substring_short, substring_short))
@@ -216,39 +216,19 @@ def collate_nbacktask(settings):
     df_acc.loc[:, "Criterion"] = 0.5 * (hitrate_zscore + falsealarmrate_zscore)
     df_acc.loc[:, "LikelihoodRatio"] =df_acc.loc[:, "Sensitivity"] * df_acc.loc[:, "Criterion"]
 
-    # Get effects
-    means=df_acc.groupby(['Attention Trained', 'SubID' ]).mean()
-
-    df_acc_effects = df_acc.copy()
-
-    for idx, str in enumerate(settings.string_attntrained):
-        for idx2, testday in enumerate(settings.string_prepost):
-            for SS in range(len(means['Accuracy (%)'][str])):
-                # get the trials we want to affect
-                trialsuse = df_acc['Attention Trained'].isin([str]) & df_acc['Testday'].isin([testday])
-                tmp = df_acc[trialsuse]['SubID'].reset_index()['SubID'][SS];
-                trialsuse2 = trialsuse & df_acc['SubID'].isin([tmp])
-
-                # get correct mean
-                tmpM = means['Accuracy (%)'][str].index == tmp
-
-                # extract data
-                dat = df_acc[trialsuse2]['Accuracy (%)'].reset_index()
-                df_acc_effects.loc[trialsuse2, 'Accuracy (%)'] = dat['Accuracy (%)'][0] - means['Accuracy (%)'][str][tmpM][0]
-
-                dat = df_acc[trialsuse2]['Reaction Time (s)'].reset_index()
-                df_acc_effects.loc[trialsuse2, 'Reaction Time (s)'] = dat['Reaction Time (s)'][0] - means['Reaction Time (s)'][str][tmpM][0]
+    # clear up really bad performers
+    reject = df_acc.loc[df_acc["Sensitivity"]<0,:]
+    df_acc = df_acc.loc[~df_acc["SubID"].isin(reject["SubID"]),:]
 
     # plot results
-
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 15))
     sns.set(style="ticks")
     colors = [settings.lightteal, settings.medteal]
 
     # Accuracy Grouped violinplot
 
-    sns.swarmplot(x="Attention Trained", y="Accuracy (%)", hue="Testday", dodge=True, data=df_acc, ax=ax1, color="0", alpha=0.3)
-    sns.violinplot(x="Attention Trained", y="Accuracy (%)", hue="Testday", data=df_acc,
+    sns.swarmplot(x="Attention Trained", y="Sensitivity", hue="Testday", dodge=True, data=df_acc, ax=ax1, color="0", alpha=0.3)
+    sns.violinplot(x="Attention Trained", y="Sensitivity", hue="Testday", data=df_acc,
                    palette=sns.color_palette(colors), style="ticks", ax=ax1, split=False)
 
     handles, labels = ax1.get_legend_handles_labels()
@@ -257,7 +237,7 @@ def collate_nbacktask(settings):
     ax1.spines['top'].set_visible(False)
     ax1.spines['right'].set_visible(False)
     # ax1.set_ylim(0, 100)
-    ax1.set_title("Accuracy")
+    ax1.set_title("Sensitivity")
 
     # Reaction time Grouped violinplot
     colors = [settings.lightteal, settings.medteal]
@@ -272,9 +252,44 @@ def collate_nbacktask(settings):
 
     ax2.set_title("Reaction time")
 
-    titlestring = 'Nback Results Compare Training sub mean subtracted'
+    titlestring = 'Nback Results Compare Training'
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
-    # save out
+    # Save results for processing in R
+    df_acc.to_csv(bids.direct_results_group_compare / Path("NBACK_behaveresults_ALL.csv"), index=False)
     df_acc.to_pickle(bids.direct_results_group / Path("group_Nback.pkl"))
+
+    # N-back training effects
+    idx_d1 = df_acc["Testday"] == "pre-training"
+    idx_d4 = df_acc["Testday"]  == "post-training"
+
+    tmpd4 = df_acc[idx_d4].reset_index()
+    tmpd1 = df_acc[idx_d1].reset_index()
+
+    df_behtraineffects = tmpd4[["SubID", "Attention Trained"]].copy()
+
+    df_behtraineffects["∆Sensitivity"] = tmpd4['Sensitivity'] - tmpd1['Sensitivity']
+    df_behtraineffects["∆Criterion"] = tmpd4['Criterion'] - tmpd1['Criterion']
+    df_behtraineffects["∆HITS"] = tmpd4['HITS (%)'] - tmpd1['HITS (%)']
+    df_behtraineffects["∆Reaction Time (s)"] = tmpd4['Reaction Time (s)'] - tmpd1['Reaction Time (s)']
+
+    # Plot sensitivity training effect
+    colors = [settings.yellow, settings.orange, settings.red]
+    fig, ax = plt.subplots(2, 1, figsize=(6, 15))
+
+    measurestrings = ["∆Sensitivity", "∆Reaction Time (s)"]
+    for i in np.arange(2):
+        sns.swarmplot(x="Attention Trained", y=measurestrings[i], data=df_behtraineffects, color="0", alpha=0.3, ax=ax[i])
+        sns.violinplot(x="Attention Trained", y=measurestrings[i], data=df_behtraineffects, palette=sns.color_palette(colors), style="ticks",
+                       ax=ax[i], inner="box", alpha=0.6)
+
+        ax[i].spines['top'].set_visible(False)
+        ax[i].spines['right'].set_visible(False)
+
+        ax[i].set_title(measurestrings[i])
+
+    titlestring = "Nback task training effects"
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+

@@ -6,7 +6,267 @@ import h5py
 import numpy as np
 from pathlib import Path
 
+def load_classifierdata(settings):
+    ##### Load Classification Accuracy Data ####
+    attntrained_vec = []
+    traingroup_vec = []
+    sub_vec = []
+    classifiertype_vec = []
+    classifieracc_vec = []
+
+    # Cycle through trained groups
+    for attntrainedcount, attntrained in enumerate(settings.string_attntrained):
+        # setup generic settings
+        settings = helper.SetupMetaData(attntrainedcount)
+        settings = settings.get_settings_behave_prepost()  # get task specific settings
+
+        if attntrained == 'Sham':  # get data for the feedback that was given
+            # decide which file to use
+            possiblefiles = []
+            for filesfound in settings.direct_dataroot.glob("matched_sample.mat"):
+                possiblefiles.append(filesfound)
+            file2use = possiblefiles[0]
+
+            # load data
+            F = h5py.File(file2use, 'r')  # print(list(F.keys()))
+            matchedsample = np.array(F['matchedsample'])
+            matchedsample_traintype = abs(np.array(F['matchedsample_traintype']) - 2)
+
+        # Cycle through subjects
+        for sub_count, sub_val in enumerate(settings.subsIDXcollate):
+            # get file names
+            if attntrained == 'Sham':
+                sub_val_use = int(matchedsample[sub_val - 1][0])
+                settings = helper.SetupMetaData(int(matchedsample_traintype[sub_val - 1][0]))
+                settings = settings.get_settings_behave_prepost()
+            else:
+                sub_val_use = sub_val
+            bids = helper.BIDS_FileNaming(sub_val_use, settings, day_val=1)
+
+            # Get Data for Space and Feature Classifier
+            for attn_count, attn_val in enumerate(['Space', 'Feature']):
+                # decide which file to use
+                possiblefiles = []
+                for filesfound in bids.direct_data_eeg.glob(
+                        "Classifier_" + attn_val + '_' + bids.filename_eeg + ".mat"):
+                    possiblefiles.append(filesfound)
+                file2use = possiblefiles[0]
+
+                # load data
+                F = h5py.File(file2use, 'r')  # print(list(F.keys()))
+
+                # get Accuracy
+                tmp_acc = np.array(F['ACCURACY_ALL']) * 100
+
+                if attntrained == 'Sham':
+                    attntrained_vec.append(settings.string_attntrained[int(matchedsample_traintype[sub_val - 1][0])])
+                else:
+                    attntrained_vec.append(attntrained)
+                traingroup_vec.append(attntrained)
+                sub_vec.append(attntrained + str(sub_val))
+                classifiertype_vec.append(attn_val)
+                classifieracc_vec.append(np.nanmean(tmp_acc))
+
+    # Stack data into a dataframe
+    data = {'SubID': sub_vec, 'TrainingGroup': traingroup_vec, 'AttentionTrained': attntrained_vec, 'ClassifierType': classifiertype_vec,
+            'ClassifierAccuracy': classifieracc_vec}
+    df_classifier = pd.DataFrame(data)
+
+    df_classifier_condensed = df_classifier.loc[df_classifier.AttentionTrained == df_classifier.ClassifierType, :].copy()
+    df_classifier_condensed = df_classifier_condensed.reset_index().drop(columns=['ClassifierType', 'index']).copy()
+
+    return df_classifier, df_classifier_condensed
+
+
+def load_SSVEPdata(settings):
+
+    # preallocate
+    select_pre_space = list()
+    select_pre_feature = list()
+    select_post_space = list()
+    select_post_feature = list()
+    select_train_space = list()
+    select_train_feature = list()
+    traingroup_vec = list()
+    sub_vec = list()
+
+    # cycle trough space and feature train groups
+    for attntrainedcount, attntrained in enumerate(settings.string_attntrained):
+        # setup generic settings
+        settings = helper.SetupMetaData(attntrainedcount)
+        settings = settings.get_settings_EEG_prepost()
+
+        # iterate through subjects for individual subject analyses
+        for sub_count, sub_val in enumerate(settings.subsIDXcollate):
+            # get directories and file names
+            bids = helper.BIDS_FileNaming(int(sub_val), settings, 1)
+            print(bids.substring)
+
+            # load results
+            results = np.load(bids.direct_results / Path(bids.substring + "EEG_pre_post_results.npz"), allow_pickle=True)
+            # saved vars: SSVEPs_prepost_channelmean, SSVEPs_prepost_channelmean_epochs, wavelets_prepost, timepoints_zp, erps_days_wave, fftdat, fftdat_epochs, freq)
+
+            # store results
+            # tmp = results['SSVEPs_prepost_channelmean_epochs']
+            tmp = results['SSVEPs_prepost_channelmean'] #settings.num_attd_unattd, settings.num_days, settings.num_attnstates
+            selectivity = tmp[0, :, :] - tmp[1, :, :]
+
+            select_pre_space.append(selectivity[0,0])
+            select_pre_feature.append(selectivity[0, 1])
+            select_post_space.append(selectivity[1, 0])
+            select_post_feature.append(selectivity[1, 1])
+            select_train_space.append(selectivity[1, 0] - selectivity[0, 0])
+            select_train_feature.append(selectivity[1, 1] - selectivity[0, 1])
+
+            traingroup_vec.append(attntrained)
+            sub_vec.append(attntrained + str(sub_val))
+
+    data = {'SubID': sub_vec, 'TrainingGroup': traingroup_vec, 'select_pre_space': select_pre_space,
+            'select_pre_feature': select_pre_feature, 'select_post_space': select_post_space, 'select_post_feature': select_post_feature,
+            'select_train_space': select_train_space, 'select_train_feature': select_train_feature}
+
+    df_selectivity = pd.DataFrame(data)
+
+    return df_selectivity
+
+
+def load_MotionDiscrimBehaveResults(settings):
+
+    # initialise
+    sensitivity_pre_spacecue = list()
+    sensitivity_post_spacecue = list()
+    sensitivity_train_spacecue = list()
+    sensitivity_pre_featcue = list()
+    sensitivity_post_featcue = list()
+    sensitivity_train_featcue = list()
+    sub_vec = list()
+    traingroup_vec = list()
+
+    # get task specific settings
+    settings = settings.get_settings_behave_prepost()
+
+    # cycle trough space and feature train groups
+    for attntrainedcount, attntrained in enumerate(settings.string_attntrained):  # cycle trough space, feature and sham train groups
+        # setup generic settings
+        settings = helper.SetupMetaData(attntrainedcount)
+        settings = settings.get_settings_behave_prepost()
+
+        # file names
+        bids = helper.BIDS_FileNaming(subject_idx=0, settings=settings, day_val=0)
+        df_behaveresults_tmp = pd.read_pickle(bids.direct_results_group / Path("motiondiscrim_behaveresults_" + settings.string_testtrain[0] + ".pkl"))
+
+        for sub_count, sub_val in enumerate(settings.subsIDXcollate):
+            # Get Data for this participant
+            datuse = df_behaveresults_tmp.loc[df_behaveresults_tmp.subIDval.isin([sub_val]), ].copy()
+
+            day1 = datuse['Testday'].isin(['Day 1'])
+            day4 = datuse['Testday'].isin(['Day 4'])
+            space = datuse['Attention Type'].isin(['Space'])
+            feat = datuse['Attention Type'].isin(['Feature'])
+
+            sensitivity_pre_spacecue.append(datuse.loc[day1 & space, 'Sensitivity'].tolist()[0])
+            sensitivity_post_spacecue.append(datuse.loc[day4 & space, 'Sensitivity'].tolist()[0])
+            sensitivity_train_spacecue.append(datuse.loc[day4 & space, 'Sensitivity'].tolist()[0] - datuse.loc[day1 & space, 'Sensitivity'].tolist()[0])
+
+            sensitivity_pre_featcue.append(datuse.loc[day1 & feat, 'Sensitivity'].tolist()[0])
+            sensitivity_post_featcue.append(datuse.loc[day4 & feat, 'Sensitivity'].tolist()[0])
+            sensitivity_train_featcue.append(datuse.loc[day4 & feat, 'Sensitivity'].tolist()[0] - datuse.loc[day1 & feat, 'Sensitivity'].tolist()[0])
+
+            traingroup_vec.append(attntrained)
+            sub_vec.append(attntrained + str(sub_val))
+
+    data = {'SubID': sub_vec, 'TrainingGroup': traingroup_vec,
+            'sensitivity_pre_spacecue': sensitivity_pre_spacecue, 'sensitivity_post_spacecue': sensitivity_post_spacecue, 'sensitivity_train_spacecue': sensitivity_train_spacecue,
+            'sensitivity_pre_featcue': sensitivity_pre_featcue, 'sensitivity_post_featcue': sensitivity_post_featcue, 'sensitivity_train_featcue': sensitivity_train_featcue}
+
+    df_sensitivity = pd.DataFrame(data)
+
+    return df_sensitivity, bids
+
+
+def plot_classificationacc(df_classifier_condensed, bids, settings):
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+    sns.set(style="ticks")
+    colors = [settings.yellow, settings.orange]
+
+    # Accuracy Grouped violinplot
+    sns.swarmplot(x="AttentionTrained", y="ClassifierAccuracy", data=df_classifier_condensed[df_classifier_condensed['TrainingGroup'] != "Sham"], color=".5")
+    sns.violinplot(x="AttentionTrained", y="ClassifierAccuracy", data=df_classifier_condensed[df_classifier_condensed['TrainingGroup'] != "Sham"], palette=sns.color_palette(colors), style="ticks", ax=ax)
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    # ax.set_ylim(0, 100)
+    ax.set_title("Accuracy")
+
+    titlestring = 'Classification Accuracy'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+
 def classification_acc_correlations(settings):
+    import scipy.stats as stats
+
+    # Get data
+    df_classifier, df_classifier_condensed = load_classifierdata(settings)
+    df_selectivity = load_SSVEPdata(settings)
+    df_sensitivity, bids = load_MotionDiscrimBehaveResults(settings)
+
+    # plot classifier accuracy by attention type
+    plot_classificationacc(df_classifier_condensed, bids, settings)
+
+    # Correlations!
+
+    # Sensitivity
+    datuse = pd.concat([df_classifier_condensed['TrainingGroup'], df_classifier_condensed['ClassifierAccuracy'],  df_sensitivity['sensitivity_train_spacecue'], df_sensitivity['sensitivity_train_featcue']], axis=1)
+    datuse = datuse.loc[datuse.TrainingGroup.isin(['Space']), ].copy()
+    corrs_space = stats.pearsonr(datuse['ClassifierAccuracy'], datuse['sensitivity_train_spacecue'])
+    corrs_feat = stats.pearsonr(datuse['ClassifierAccuracy'], datuse['sensitivity_train_featcue'])
+
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+    sns.set(style="ticks")
+    colors = [settings.yellow_, settings.lightteal_]
+    datuse = pd.concat([df_classifier_condensed['TrainingGroup'], df_classifier_condensed['ClassifierAccuracy'], df_sensitivity['sensitivity_train_spacecue'], df_sensitivity['sensitivity_train_featcue']], axis=1)
+    sns.scatterplot(data=datuse.loc[datuse.TrainingGroup.isin(['Space']), ], x="ClassifierAccuracy", y='sensitivity_train_spacecue', ax=ax, color=settings.yellow_)
+    sns.scatterplot(data=datuse.loc[datuse.TrainingGroup.isin(['Feature']), ], x="ClassifierAccuracy", y='sensitivity_train_spacecue', ax=ax, color=settings.lightteal_)
+
+    ax.set_title("r = " + str(corrs_space[0]) + ', p = ' + str(corrs_space[1]))
+    ax.set_ylabel("Selectivity for trained attention type")
+    ax.legend(settings.string_attntrained, title="Attention Trained")
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    titlestring = "Classifier Acc Vs. Selectivity Scatter"
+    plt.suptitle(titlestring)
+
+
+    # plot classification accuracy vs. Selectivity
+
+
+    corrs_space = stats.pearsonr(df_classifier_condensed['ClassifierAccuracy'], df_selectivity['select_pre_space'])
+    corrs_feat = stats.pearsonr(df_classifier_condensed['ClassifierAccuracy'], df_selectivity['select_pre_feature'])
+
+
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+    sns.set(style="ticks")
+    colors = [settings.yellow_, settings.lightteal_]
+
+    tmp = pd.concat([df_classifier_condensed['TrainingGroup'], df_classifier_condensed['ClassifierAccuracy'], df_selectivity['select_pre_feature']], axis=1)
+
+    sns.scatterplot(data=tmp.loc[tmp.TrainingGroup.isin(['Space']),], x="ClassifierAccuracy", y='select_pre_feature', ax=ax, color=settings.yellow_)
+    sns.scatterplot(data=tmp.loc[tmp.TrainingGroup.isin(['Feature']), ], x="ClassifierAccuracy", y='select_pre_feature', ax=ax, color=settings.lightteal_)
+
+    ax.set_title("r = " + str(corrs_feat[0]) + ', p = ' + str(corrs_feat[1]))
+    ax.set_ylabel("Selectivity for trained attention type")
+    ax.legend(settings.string_attntrained, title="Attention Trained")
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    titlestring = "Classifier Acc Vs. Selectivity Scatter"
+    plt.suptitle(titlestring)
+    # plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+
+
+def classification_acc_correlations_old(settings):
+
     ##### Load Classification Accuracy Data ####
     attntrained_vec = []
     sub_vec = []
@@ -14,7 +274,7 @@ def classification_acc_correlations(settings):
     classifieracc_vec = []
 
     # Cycle through trained groups
-    for attntrainedcount, attntrained in enumerate(settings.string_attntrained):
+    for attntrainedcount, attntrained in enumerate(['Space', 'Feature']):
         # setup generic settings
         settings = helper.SetupMetaData(attntrainedcount)
 
@@ -27,11 +287,10 @@ def classification_acc_correlations(settings):
             bids = helper.BIDS_FileNaming(sub_val, settings, day_val=1)
 
             # Get Data for Space and Feature Classifier
-            for attn_count, attn_val in enumerate(settings.string_attntrained):
+            for attn_count, attn_val in enumerate(['Space', 'Feature']):
                 # decide which file to use
                 possiblefiles = []
-                for filesfound in bids.direct_data_eeg.glob(
-                        "Classifier_" + attn_val + '_' + bids.filename_eeg + ".mat"):
+                for filesfound in bids.direct_data_eeg.glob("Classifier_" + attn_val + '_' + bids.filename_eeg + ".mat"):
                     possiblefiles.append(filesfound)
                 file2use = possiblefiles[0]
 
@@ -43,7 +302,7 @@ def classification_acc_correlations(settings):
                 tmp_acc = np.array(F['ACCURACY_ALL']) * 100
 
                 attntrained_vec.append(attntrained)
-                sub_vec.append(sub_val)
+                sub_vec.append(attntrained + str(sub_val))
                 classifiertype_vec.append(attn_val)
                 classifieracc_vec.append(np.nanmean(tmp_acc))
 
@@ -54,7 +313,6 @@ def classification_acc_correlations(settings):
 
     df_classifier_condensed = df_classifier.loc[df_classifier.AttentionTrained == df_classifier.ClassifierType,
                               :].copy()
-
     # plot results
 
     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
@@ -127,7 +385,7 @@ def classification_acc_correlations(settings):
 
         # load results
         results = np.load(bids.direct_results_group / Path("EEGResults_prepost.npz"), allow_pickle=True)  #
-
+        # settings.num_subs =
         SSVEPs_epochs_prepost_group = results['SSVEPs_epochs_prepost_group']  # results['SSVEPs_prepost_group']
         diffdat = SSVEPs_epochs_prepost_group[0, :, :, :] - SSVEPs_epochs_prepost_group[1, :, :, :]  # [day,attn,sub]
 
@@ -149,47 +407,46 @@ def classification_acc_correlations(settings):
 
     data = {'Testday': daystrings, 'Attention Type': attntaskstrings, 'Attention Trained': attnstrings,
             'Selectivity (ΔµV)': selectivity_compare}
-    df_selctivity = pd.DataFrame(data)
+    df_selectivity = pd.DataFrame(data)
 
     # Add selectivity - get the indices we're interested in.
-    idx_space_pre = np.logical_and(df_selctivity.Testday == 'pre-training', df_selctivity["Attention Type"] == "Space")
-    idx_feature_pre = np.logical_and(df_selctivity.Testday == 'pre-training',
-                                     df_selctivity["Attention Type"] == "Feature")
+    idx_space_pre = np.logical_and(df_selectivity.Testday == 'pre-training', df_selectivity["Attention Type"] == "Space")
+    idx_feature_pre = np.logical_and(df_selectivity.Testday == 'pre-training',
+                                     df_selectivity["Attention Type"] == "Feature")
 
-    idx_space_post = np.logical_and(df_selctivity.Testday == 'post-training',
-                                    df_selctivity["Attention Type"] == "Space")
-    idx_feature_post = np.logical_and(df_selctivity.Testday == 'post-training',
-                                      df_selctivity["Attention Type"] == "Feature")
+    idx_space_post = np.logical_and(df_selectivity.Testday == 'post-training',
+                                    df_selectivity["Attention Type"] == "Space")
+    idx_feature_post = np.logical_and(df_selectivity.Testday == 'post-training',
+                                      df_selectivity["Attention Type"] == "Feature")
 
     # create new correlation dataframe to add selectivity to
     df_correlationsdat = df_classifier_condensed.drop(["ClassifierType"], axis=1).copy().reset_index()
     df_correlationsdat = df_correlationsdat.drop(["index"], axis=1)
 
     # add selectivity - pre and post training
-    df_correlationsdat["Space_Selectivity_pre"] = df_selctivity.loc[idx_space_pre, :].reset_index().loc[:,
+    df_correlationsdat["Space_Selectivity_pre"] = df_selectivity.loc[idx_space_pre, :].reset_index().loc[:,
                                                   "Selectivity (ΔµV)"]
-    df_correlationsdat["Feature_Selectivity_pre"] = df_selctivity.loc[idx_feature_pre, :].reset_index().loc[:,
+    df_correlationsdat["Feature_Selectivity_pre"] = df_selectivity.loc[idx_feature_pre, :].reset_index().loc[:,
                                                     "Selectivity (ΔµV)"]
 
-    df_correlationsdat["Space_Selectivity_post"] = df_selctivity.loc[idx_space_post, :].reset_index().loc[:,
+    df_correlationsdat["Space_Selectivity_post"] = df_selectivity.loc[idx_space_post, :].reset_index().loc[:,
                                                    "Selectivity (ΔµV)"]
-    df_correlationsdat["Feature_Selectivity_post"] = df_selctivity.loc[idx_feature_post, :].reset_index().loc[:,
+    df_correlationsdat["Feature_Selectivity_post"] = df_selectivity.loc[idx_feature_post, :].reset_index().loc[:,
                                                      "Selectivity (ΔµV)"]
 
     # Add training effect
-    df_correlationsdat["Space_Selectivity_trainefc"] = df_selctivity.loc[idx_space_post, :].reset_index().loc[:,
-                                                       "Selectivity (ΔµV)"] - df_selctivity.loc[idx_space_pre,
+    df_correlationsdat["Space_Selectivity_trainefc"] = df_selectivity.loc[idx_space_post, :].reset_index().loc[:,
+                                                       "Selectivity (ΔµV)"] - df_selectivity.loc[idx_space_pre,
                                                                               :].reset_index().loc[:,
                                                                               "Selectivity (ΔµV)"]
-    df_correlationsdat["Feature_Selectivity_trainefc"] = df_selctivity.loc[idx_feature_post, :].reset_index().loc[:,
-                                                         "Selectivity (ΔµV)"] - df_selctivity.loc[idx_feature_pre,
+    df_correlationsdat["Feature_Selectivity_trainefc"] = df_selectivity.loc[idx_feature_post, :].reset_index().loc[:,
+                                                         "Selectivity (ΔµV)"] - df_selectivity.loc[idx_feature_pre,
                                                                                 :].reset_index().loc[:,
                                                                                 "Selectivity (ΔµV)"]
 
     ######## Load behavioural data
     # cycle trough space and feature train groups
-    for attntrainedcount, attntrained in enumerate(
-            settings.string_attntrained):  # cycle trough space and feature train groups
+    for attntrainedcount, attntrained in enumerate(settings.string_attntrained[0:2]):  # cycle trough space and feature train groups
         # setup generic settings
         settings = helper.SetupMetaData(attntrainedcount)
         settings = settings.get_settings_behave_prepost()
