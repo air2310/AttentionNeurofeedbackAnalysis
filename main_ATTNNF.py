@@ -65,8 +65,8 @@ collate_behaviour_prepost = False  # Collate Behaviour Pre Vs. Post Training
 # collate_behaviour_duringNF = True # Collate Behaviour during Training
 collate_behaviour_duringNF = False  # Collate Behaviour during Training
 #
-collateEEGprepost = True # Collate EEG Pre Vs. Post Training across subjects
-# collateEEGprepost = False  # Collate EEG Pre Vs. Post Training across subjects
+# collateEEGprepost = True # Collate EEG Pre Vs. Post Training across subjects
+collateEEGprepost = False  # Collate EEG Pre Vs. Post Training across subjects
 #
 # collateEEGprepost_motioncoherenceepochs = True # Collate EEG Pre Vs. Post Training across subjects
 collateEEGprepost_motioncoherenceepochs = False  # Collate EEG Pre Vs. Post Training across subjects
@@ -83,8 +83,8 @@ collate_nbacktask = False  # Analyse N-back Task
 
 ######## Decide which group comparison analyses to do ########
 
-classification_acc_correlations = True # Assess whether classification accuracy correlated with training effects
-# classification_acc_correlations = False  # Assess whether classification accuracy correlated with training effects
+# classification_acc_correlations = True # Assess whether classification accuracy correlated with training effects
+classification_acc_correlations = False  # Assess whether classification accuracy correlated with training effects
 
 # collate_Neurofeedback = True # collate Neurofeedback and sustained attention
 collate_Neurofeedback = False  # collate Neurofeedback and sustained attention

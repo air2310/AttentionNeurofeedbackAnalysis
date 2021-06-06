@@ -752,7 +752,7 @@ def collate_behaviour_prepost_compare(settings):
     tmp = df_behaveresults[tmp1].groupby('subID').mean()['correct']
     exclude2 = df_behaveresults.groupby('subID').mean()[tmp < cutoff]
 
-    toexclude = np.hstack([exclude.index.values, exclude2.index.values])
+    toexclude_space = np.unique(np.hstack([exclude.index.values, exclude2.index.values]))
     df_behaveresults_cleanA = df_behaveresults[~df_behaveresults['subID'].isin(exclude.index) & ~df_behaveresults['subID'].isin(exclude2.index) & df_behaveresults['Attention Type'].isin(['Space'])]
 
     tmp1 = df_behaveresults['Testday'].isin(['Day 1']) & df_behaveresults['Attention Type'].isin(['Feature'])
@@ -763,23 +763,28 @@ def collate_behaviour_prepost_compare(settings):
     tmp = df_behaveresults[tmp1].groupby('subID').mean()['correct']
     exclude2 = df_behaveresults.groupby('subID').mean()[tmp < cutoff]
 
-    toexclude = np.unique(np.hstack([toexclude, exclude.index.values, exclude2.index.values]))
+    toexclude_feat = np.unique(np.hstack([ exclude.index.values, exclude2.index.values]))
     df_behaveresults_cleanB = df_behaveresults[~df_behaveresults['subID'].isin(exclude.index) & ~df_behaveresults['subID'].isin(exclude2.index) & df_behaveresults['Attention Type'].isin(['Feature'])]
 
     df_behaveresults_clean = pd.concat([df_behaveresults_cleanA, df_behaveresults_cleanB])
 
     # list excluded participants
-    tmp = df_behaveresults.loc[df_behaveresults.subID.isin(toexclude), ['subIDval', 'AttentionTrained']].copy()
-    tmp = tmp.reset_index().copy()
+    tmp = df_behaveresults.loc[df_behaveresults.subID.isin(toexclude_space), ['subIDval', 'AttentionTrained']].reset_index().copy()
     excludestrings = list()
-    for i in tmp.index: excludestrings.append(str(tmp.loc[i,'subIDval']) + tmp.loc[i,'AttentionTrained'])
+    for i in tmp.index: excludestrings.append(tmp.loc[i, 'AttentionTrained'] + str(tmp.loc[i, 'subIDval']))
+    excludestrings_space = np.unique(excludestrings)
+    # array(['Feature1', 'Feature2', 'Feature23', 'Feature4', 'Feature9',
+    #        'Sham10', 'Sham12', 'Sham16', 'Sham17', 'Sham3', 'Sham31',
+    #        'Sham34', 'Sham39', 'Sham9', 'Space112', 'Space59', 'Space90'],
 
-    # tmp1 = df_behaveresults['Attention Type'].isin(['Space'])
-    # tmp = df_behaveresults[tmp1].groupby('subID').mean()['correct']
-    # exclude = df_behaveresults.groupby('subID').mean()[tmp < 10]
-    #
-    # df_behaveresults_clean = df_behaveresults[~df_behaveresults['subID'].isin(exclude.index) ]
-
+    tmp = df_behaveresults.loc[df_behaveresults.subID.isin(toexclude_feat), ['subIDval', 'AttentionTrained']].reset_index().copy()
+    excludestrings = list()
+    for i in tmp.index: excludestrings.append(tmp.loc[i, 'AttentionTrained'] + str(tmp.loc[i, 'subIDval']))
+    excludestrings_feat = np.unique(excludestrings)
+    # array(['Feature1', 'Feature2', 'Feature23', 'Feature4', 'Feature69',
+    #        'Sham10', 'Sham16', 'Sham17', 'Sham22', 'Sham3', 'Sham31',
+    #        'Sham39', 'Sham9', 'Space112', 'Space38', 'Space74', 'Space79',
+    #        'Space90'], dtype='<U9')
     # # lets run some stats with R - save it out
     df_behaveresults_clean.to_csv(bids.direct_results_group_compare / Path("motiondiscrim_behaveresults_ALL.csv"),
                                   index=False)
