@@ -815,7 +815,10 @@ def collate_behaviour_prepost_compare(settings):
         plotgroupedresult_complex(datplot, "LikelihoodRatio", titstring, bids, coloruse, [-6, 2])
 
         plotgroupedresult_complexNF(datplot, "Sensitivity", titstring, bids, coloruse, [-1, 5])
+        plotgroupedresult_complexNF(datplot, "Criterion", titstring, bids, coloruse, [-2.5, 1])
         plotgroupedresult_complexNF(datplot, "RT", titstring, bids, coloruse, [0.5, 1.2])
+        plotgroupedresult_complexNF(datplot, "correct", titstring, bids, coloruse, [0, 100])
+        plotgroupedresult_complexNF(datplot, "InverseEfficiency", titstring, bids, coloruse, [-2, 10])
 
 
 

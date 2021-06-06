@@ -71,6 +71,7 @@ followuptests <- function(formula, dataA, dataB) {
   bf = ttestBF(formula = formula, data = dataA)
   print('Data A')
   print(bf)
+  
   print('Data B')
   bf = ttestBF(formula = formula, data = dataB)
   print(bf)
@@ -149,7 +150,13 @@ Runstats_NFvsSham(datuse, datuse_train, datuse_NF, datuse_sham)
 datuse_train = behavedata_train[ behavedata_train['AttentionTrained']!="Sham",]
 Runstats_SpaceVsFeat(datuse_train)
 
+# check on task interactions
+datuse_train = behavedata_train
+DisplayANOVAResults2X2(Sensitivity_TrEfct ~ NFTraining * Attention.Type + subID , data=datuse_train)
 
+datuse_train = behavedata_train[behavedata_train['Attention.Type']==taskstring,]
+bf = ttestBF(formula = Sensitivity_TrEfct ~ NFTraining, data = datuse_train)
+print(bf)
 # Ancova
 #fit2=aov(Sensitivity_TrEfct~ NFTraining + Sensitivity ,datuse)
 #Anova(fit2, type="III")

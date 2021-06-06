@@ -89,8 +89,8 @@ classification_acc_correlations = False  # Assess whether classification accurac
 # collate_Neurofeedback = True # collate Neurofeedback and sustained attention
 collate_Neurofeedback = False  # collate Neurofeedback and sustained attention
 
-# collate_behaviour_prepost_compare = True # Collate Behaviour Pre Vs. Post Training compare training groups
-collate_behaviour_prepost_compare = False  # Collate Behaviour Pre Vs. Post Training compare training groups
+collate_behaviour_prepost_compare = True # Collate Behaviour Pre Vs. Post Training compare training groups
+# collate_behaviour_prepost_compare = False  # Collate Behaviour Pre Vs. Post Training compare training groups
 
 # collate_behaviour_duringNF_compare = True # Collate Behaviour during Training compare training groups
 collate_behaviour_duringNF_compare = False  # Collate Behaviour during Training compare training groups

@@ -211,11 +211,11 @@ def plot_classificationacc(df_classifier_condensed, bids, settings):
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
 
-def getcorrval(datuse, traininggroup, measureA, measureB):
+def getcorrval_bytraininggroup(datuse, traininggroup, measureA, measureB):
     import scipy.stats as stats
     datusecorr = datuse.loc[datuse.TrainingGroup.isin(traininggroup),].copy()
     corr = stats.pearsonr(datusecorr[measureA], datusecorr[measureB])
-    return  np.round([element * 1000 for element in corr]) / 1000
+    return np.round([element * 1000 for element in corr]) / 1000
 
 
 def plotClasificationacc_correlation(datuse, measureA, measureB, settings, titlestring, ylims, excludeflag=False):
@@ -242,15 +242,14 @@ def plotClasificationacc_correlation(datuse, measureA, measureB, settings, title
                 sns.scatterplot(data=datplot.loc[datplot.TrainingGroup.isin(['Space']),], x=measureA, y=cuestring, ax=axuse, color=settings.darkteal_)
                 axuse.legend(['Feature', 'Space'], title="Attention Trained", loc='lower right')
 
-
-                corr = getcorrval(datplot, traininggroup=['Space'], measureA=measureA, measureB=cuestring)
+                corr = getcorrval_bytraininggroup(datplot, traininggroup=['Space'], measureA=measureA, measureB=cuestring)
                 print(corr)
-                corr = getcorrval(datplot, traininggroup=['Feature'], measureA=measureA, measureB=cuestring)
+                corr = getcorrval_bytraininggroup(datplot, traininggroup=['Feature'], measureA=measureA, measureB=cuestring)
                 print(corr)
-                corr = getcorrval(datplot, traininggroup=['Space', 'Feature'], measureA=measureA, measureB=cuestring)
+                corr = getcorrval_bytraininggroup(datplot, traininggroup=['Space', 'Feature'], measureA=measureA, measureB=cuestring)
             else:
                 sns.scatterplot(data=datplot.loc[datplot.TrainingGroup.isin(['Sham']),], x=measureA, y=cuestring, ax=axuse, color=settings.yellow_)
-                corr = getcorrval(datplot, traininggroup=['Sham'], measureA=measureA, measureB=cuestring)
+                corr = getcorrval_bytraininggroup(datplot, traininggroup=['Sham'], measureA=measureA, measureB=cuestring)
 
             axuse.set_title(settings.string_attntype[cue] + " Cue, " + trainingstring + " Group, (r = " + str(corr[0]) + ', p = ' + str(corr[1]) + ")")
             axuse.set_ylim(ylims)
@@ -264,62 +263,157 @@ def plotClasificationacc_correlation(datuse, measureA, measureB, settings, title
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
 
+def plotscatter_bytraininggroups(datusecorrSp, datusecorrFt, titlestring, xlim, ylim, corr, bids, settings, measure):
+    fig, axuse = plt.subplots(1, 1, figsize=(6, 6))
+
+    sns.scatterplot(data=datusecorrSp, x='ClassifierAccuracy', y=measure, ax=axuse, color=settings.darkteal_)
+    sns.scatterplot(data=datusecorrFt, x='ClassifierAccuracy', y=measure, ax=axuse, color=settings.lightteal_)
+    axuse.legend(['Space', 'Feature'], title="Cue", loc='upper left')
+
+    axuse.set_title("(r = " + str(corr[0]) + ', p = ' + str(corr[1]) + ")")
+
+    axuse.set_ylim(ylim)
+    axuse.set_xlim(xlim)
+    axuse.spines['top'].set_visible(False)
+    axuse.spines['right'].set_visible(False)
+
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+def plotscatter_bytraininggroups_sham(datusecorrSp, datusecorrFt, datusecorrSh, titlestring, xlim, ylim, corr, corrsh, bids, settings, measure):
+    fig, [axuse, axuse2] = plt.subplots(1, 2, figsize=(12, 6))
+
+    sns.scatterplot(data=datusecorrSp, x=measure[0], y=measure[1], ax=axuse, color=settings.darkteal_)
+    sns.scatterplot(data=datusecorrFt, x=measure[0], y=measure[1], ax=axuse, color=settings.lightteal_)
+    axuse.legend(['Space', 'Feature'], title="Training Group", loc='upper right')
+    axuse.set_title("NF: (r = " + str(corr[0]) + ', p = ' + str(corr[1]) + ")")
+    axuse.set_ylim(ylim)
+    axuse.set_xlim(xlim)
+    axuse.spines['top'].set_visible(False)
+    axuse.spines['right'].set_visible(False)
+
+    sns.scatterplot(data=datusecorrSh, x=measure[0], y=measure[1], ax=axuse2, color=settings.yellow_)
+    axuse2.legend(['Sham'], title="Training Group", loc='upper right')
+    axuse2.set_title("Sham: (r = " + str(corrsh[0]) + ', p = ' + str(corrsh[1]) + ")")
+    axuse2.set_ylim(ylim)
+    axuse2.set_xlim(xlim)
+    axuse2.spines['top'].set_visible(False)
+    axuse2.spines['right'].set_visible(False)
+
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+
 def classification_acc_correlations(settings):
+    # TODO: look at SSVEP amplitudes (not selectivity)
+    # TODO: Gather data from motion epochs (rather than full trial).
+
+    import scipy.stats as stats
     # Get data
     df_classifier, df_classifier_condensed = load_classifierdata(settings)
     df_selectivity = load_SSVEPdata(settings)
     df_sensitivity, bids, behaveexcludestrings_space, behaveexcludestrings_feat = load_MotionDiscrimBehaveResults(settings)
 
+
     # plot classifier accuracy by attention type
     plot_classificationacc(df_classifier_condensed, bids, settings)
 
+
     # Correlations!
-    # Classification Acc VSensitivity training effect
-    datuse = pd.concat([df_classifier_condensed['SubID'], df_classifier_condensed['TrainingGroup'], df_classifier_condensed['ClassifierAccuracy'], df_sensitivity['sensitivity_train_spacecue'], df_sensitivity['sensitivity_train_featcue']], axis=1)
-    plotClasificationacc_correlation(datuse=datuse, measureA='ClassifierAccuracy',measureB=['sensitivity_train_spacecue', 'sensitivity_train_featcue'], settings=settings, titlestring= "Classifier Acc Vs. Sensitivity Scatter", ylims = [-2,2], excludeflag = True)
+    # Classification Acc V Sensitivity training effect
+    datuse = pd.concat([df_classifier_condensed[['SubID', 'TrainingGroup', 'ClassifierAccuracy']], df_sensitivity[['sensitivity_train_spacecue', 'sensitivity_train_featcue']]], axis=1)
+    plotClasificationacc_correlation(datuse=datuse, measureA='ClassifierAccuracy',measureB=['sensitivity_train_spacecue', 'sensitivity_train_featcue'], settings=settings, titlestring= "Classifier Acc Vs. Sensitivity Scatter", ylims = [-2,2], excludeflag = False)
+
 
     # Classification Acc V Selectivity training effect
     # datuse = pd.concat([df_classifier_condensed['SubID'], df_classifier_condensed['TrainingGroup'], df_classifier_condensed['ClassifierAccuracy'], abs(df_selectivity['select_train_space']), abs(df_selectivity['select_train_feature'])], axis=1)
-    datuse = pd.concat([df_classifier_condensed['SubID'], df_classifier_condensed['TrainingGroup'], df_classifier_condensed['ClassifierAccuracy'], df_selectivity['select_train_space'], df_selectivity['select_train_feature']], axis=1)
+    datuse = pd.concat([df_classifier_condensed[['SubID', 'TrainingGroup', 'ClassifierAccuracy']], df_selectivity[['select_train_space','select_train_feature']]], axis=1)
     plotClasificationacc_correlation(datuse=datuse, measureA='ClassifierAccuracy', measureB=['select_train_space', 'select_train_feature'], settings=settings, titlestring="Classifier Acc Vs. Selectivity Scatter", ylims = [-0.5, 0.5])
 
-    ## Classification Acc V
-    df_classifier_space = df_classifier.loc[df_classifier['ClassifierType'] == 'Space',['SubID', 'TrainingGroup', 'AttentionTrained', 'ClassifierAccuracy']].reset_index()
-    df_classifier_feature = df_classifier.loc[df_classifier['ClassifierType'] == 'Feature', ['SubID', 'TrainingGroup', 'AttentionTrained', 'ClassifierAccuracy']].reset_index()
 
-    datuse = pd.concat([df_classifier_space['SubID'], df_classifier_feature['TrainingGroup'], df_classifier_feature['ClassifierAccuracy'], df_selectivity['select_train_space'], df_selectivity['select_train_feature']], axis=1)
-    plotClasificationacc_correlation(datuse=datuse, measureA='ClassifierAccuracy', measureB=['select_train_space', 'select_train_feature'], settings=settings, titlestring="Classifier Acc Vs. Selectivity Scatter", ylims=[-0.5, 0.5])
+    ## Classification Acc V selectivity (day 1) - we'll get the non-condensed classifier data for this so we can look at what's going on with the classifier not used to generate NF
+    df_classifier_space = df_classifier.loc[df_classifier['ClassifierType'] == 'Space',].reset_index()
+    df_classifier_feature = df_classifier.loc[df_classifier['ClassifierType'] == 'Feature',].reset_index()
+
+    df_classifier_space = pd.concat([df_classifier_space, df_selectivity['select_pre_space']], axis=1).reset_index().rename(columns={'select_pre_space': 'select_pre'})
+    df_classifier_feature = pd.concat([df_classifier_feature, df_selectivity['select_pre_feature']], axis=1).reset_index().rename(columns={'select_pre_feature': 'select_pre'})
+
+    df_classifier_all = pd.concat([df_classifier_space, df_classifier_feature], axis=0)
+    df_classifier_all = df_classifier_all.loc[df_classifier_all.TrainingGroup.isin(["Space", "Feature"]),]
+
+    datusecorrSp = df_classifier_all.loc[df_classifier_all.ClassifierType.isin(["Space"])   & df_classifier_all.AttentionTrained.isin(["Space"  ]), ].copy()
+    datusecorrFt = df_classifier_all.loc[df_classifier_all.ClassifierType.isin(["Feature"]) & df_classifier_all.AttentionTrained.isin(["Feature"]), ].copy()
+    datusecorrAll = pd.concat([datusecorrSp, datusecorrFt])
+    corr = stats.pearsonr(datusecorrAll['ClassifierAccuracy'], datusecorrAll['select_pre'])
+    plotscatter_bytraininggroups(datusecorrSp, datusecorrFt, titlestring = "Classification Accuracy Vs SSVEP Selectivity", xlim=[50, 95], ylim = [-0.25, 0.8], corr = corr, bids = bids, settings = settings, measure = 'select_pre')
+
+    datusecorrSp = df_classifier_all.loc[df_classifier_all.ClassifierType.isin(["Space"]),].copy()
+    datusecorrFt = df_classifier_all.loc[df_classifier_all.ClassifierType.isin(["Feature"]),].copy()
+    datusecorrAll = pd.concat([datusecorrSp, datusecorrFt])
+    corr = stats.pearsonr(datusecorrAll['ClassifierAccuracy'], datusecorrAll['select_pre'])
+    plotscatter_bytraininggroups(datusecorrSp, datusecorrFt, titlestring="Classification Accuracy Vs SSVEP Selectivity All Participants", xlim=[40, 95], ylim=[-0.25, 1.2], corr=corr, bids = bids, settings = settings, measure = 'select_pre')
 
 
-    measureA='ClassifierAccuracy'
-    measureB=['select_post_space', 'select_post_feature']
-    titlestring="Classifier Acc Vs. Selectivity Scatter"
-    ylims = [-0.5, 0.5]
+    ## Classification Acc V sensitivity (day 1)
+    tmp = pd.concat([df_classifier_condensed['ClassifierAccuracy'], df_sensitivity], axis=1)
+    tmp = tmp.loc[tmp.TrainingGroup.isin(["Space", "Feature"]), ].copy()
 
-    fig, ax = plt.subplots(1, 1, figsize=(12, 12))
-    NFstring = ["NF", "Sham"]
+    datusecorrSp = tmp.loc[tmp.TrainingGroup.isin(["Space"]), ].copy()
+    datusecorrFt = tmp.loc[tmp.TrainingGroup.isin(["Feature"]), ].copy()
+    datusecorrAll = tmp.copy()
+    corr = stats.pearsonr(datusecorrSp['ClassifierAccuracy'], datusecorrSp['sensitivity_pre_spacecue'])
+    plotscatter_bytraininggroups(datusecorrSp, datusecorrFt, measure = 'sensitivity_pre_spacecue', titlestring = "Classification Accuracy Vs Sensitivity pre training", xlim=[50, 95], ylim = [-1, 4], corr = corr, bids = bids, settings = settings)
 
-    axuse = ax
-    # sns.set(style="ticks")
 
-    sns.scatterplot(data=datplot.loc[datplot.TrainingGroup.isin(['Feature']),], x=measureA, y=cuestring, ax=axuse, color=settings.lightteal_)
-    sns.scatterplot(data=datplot.loc[datplot.TrainingGroup.isin(['Space']),], x=measureA, y=cuestring, ax=axuse, color=settings.darkteal_)
-    axuse.legend(['Feature', 'Space'], title="Attention Trained", loc='lower right')
+    ## Selectivity V sensitivity (day 1)
+    tmp = pd.concat([df_selectivity[['select_pre_space', 'select_post_space', 'select_pre_feature', 'select_post_feature', 'select_train_space', 'select_train_feature']], df_sensitivity], axis=1)
+    # tmp = tmp.loc[tmp.TrainingGroup.isin(["Space", "Feature"]),].copy()
 
-    corr = getcorrval(datplot, traininggroup=['Space'], measureA=measureA, measureB=cuestring)
-    print(corr)
-    corr = getcorrval(datplot, traininggroup=['Feature'], measureA=measureA, measureB=cuestring)
-    print(corr)
-    corr = getcorrval(datplot, traininggroup=['Space', 'Feature'], measureA=measureA, measureB=cuestring)
+    datusecorrSp = tmp.loc[tmp.TrainingGroup.isin(["Space"]),].copy()
+    datusecorrFt = tmp.loc[tmp.TrainingGroup.isin(["Feature"]),].copy()
+    datusecorrSh = tmp.loc[tmp.TrainingGroup.isin(["Sham"]),].copy()
+    datusecorrAll = tmp.copy()
+    datusecorrSpFt = pd.concat([datusecorrSp, datusecorrFt]).copy()
 
-    axuse.set_title(settings.string_attntype[cue] + " Cue, " + trainingstring + " Group, (r = " + str(corr[0]) + ', p = ' + str(corr[1]) + ")")
-    axuse.set_ylim(ylims)
-    axuse.set_xlim([50, 95])
-    axuse.set_ylabel("Training effect")
-    axuse.spines['top'].set_visible(False)
-    axuse.spines['right'].set_visible(False)
+    corr = stats.pearsonr(datusecorrSpFt['select_post_space'], datusecorrSpFt['sensitivity_post_spacecue'])
+    corr = stats.pearsonr(datusecorrSh['select_post_space'], datusecorrSh['sensitivity_post_spacecue'])
+    corr = stats.pearsonr(datusecorrFt['select_post_space'], datusecorrFt['sensitivity_post_spacecue'])
 
-    plt.suptitle(titlestring)
+    corr = stats.pearsonr(datusecorrSpFt['select_pre_space'], datusecorrSpFt['sensitivity_pre_spacecue'])
+    corrsh = stats.pearsonr(datusecorrSh['select_pre_space'], datusecorrSh['sensitivity_pre_spacecue'])
+    plotscatter_bytraininggroups_sham(datusecorrSp, datusecorrFt, datusecorrSh, measure=['select_pre_space', 'sensitivity_pre_spacecue'], titlestring="Selectivity Vs Sensitivity pre training space", xlim=[-0.25, 1], ylim=[-0.5, 4], corr=corr, corrsh=corrsh, bids=bids, settings=settings)
+
+    corr = stats.pearsonr(datusecorrSpFt['select_pre_feature'], datusecorrSpFt['sensitivity_pre_featcue'])
+    corrsh = stats.pearsonr(datusecorrSh['select_pre_feature'], datusecorrSh['sensitivity_pre_featcue'])
+    plotscatter_bytraininggroups_sham(datusecorrSp, datusecorrFt,datusecorrSh, measure=['select_pre_feature', 'sensitivity_pre_featcue'], titlestring="Selectivity Vs Sensitivity pre training feat", xlim=[-0.1, 0.4], ylim=[-0.5, 2], corr=corr, corrsh=corrsh, bids=bids, settings=settings)
+
+    corr = stats.pearsonr(datusecorrSpFt['select_post_space'], datusecorrSpFt['sensitivity_post_spacecue'])
+    corrsh = stats.pearsonr(datusecorrSh['select_post_space'], datusecorrSh['sensitivity_post_spacecue'])
+    plotscatter_bytraininggroups_sham(datusecorrSp, datusecorrFt,datusecorrSh, measure=['select_post_space', 'sensitivity_post_spacecue'], titlestring="Selectivity Vs Sensitivity post training space", xlim=[-0.2, 1.0], ylim=[-0.75, 4], corr=corr, corrsh=corrsh, bids=bids, settings=settings)
+
+    corr = stats.pearsonr(datusecorrSpFt['select_post_feature'], datusecorrSpFt['sensitivity_post_featcue'])
+    corrsh = stats.pearsonr(datusecorrSh['select_post_feature'], datusecorrSh['sensitivity_post_featcue'])
+    plotscatter_bytraininggroups_sham(datusecorrSp, datusecorrFt, datusecorrSh, measure=['select_post_feature', 'sensitivity_post_featcue'], titlestring="Selectivity Vs Sensitivity post training feat", xlim=[-0.1, 0.3], ylim=[-0.75, 3], corr=corr, corrsh=corrsh, bids=bids, settings=settings)
+
+
+    corr = stats.pearsonr(datusecorrSpFt['select_train_space'], datusecorrSpFt['sensitivity_pre_spacecue'])
+    corrsh = stats.pearsonr(datusecorrSh['select_train_space'], datusecorrSh['sensitivity_pre_spacecue'])
+    plotscatter_bytraininggroups_sham(datusecorrSp, datusecorrFt,datusecorrSh, measure=['select_train_space', 'sensitivity_pre_spacecue'], titlestring="Selectivity train Vs Sensitivity pre training space", xlim=[-0.3, 0.6], ylim=[-0.75, 4], corr=corr, corrsh=corrsh, bids=bids, settings=settings)
+
+
+    corr = stats.pearsonr(datusecorrSpFt['select_train_space'], datusecorrSpFt['sensitivity_post_spacecue'])
+    corrsh = stats.pearsonr(datusecorrSh['select_train_space'], datusecorrSh['sensitivity_post_spacecue'])
+    plotscatter_bytraininggroups_sham(datusecorrSp, datusecorrFt,datusecorrSh, measure=['select_train_space', 'sensitivity_post_spacecue'], titlestring="Selectivity train Vs Sensitivity post training space", xlim=[-0.3, 0.6], ylim=[-0.75, 4], corr=corr, corrsh=corrsh, bids=bids, settings=settings)
+
+
+    corr = stats.pearsonr(datusecorrSpFt['select_train_space'], datusecorrSpFt['sensitivity_train_spacecue'])
+    corrsh = stats.pearsonr(datusecorrSh['select_train_space'], datusecorrSh['sensitivity_train_spacecue'])
+    plotscatter_bytraininggroups_sham(datusecorrSp, datusecorrFt,datusecorrSh, measure=['select_train_space', 'sensitivity_train_spacecue'], titlestring="Selectivity train Vs Sensitivity train space", xlim=[-0.6, 0.6], ylim=[-1, 2.5], corr=corr, corrsh=corrsh, bids=bids, settings=settings)
+
+
+    corr = stats.pearsonr(datusecorrSpFt['select_train_feature'], datusecorrSpFt['sensitivity_train_featcue'])
+    corrsh = stats.pearsonr(datusecorrSh['select_train_feature'], datusecorrSh['sensitivity_train_featcue'])
+    plotscatter_bytraininggroups_sham(datusecorrSp, datusecorrFt,datusecorrSh, measure=['select_train_feature', 'sensitivity_train_featcue'], titlestring="Selectivity train Vs Sensitivity train feat", xlim=[-0.6, 0.6], ylim=[-1, 2.5], corr=corr, corrsh=corrsh, bids=bids, settings=settings)
 
 
 
