@@ -13,16 +13,14 @@ import matplotlib.pyplot as plt
 
 #### New Analyses
 
-# TODO: plotting of effects for SSVEPs
+# TODO: EEG Stats in R
+# TODO: EEG Stats for motion epochs
+# TODO: During NF.
 # TODO: Statistical tests for wavelets
-# TODO: Get stats for Vissearch task
 
-# TODO: exclude chance level vis search Ps
 # TODO: look at differences between classifiable and unclassifiable participants.
 # TODO: individual trial independance of spatial and feature based-attention neurofeedback - how correlated are they really?
-# TODO: Sync to main thread
-# TODO: What about just the people who did really well?
-
+# TODO: Training Effects for people who started out bad vs. good (based on that correlation for sham participants).
 
 
 # setup generic settings
@@ -67,9 +65,9 @@ collate_behaviour_duringNF = False  # Collate Behaviour during Training
 #
 # collateEEGprepost = True # Collate EEG Pre Vs. Post Training across subjects
 collateEEGprepost = False  # Collate EEG Pre Vs. Post Training across subjects
-#
-# collateEEGprepost_motioncoherenceepochs = True # Collate EEG Pre Vs. Post Training across subjects
-collateEEGprepost_motioncoherenceepochs = False  # Collate EEG Pre Vs. Post Training across subjects
+
+collateEEGprepost_motioncoherenceepochs = True # Collate EEG Pre Vs. Post Training across subjects
+# collateEEGprepost_motioncoherenceepochs = False  # Collate EEG Pre Vs. Post Training across subjects
 
 # collateEEG_duringNF = True  # Collate EEG during Neurofeedback
 collateEEG_duringNF = False  # Collate EEG during Neurofeedback
@@ -89,8 +87,8 @@ classification_acc_correlations = False  # Assess whether classification accurac
 # collate_Neurofeedback = True # collate Neurofeedback and sustained attention
 collate_Neurofeedback = False  # collate Neurofeedback and sustained attention
 
-collate_behaviour_prepost_compare = True # Collate Behaviour Pre Vs. Post Training compare training groups
-# collate_behaviour_prepost_compare = False  # Collate Behaviour Pre Vs. Post Training compare training groups
+# collate_behaviour_prepost_compare = True # Collate Behaviour Pre Vs. Post Training compare training groups
+collate_behaviour_prepost_compare = False  # Collate Behaviour Pre Vs. Post Training compare training groups
 
 # collate_behaviour_duringNF_compare = True # Collate Behaviour during Training compare training groups
 collate_behaviour_duringNF_compare = False  # Collate Behaviour during Training compare training groups

@@ -87,6 +87,14 @@ def load_SSVEPdata(settings):
     select_post_feature = list()
     select_train_space = list()
     select_train_feature = list()
+
+    amp_pre_space = list()
+    amp_pre_feature = list()
+    amp_post_space = list()
+    amp_post_feature = list()
+    amp_train_space = list()
+    amp_train_feature = list()
+
     traingroup_vec = list()
     sub_vec = list()
 
@@ -110,6 +118,7 @@ def load_SSVEPdata(settings):
             # tmp = results['SSVEPs_prepost_channelmean_epochs']
             tmp = results['SSVEPs_prepost_channelmean'] #settings.num_attd_unattd, settings.num_days, settings.num_attnstates
             selectivity = tmp[0, :, :] - tmp[1, :, :]
+            amplitude = np.mean(tmp, axis=0)
 
             select_pre_space.append(selectivity[0,0])
             select_pre_feature.append(selectivity[0, 1])
@@ -118,17 +127,93 @@ def load_SSVEPdata(settings):
             select_train_space.append(selectivity[1, 0] - selectivity[0, 0])
             select_train_feature.append(selectivity[1, 1] - selectivity[0, 1])
 
+            amp_pre_space.append(amplitude[0,0])
+            amp_pre_feature.append(amplitude[0, 1])
+            amp_post_space.append(amplitude[1, 0])
+            amp_post_feature.append(amplitude[1, 1])
+            amp_train_space.append(amplitude[1, 0] - amplitude[0, 0])
+            amp_train_feature.append(amplitude[1, 1] - amplitude[0, 1])
+
             traingroup_vec.append(attntrained)
             sub_vec.append(attntrained + str(sub_val))
 
     data = {'SubID': sub_vec, 'TrainingGroup': traingroup_vec, 'select_pre_space': select_pre_space,
             'select_pre_feature': select_pre_feature, 'select_post_space': select_post_space, 'select_post_feature': select_post_feature,
-            'select_train_space': select_train_space, 'select_train_feature': select_train_feature}
+            'select_train_space': select_train_space, 'select_train_feature': select_train_feature, 'amp_pre_space': amp_pre_space,
+            'amp_pre_feature': amp_pre_feature, 'amp_post_space': amp_post_space, 'amp_post_feature': amp_post_feature,
+            'amp_train_space': amp_train_space, 'amp_train_feature': amp_train_feature}
 
     df_selectivity = pd.DataFrame(data)
 
     return df_selectivity
 
+
+def load_SSVEPdata_electrodes(settings, day):
+
+    # preallocate
+    amp_space_attd = list()
+    amp_feature_attd = list()
+    amp_space_unattd = list()
+    amp_feature_unattd = list()
+    amp_space_select = list()
+    amp_feature_select = list()
+
+    electrode_vec = list()
+    traingroup_vec = list()
+    sub_vec = list()
+
+    # cycle trough space and feature train groups
+    for attntrainedcount, attntrained in enumerate(settings.string_attntrained):
+        # setup generic settings
+        settings = helper.SetupMetaData(attntrainedcount)
+        settings = settings.get_settings_EEG_prepost()
+
+        # iterate through subjects for individual subject analyses
+        for sub_count, sub_val in enumerate(settings.subsIDXcollate):
+            # get directories and file names
+            bids = helper.BIDS_FileNaming(int(sub_val), settings, 1)
+            print(bids.substring)
+
+            # load results
+            results = np.load(bids.direct_results / Path(bids.substring + "EEG_pre_post_results.npz"), allow_pickle=True)
+            # saved vars: SSVEPs_prepost_channelmean, SSVEPs_prepost_channelmean_epochs, wavelets_prepost, timepoints_zp, erps_days_wave, fftdat, fftdat_epochs, freq)
+
+            # store results
+            # tmp = results['SSVEPs_prepost']
+            tmp = results['SSVEPs_prepost'] #Settings.numchans, settings.num_attd_unattd, settings.num_days, settings.num_attnstates
+
+            for i in np.arange(settings.num_electrodes):
+                attd, state = 0, 0
+                amp_space_attd.append(tmp[i, attd, day, state])
+
+                attd, state = 0, 1
+                amp_feature_attd.append(tmp[i, attd, day, state])
+
+                attd, state = 1, 0
+                amp_space_unattd.append(tmp[i, attd, day, state])
+
+                attd, state = 1, 1
+                amp_feature_unattd.append(tmp[i, attd, day, state])
+
+                state = 0
+                amp_space_select.append(tmp[i, 0, day, state] - tmp[i, 1, day, state])
+
+                state = 1
+                amp_feature_select.append(tmp[i, 0, day, state] - tmp[i, 1, day, state])
+
+                electrode_vec.append(i)
+                traingroup_vec.append(attntrained)
+                sub_vec.append(attntrained + str(sub_val))
+
+
+    data = {'SubID': sub_vec, 'TrainingGroup': traingroup_vec, 'electrode_vec': electrode_vec,
+            'amp_space_attd': amp_space_attd, 'amp_space_unattd': amp_space_unattd,
+            'amp_feature_attd': amp_feature_attd, 'amp_feature_unattd': amp_feature_unattd,
+            'amp_space_select': amp_space_select, 'amp_feature_select': amp_feature_select}
+
+    df_SSVEPS = pd.DataFrame(data)
+
+    return df_SSVEPS
 
 def load_MotionDiscrimBehaveResults(settings):
 
@@ -221,7 +306,8 @@ def getcorrval_bytraininggroup(datuse, traininggroup, measureA, measureB):
 def plotClasificationacc_correlation(datuse, measureA, measureB, settings, titlestring, ylims, excludeflag=False):
     df_sensitivity, bids, behaveexcludestrings_space, behaveexcludestrings_feat = load_MotionDiscrimBehaveResults(settings)
 
-    fig, ax = plt.subplots(2, 2, figsize=(12, 12))
+    fig, ax = plt.subplots(2, 3, figsize=(16, 10))
+    colors = [settings.lightteal_, settings.darkteal_, settings.yellow_]
     NFstring = ["NF", "Sham"]
     for cue, cuestring in enumerate(measureB):
         # exclude the participants who couldn't do this cue
@@ -233,24 +319,12 @@ def plotClasificationacc_correlation(datuse, measureA, measureB, settings, title
         else:
             datplot = datuse
 
-        for training, trainingstring in enumerate(NFstring):
+        for training, trainingstring in enumerate(settings.string_attntrained):
             axuse = ax[cue, training]
-            # sns.set(style="ticks")
 
-            if training == 0:
-                sns.scatterplot(data=datplot.loc[datplot.TrainingGroup.isin(['Feature']),], x=measureA, y=cuestring, ax=axuse, color=settings.lightteal_)
-                sns.scatterplot(data=datplot.loc[datplot.TrainingGroup.isin(['Space']),], x=measureA, y=cuestring, ax=axuse, color=settings.darkteal_)
-                axuse.legend(['Feature', 'Space'], title="Attention Trained", loc='lower right')
-
-                corr = getcorrval_bytraininggroup(datplot, traininggroup=['Space'], measureA=measureA, measureB=cuestring)
-                print(corr)
-                corr = getcorrval_bytraininggroup(datplot, traininggroup=['Feature'], measureA=measureA, measureB=cuestring)
-                print(corr)
-                corr = getcorrval_bytraininggroup(datplot, traininggroup=['Space', 'Feature'], measureA=measureA, measureB=cuestring)
-            else:
-                sns.scatterplot(data=datplot.loc[datplot.TrainingGroup.isin(['Sham']),], x=measureA, y=cuestring, ax=axuse, color=settings.yellow_)
-                corr = getcorrval_bytraininggroup(datplot, traininggroup=['Sham'], measureA=measureA, measureB=cuestring)
-
+            sns.scatterplot(data=datplot.loc[datplot.TrainingGroup.isin([trainingstring]),], x=measureA, y=cuestring, ax=axuse, color=colors[training])
+            corr = getcorrval_bytraininggroup(datplot, traininggroup=[trainingstring], measureA=measureA, measureB=cuestring)
+            print(corr)
             axuse.set_title(settings.string_attntype[cue] + " Cue, " + trainingstring + " Group, (r = " + str(corr[0]) + ', p = ' + str(corr[1]) + ")")
             axuse.set_ylim(ylims)
             axuse.set_xlim([50, 95])
@@ -280,6 +354,7 @@ def plotscatter_bytraininggroups(datusecorrSp, datusecorrFt, titlestring, xlim, 
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
+
 def plotscatter_bytraininggroups_sham(datusecorrSp, datusecorrFt, datusecorrSh, titlestring, xlim, ylim, corr, corrsh, bids, settings, measure):
     fig, [axuse, axuse2] = plt.subplots(1, 2, figsize=(12, 6))
 
@@ -304,16 +379,66 @@ def plotscatter_bytraininggroups_sham(datusecorrSp, datusecorrFt, datusecorrSh, 
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
 
-def classification_acc_correlations(settings):
-    # TODO: look at SSVEP amplitudes (not selectivity)
+def ElectrodePerformanceRegression(settings):
     # TODO: Gather data from motion epochs (rather than full trial).
-
     import scipy.stats as stats
+    from sklearn import linear_model
+    import random
+
+    # Get data
+    df_sensitivity, bids, behaveexcludestrings_space, behaveexcludestrings_feat = load_MotionDiscrimBehaveResults(settings)
+
+    ## Regression for space task
+    predictors = ['amp_space_attd', 'amp_space_unattd', 'amp_space_select']
+    num_iter = 100
+    num_traininggroups = 3
+    num_prepost = 2
+
+    RSquared = np.zeros((settings.num_electrodes, num_traininggroups, num_prepost, num_iter))
+    RSquared[:] = np.nan
+
+    for testday in np.arange(num_prepost):
+        df_SSVEPs = load_SSVEPdata_electrodes(settings, day=testday)
+
+        for traininggroup, traininggroupstr in enumerate(settings.string_attntrained):
+            y = df_sensitivity.loc[df_sensitivity.TrainingGroup == traininggroupstr,].reset_index()['sensitivity_pre_spacecue']
+            datuse = df_SSVEPs.loc[df_SSVEPs.TrainingGroup == traininggroupstr,].reset_index()
+
+            for numchansuse in np.arange(1,settings.num_electrodes+1):
+                for iterations in np.arange(num_iter):
+                    electrodesuse = np.random.choice(settings.num_electrodes, numchansuse, replace=False)  # choose a random group of electrodes to use
+
+                    dfuse = datuse.loc[datuse.electrode_vec.isin([0]), ].reset_index()['SubID'].copy()  # get the data
+                    for chan in electrodesuse:
+                        dfuse = pd.concat([dfuse, datuse.loc[datuse.electrode_vec.isin([chan]), ].reset_index()[predictors]], axis=1)
+                    X = dfuse[predictors]
+
+                    # predict
+                    lm = linear_model.LinearRegression()
+                    lm.fit(X, y)
+                    RSquared[numchansuse-1, traininggroup, testday, iterations] = lm.score(X, y)
+
+        fig, axuse = plt.subplots(1, 3, figsize=(12, 6))
+        axuse[0].plot(RSquared[:, :, 0, :].mean(axis=2), '-x')
+        axuse[0].legend(settings.string_attntrained)
+
+        axuse[1].plot(RSquared[:, :, 1, :].mean(axis=2), '-x')
+        axuse[1].legend(settings.string_attntrained)
+
+        dat = RSquared[:, :, 1, :].mean(axis=2) - RSquared[:, :, 0, :].mean(axis=2)
+        axuse[2].plot(dat, '-x')
+        axuse[2].legend(settings.string_attntrained)
+
+    # next up - 9 electrodes but look at the weight changes
+
+def classification_acc_correlations(settings):
+    # TODO: Gather data from motion epochs (rather than full trial).
+    import scipy.stats as stats
+
     # Get data
     df_classifier, df_classifier_condensed = load_classifierdata(settings)
     df_selectivity = load_SSVEPdata(settings)
     df_sensitivity, bids, behaveexcludestrings_space, behaveexcludestrings_feat = load_MotionDiscrimBehaveResults(settings)
-
 
     # plot classifier accuracy by attention type
     plot_classificationacc(df_classifier_condensed, bids, settings)
@@ -331,12 +456,17 @@ def classification_acc_correlations(settings):
     plotClasificationacc_correlation(datuse=datuse, measureA='ClassifierAccuracy', measureB=['select_train_space', 'select_train_feature'], settings=settings, titlestring="Classifier Acc Vs. Selectivity Scatter", ylims = [-0.5, 0.5])
 
 
+    # Classification Acc V SSVEP Amp training effect
+    datuse = pd.concat([df_classifier_condensed[['SubID', 'TrainingGroup', 'ClassifierAccuracy']], df_selectivity[['amp_train_space', 'amp_train_feature']]], axis=1)
+    plotClasificationacc_correlation(datuse=datuse, measureA='ClassifierAccuracy', measureB=['amp_train_space', 'amp_train_feature'], settings=settings, titlestring="Classifier Acc Vs. SSVEP Amp Scatter", ylims=[-0.5, 0.5])
+
+
     ## Classification Acc V selectivity (day 1) - we'll get the non-condensed classifier data for this so we can look at what's going on with the classifier not used to generate NF
     df_classifier_space = df_classifier.loc[df_classifier['ClassifierType'] == 'Space',].reset_index()
     df_classifier_feature = df_classifier.loc[df_classifier['ClassifierType'] == 'Feature',].reset_index()
 
-    df_classifier_space = pd.concat([df_classifier_space, df_selectivity['select_pre_space']], axis=1).reset_index().rename(columns={'select_pre_space': 'select_pre'})
-    df_classifier_feature = pd.concat([df_classifier_feature, df_selectivity['select_pre_feature']], axis=1).reset_index().rename(columns={'select_pre_feature': 'select_pre'})
+    df_classifier_space = pd.concat([df_classifier_space, df_selectivity[['select_pre_space', 'amp_pre_space']]], axis=1).reset_index().rename(columns={'select_pre_space': 'select_pre', 'amp_pre_space': 'amp_pre'})
+    df_classifier_feature = pd.concat([df_classifier_feature, df_selectivity[['select_pre_feature', 'amp_pre_feature']]], axis=1).reset_index().rename(columns={'select_pre_feature': 'select_pre', 'amp_pre_feature': 'amp_pre'})
 
     df_classifier_all = pd.concat([df_classifier_space, df_classifier_feature], axis=0)
     df_classifier_all = df_classifier_all.loc[df_classifier_all.TrainingGroup.isin(["Space", "Feature"]),]
@@ -346,6 +476,9 @@ def classification_acc_correlations(settings):
     datusecorrAll = pd.concat([datusecorrSp, datusecorrFt])
     corr = stats.pearsonr(datusecorrAll['ClassifierAccuracy'], datusecorrAll['select_pre'])
     plotscatter_bytraininggroups(datusecorrSp, datusecorrFt, titlestring = "Classification Accuracy Vs SSVEP Selectivity", xlim=[50, 95], ylim = [-0.25, 0.8], corr = corr, bids = bids, settings = settings, measure = 'select_pre')
+
+    corr = stats.pearsonr(datusecorrAll['ClassifierAccuracy'], datusecorrAll['amp_pre'])
+    plotscatter_bytraininggroups(datusecorrSp, datusecorrFt, titlestring="Classification Accuracy Vs SSVEP Amp", xlim=[50, 95], ylim=[-0.25, 0.8], corr=corr, bids=bids, settings=settings, measure='amp_pre')
 
     datusecorrSp = df_classifier_all.loc[df_classifier_all.ClassifierType.isin(["Space"]),].copy()
     datusecorrFt = df_classifier_all.loc[df_classifier_all.ClassifierType.isin(["Feature"]),].copy()
@@ -365,7 +498,7 @@ def classification_acc_correlations(settings):
     plotscatter_bytraininggroups(datusecorrSp, datusecorrFt, measure = 'sensitivity_pre_spacecue', titlestring = "Classification Accuracy Vs Sensitivity pre training", xlim=[50, 95], ylim = [-1, 4], corr = corr, bids = bids, settings = settings)
 
 
-    ## Selectivity V sensitivity (day 1)
+    ## Selectivity V sensitivity
     tmp = pd.concat([df_selectivity[['select_pre_space', 'select_post_space', 'select_pre_feature', 'select_post_feature', 'select_train_space', 'select_train_feature']], df_sensitivity], axis=1)
     # tmp = tmp.loc[tmp.TrainingGroup.isin(["Space", "Feature"]),].copy()
 
@@ -414,7 +547,6 @@ def classification_acc_correlations(settings):
     corr = stats.pearsonr(datusecorrSpFt['select_train_feature'], datusecorrSpFt['sensitivity_train_featcue'])
     corrsh = stats.pearsonr(datusecorrSh['select_train_feature'], datusecorrSh['sensitivity_train_featcue'])
     plotscatter_bytraininggroups_sham(datusecorrSp, datusecorrFt,datusecorrSh, measure=['select_train_feature', 'sensitivity_train_featcue'], titlestring="Selectivity train Vs Sensitivity train feat", xlim=[-0.6, 0.6], ylim=[-1, 2.5], corr=corr, corrsh=corrsh, bids=bids, settings=settings)
-
 
 
 def classification_acc_correlations_old(settings):

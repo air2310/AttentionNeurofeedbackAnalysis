@@ -707,6 +707,61 @@ def topoplot_SSVEPs_group(raw, SSVEPs, ERPstring, settings, bids):
     fig.suptitle(titlestring)
     plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
 
+
+    ####### Difference Plot ( Attd - unattd)
+
+    SSVEPs_Select = SSVEPs_mean[:, 0, :, :] - SSVEPs_mean[:, 1, :, :]  # attntype, day, attd
+
+    fig, ax = plt.subplots(2, 2, figsize=(8, 8))
+    count = -1
+    for attntype in np.arange(2):
+        vmin, vmax = 0, np.max(np.abs(SSVEPs_Select[:, :, attntype]))  # get limits
+        for day in np.arange(2):
+
+            plt.axes(ax[attntype, day])
+            dataplot =SSVEPs_Select[:, day, attntype]  # chans, # daycount, # attd unattd, # space/feat
+            dataplot = np.append(dataplot, [0, 0, 0])
+
+            im = mne.viz.plot_topomap(dataplot, topodat.info, cmap="viridis", show_names=False,
+                                      names=list(('Iz', 'Oz', 'POz', 'O1', 'O2', 'PO3', 'PO4', 'PO7', 'PO8', 'Pz',
+                                                  'P9', 'P10')), vmin=vmin, vmax=vmax, contours=0)
+
+            plt.title(settings.string_cuetype[attntype] + " "  + settings.string_prepost[day])
+
+            # plt.colorbar(plt.cm.ScalarMappable(cmap=im[0].cmap))
+            plt.colorbar(im[0], shrink=0.5)
+
+    titlestring = ERPstring + ' Topoplots pre-post Selectivity mot coher'
+    fig.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
+
+    ####### Difference Plot ( Attd - unattd)(Day4 - Day1)
+
+    SSVEPs_Select_day = SSVEPs_Select[:, 1, :] - SSVEPs_Select[:, 0, :]  #  day, attd
+
+    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+    vmin, vmax = -0.035, 0.035 #-np.max(np.abs(SSVEPs_Select_day[:])), np.max(np.abs(SSVEPs_Select_day[:]))  # get limits
+
+    for attntype in np.arange(2):
+
+        plt.axes(ax[attntype])
+        dataplot = SSVEPs_Select_day[:, attntype]  # chans, # daycount, # attd unattd, # space/feat
+        dataplot = np.append(dataplot, [0, 0, 0])
+
+        im = mne.viz.plot_topomap(dataplot, topodat.info, cmap="viridis", show_names=False,
+                                  names=list(('Iz', 'Oz', 'POz', 'O1', 'O2', 'PO3', 'PO4', 'PO7', 'PO8', 'Pz',
+                                              'P9', 'P10')), vmin=vmin, vmax=vmax, contours=0)
+
+        plt.title(settings.string_cuetype[attntype] )
+
+        # plt.colorbar(plt.cm.ScalarMappable(cmap=im[0].cmap))
+        plt.colorbar(im[0], shrink=0.5)
+
+    titlestring = ERPstring + ' Topoplots selectivity training efct mot coher'
+    fig.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
+
+
 def plotGroupFFTSpectrum(fftdat_ave, bids, ERPstring, settings, freq):
     import matplotlib.pyplot as plt
     from pathlib import Path
