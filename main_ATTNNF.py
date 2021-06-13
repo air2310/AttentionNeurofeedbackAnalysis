@@ -9,12 +9,12 @@ import analyse_nbacktask as anback
 import analyse_motiontask as analyse_motiontask
 import analyseNeurofeedback as analyse_NF
 import CorrelationAnalyses as analyse_corr
+import RSA as RSA
 import matplotlib.pyplot as plt
 
 #### New Analyses
 
-# TODO: EEG Stats in R
-# TODO: EEG Stats for motion epochs
+# TODO: RSA
 # TODO: During NF.
 # TODO: Statistical tests for wavelets
 
@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 
 
 # setup generic settings
-attntrained = 1  # 0 = Space, 1 = Feature, 2 = Sham
+attntrained = 0  # 0 = Space, 1 = Feature, 2 = Sham
 settings = helper.SetupMetaData(attntrained)
 print("Analysing Data for condition train: " + settings.string_attntrained[settings.attntrained])
 
@@ -54,6 +54,8 @@ analyse_nbacktask = False  # Analyse N-back Task
 # analyse_Neurofeedback = True # Analyse Neurofeedback and sustained attention
 analyse_Neurofeedback = False  # Analyse Neurofeedback and sustained attention
 
+# analyse_subjectRSA = True
+analyse_subjectRSA = False
 
 ######## Decide which group analyses to do ########
 
@@ -66,8 +68,8 @@ collate_behaviour_duringNF = False  # Collate Behaviour during Training
 # collateEEGprepost = True # Collate EEG Pre Vs. Post Training across subjects
 collateEEGprepost = False  # Collate EEG Pre Vs. Post Training across subjects
 
-collateEEGprepost_motioncoherenceepochs = True # Collate EEG Pre Vs. Post Training across subjects
-# collateEEGprepost_motioncoherenceepochs = False  # Collate EEG Pre Vs. Post Training across subjects
+# collateEEGprepost_motioncoherenceepochs = True # Collate EEG Pre Vs. Post Training across subjects
+collateEEGprepost_motioncoherenceepochs = False  # Collate EEG Pre Vs. Post Training across subjects
 
 # collateEEG_duringNF = True  # Collate EEG during Neurofeedback
 collateEEG_duringNF = False  # Collate EEG during Neurofeedback
@@ -106,7 +108,7 @@ pd.set_option('display.max_columns', None)
 
 for sub_count, sub_val in enumerate(settings.subsIDX):
     print(sub_val)
-    plt.close('all')
+    # plt.close('all')
     if analyse_behaviour_prepost:
         test_train = 0
         analyse_motiontask.run(settings, sub_val, test_train)
@@ -132,6 +134,9 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
 
     if analyse_nbacktask:
         anback.analyse_nbacktask(settings, sub_val)
+
+    if analyse_subjectRSA:
+        RSA.participantRSA(settings, sub_val)
 
 
 ##### Collate results across all subjects analyses #####

@@ -175,6 +175,7 @@ def getSSVEPs(erps_days, epochs_days, epochs, settings, bids):
 
     return fftdat, fftdat_epochs, freq
 
+
 def getSSVEPS_conditions(settings, fftdat, freq, cueduncued):
 
     fftdatuse = fftdat[:,:,:,:,cueduncued,:]
@@ -330,6 +331,7 @@ def plotResultsPrePost_subjects(SSVEPs_prepost_mean, settings, ERPstring, bids):
     fig.suptitle(titlestring)
     plt.savefig(bids.direct_results / Path(titlestring + '.png'), format='png')
 
+
 def topoplot_SSVEPs(raw, SSVEPs, ERPstring, settings, bids):
     import matplotlib.pyplot as plt
     from pathlib import Path
@@ -399,6 +401,7 @@ def topoplot_SSVEPs(raw, SSVEPs, ERPstring, settings, bids):
     # plt.savefig(bids.direct_results / Path(titlestring + '.png'), format='png')
 
     return topodat.info
+
 
 def get_wavelets_prepost(epochs_days, settings, epochs, BEST, bids,cueduncued):
     import mne
@@ -497,6 +500,7 @@ def get_wavelets_prepost(epochs_days, settings, epochs, BEST, bids,cueduncued):
 
     return wavelets_prepost
 
+
 def collateEEGprepost(settings):
     print('collating SSVEP amplitudes pre Vs. post training')
     # get settings specific to this analysis
@@ -537,6 +541,7 @@ def collateEEGprepost(settings):
 
     np.savez(bids.direct_results_group / Path("EEGResults_prepost_motcoher"),
              SSVEPs_epochs_prepost_group=SSVEPs_epochs_prepost_group,
+             SSVEPs_topodat_group=SSVEPs_topodat_group,
              fftdat_epochs_group=fftdat_epochs_group,
              wavelets_prepost_group=wavelets_prepost_group,
              timepoints_use=timepoints_use,
@@ -640,6 +645,7 @@ def collateEEGprepost(settings):
     np.save(bids.direct_results_group / Path("group_ssvep_selectivity_prepost_epochs_motcoher.npy"), tmp)
 
     np.save(bids.direct_results_group / Path("group_ssvep_prepost_motcoher.npy"), SSVEPs_epochs_prepost_group)
+
 
 def topoplot_SSVEPs_group(raw, SSVEPs, ERPstring, settings, bids):
     import matplotlib.pyplot as plt
@@ -800,6 +806,7 @@ def plotGroupFFTSpectrum(fftdat_ave, bids, ERPstring, settings, freq):
     fig.suptitle(titlestring)
     plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
 
+
 def plotGroupSSVEPsprepost(SSVEPs_prepost_group, bids, ERPstring, settings):
     import matplotlib.pyplot as plt
     from pathlib import Path
@@ -884,4 +891,248 @@ def plotGroupSSVEPsprepost(SSVEPs_prepost_group, bids, ERPstring, settings):
     plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
 
 
+def collateEEGprepostcompare(settings):
 
+    print('collating SSVEP amplitudes pre Vs. post training compareing Space Vs. Feat Training')
+
+    # preallocate
+    num_subs = np.zeros((settings.num_attnstates))
+
+    substrings_all = []
+    daystrings = []
+    attnstrings = []
+    attntaskstrings = []
+
+    selectivity_compare = []
+    SSVEPs_attd = []
+    SSVEPs_unattd = []
+    SSVEPs_var = []
+
+    # cycle trough space and feature train groups
+    # for attntrained in np.arange(settings.num_attnstates):  # cycle trough space and feature train groups
+    for attntrained, attntrainedstr in enumerate(settings.string_attntrained):  # cycle trough space, feature and sham train groups
+        # get task specific settings
+        settings = helper.SetupMetaData(attntrained)
+        settings = settings.get_settings_EEG_prepost()
+
+        # load results
+        bids = helper.BIDS_FileNaming(0, settings, 1)
+        results = np.load(bids.direct_results_group / Path("EEGResults_prepost_motcoher.npz"), allow_pickle=True)  #
+
+        SSVEPs_prepost_group = results['SSVEPs_epochs_prepost_group']  #[attd,day,cuetype,sub]
+        diffdat = SSVEPs_prepost_group[0, :, :, :] - SSVEPs_prepost_group[1, :, :, :]  # [day,cuetype,sub]
+        attddat = SSVEPs_prepost_group[0, :, :, :]
+        unattddat = SSVEPs_prepost_group[1, :, :, :]
+
+        SSVEPs_topodat_group = results['SSVEPs_topodat_group'] #[Chans,attd,day,cuetype,sub]
+        diffdattopo = SSVEPs_topodat_group[:, 0, :, :, :] - SSVEPs_topodat_group[:, 1, :, :, :]  # [day,cuetype,sub]
+        attddattopo = SSVEPs_topodat_group[:, 0, :, :, :]
+        unattddattopo = SSVEPs_topodat_group[:, 1, :, :, :]
+        diffdatvar = np.mean(diffdattopo[0:2, :, :, :],axis = 0)
+
+        # file names
+        substrings = []
+        for sub_count, sub_val in enumerate(settings.subsIDXcollate):
+            for testday, daystring in enumerate(settings.string_prepost):
+                for cue, cuestring in enumerate(["Space", "Feature"]):
+                    substrings_all.append(sub_val)
+                    daystrings.append(daystring)
+                    attntaskstrings.append(cuestring)
+                    attnstrings.append(attntrainedstr)
+
+                    # data
+                    selectivity_compare.append(diffdat[testday, cue, sub_count])
+                    SSVEPs_attd.append(attddat[testday, cue, sub_count])
+                    SSVEPs_unattd.append(unattddat[testday, cue, sub_count])
+                    SSVEPs_var.append(diffdatvar[testday, cue, sub_count])
+
+    data = {'SubID': substrings_all, 'Testday': daystrings, 'Attention Type': attntaskstrings,
+            'Attention Trained': attnstrings, 'Selectivity (ΔµV)': selectivity_compare,
+            'SSVEPs_attd': SSVEPs_attd, 'SSVEPs_unattd': SSVEPs_unattd, 'SSVEPs_var': SSVEPs_var}
+    df_selectivity = pd.DataFrame(data)
+
+    # # lets run some stats with R - save it out
+    df_selectivity.to_csv(bids.direct_results_group_compare / Path("motiondiscrim_SelectivityResults_ALL_motcoher.csv"),
+                         index=False)
+
+    ################# SSVEP Amps ##################
+    df_grouped = df_selectivity.groupby(["SubID", "Attention Type"]).mean().reset_index()
+
+    attd = df_grouped[["SubID", "Attention Type", "SSVEPs_attd"]].copy()
+    unattd = df_grouped[["SubID", "Attention Type", "SSVEPs_unattd"]].copy()
+    attd["Cue"] = 'Attended'
+    unattd["Cue"] = 'Unattended'
+    attd = attd.rename(columns={"SSVEPs_attd": "SSVEPs"})
+    unattd = unattd.rename(columns={"SSVEPs_unattd": "SSVEPs"})
+
+    df_SSVEPs = pd.concat([attd, unattd], ignore_index=True)
+
+    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+
+    # SSVEP Grouped violinplot
+    colors = [settings.lightteal, settings.medteal]
+    for i in np.arange(2):
+        datplot = df_SSVEPs[df_SSVEPs["Attention Type"] == settings.string_attntrained[i]]
+
+        sns.swarmplot(x="Cue", y="SSVEPs", data=datplot, color="0", ax=ax[i])
+        sns.violinplot(x="Cue", y="SSVEPs", data=datplot, palette=sns.color_palette(colors), style="ticks",
+                       ax=ax[i], inner="box", alpha=0.6)
+
+        ax[i].spines['top'].set_visible(False)
+        ax[i].spines['right'].set_visible(False)
+        ax[i].set_ylim([0, 1.75])
+        ax[i].set_title(settings.string_attntrained[i])
+
+    titlestring = 'Motion Task SSVEP Amplitudes by attention type mot coher'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
+
+    ################# SELECTIVITY #################
+    # plot results - maximum split
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+    sns.set(style="ticks")
+    colors = ["#F2B035", "#EC553A"]
+
+    # Accuracy Grouped violinplot
+    sns.violinplot(x="Attention Trained", y="Selectivity (ΔµV)", hue="Testday",
+                   data=df_selectivity[df_selectivity["Attention Type"].isin(["Space"])],
+                   palette=sns.color_palette(colors), ax=ax1, split=True, inner="stick")
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+
+    ax1.set_title(settings.string_attntrained[0] + " Attention")
+    ax1.set_ylim(-0.5, 1.2)
+
+    # Accuracy Grouped violinplot
+    sns.violinplot(x="Attention Trained", y="Selectivity (ΔµV)", hue="Testday",
+                   data=df_selectivity[df_selectivity["Attention Type"].isin(["Feature"])],
+                   palette=sns.color_palette(colors), ax=ax2, split=True, inner="stick")
+    ax2.spines['top'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+
+    ax2.set_title(settings.string_attntrained[1] + " Attention")
+    ax2.set_ylim(-0.25, 0.65)
+
+    titlestring = 'Attentional Selectivity PrePost Compare Training  mot coher'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+
+    ################# SELECTIVITY TOPO #################
+    # plot results - maximum split
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+    sns.set(style="ticks")
+    colors = ["#F2B035", "#EC553A"]
+
+    # Accuracy Grouped violinplot
+    sns.violinplot(x="Attention Trained", y="SSVEPs_var", hue="Testday",
+                   data=df_selectivity[df_selectivity["Attention Type"].isin(["Space"])],
+                   palette=sns.color_palette(colors), ax=ax1, split=True, inner="stick")
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+
+    ax1.set_title(settings.string_attntrained[0] + " Attention")
+    # ax1.set_ylim(-0.5, 1.2)
+
+    # Accuracy Grouped violinplot
+    sns.violinplot(x="Attention Trained", y="SSVEPs_var", hue="Testday",
+                   data=df_selectivity[df_selectivity["Attention Type"].isin(["Feature"])],
+                   palette=sns.color_palette(colors), ax=ax2, split=True, inner="stick")
+    ax2.spines['top'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+
+    ax2.set_title(settings.string_attntrained[1] + " Attention")
+    # ax2.set_ylim(-0.25, 0.65)
+
+    titlestring = 'Attentional Selectivity topo PrePost Compare Training mot coher'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+    ##########################################  plot day 1 Vs. Day 4 Results ##########################################
+    #### Selectivity Data ####
+    df_grouped = df_selectivity.groupby(["SubID", "Testday"]).mean().reset_index()
+
+    fig, (ax1) = plt.subplots(1, 1, figsize=(6, 6))
+
+    # Reaction time Grouped violinplot
+    colors = [settings.lightteal]
+
+    sns.swarmplot(x="Testday", y="Selectivity (ΔµV)", data=df_grouped, color="0",
+                  order=["pre-training", "post-training"])
+    sns.violinplot(x="Testday", y="Selectivity (ΔµV)", data=df_grouped, palette=sns.color_palette(colors),
+                   style="ticks",
+                   ax=ax1, inner="box", alpha=0.6, order=["pre-training", "post-training"])
+
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+
+    titlestring = 'Motion Task SSVEP Selectivity by Day pre Vs. post mot coher'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
+
+    ##########################################  Calculate training effects  ##########################################
+    idx_d1 = df_selectivity["Testday"] == "pre-training"
+    idx_d4 = df_selectivity["Testday"] == "post-training"
+
+    tmpd4 = df_selectivity[idx_d4].reset_index()
+    tmpd1 = df_selectivity[idx_d1].reset_index()
+
+    df_SSVEPtraineffects = tmpd4[["Attention Trained", "Attention Type"]].copy()
+    df_SSVEPtraineffects["∆ Selectivity"] = tmpd4['Selectivity (ΔµV)'] - tmpd1['Selectivity (ΔµV)']
+    df_SSVEPtraineffects["∆ Selectivity Topo"] = tmpd4['SSVEPs_var'] - tmpd1['SSVEPs_var']
+
+    ##########################################  plot training effects against attention trained and attention type ##########################################
+    # df_SSVEPtraineffects = df_SSVEPtraineffects.drop(index=[139, 150])
+    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+
+    # Reaction time Grouped violinplot
+    colors = [settings.yellow, settings.orange, settings.red]
+
+    for i in np.arange(2):
+        datplot = df_SSVEPtraineffects[df_SSVEPtraineffects["Attention Type"] == settings.string_attntrained[i]]
+
+        sns.swarmplot(x="Attention Trained", y="∆ Selectivity", data=datplot, color="0", alpha=0.3, ax=ax[i])
+        sns.violinplot(x="Attention Trained", y="∆ Selectivity", data=datplot, palette=sns.color_palette(colors),
+                       style="ticks",
+                       ax=ax[i], inner="box", alpha=0.6)
+
+        ax[i].spines['top'].set_visible(False)
+        ax[i].spines['right'].set_visible(False)
+        if i == 0:
+            ax[i].set_ylim([-0.75, 0.75])
+        ax[i].set_title(settings.string_attntrained[i])
+
+    titlestring = 'Motion Task SSVEP Selectivity training effect by attention mot coher'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
+
+
+    # Selectivity Topo
+    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+
+    # Reaction time Grouped violinplot
+    colors = [settings.yellow, settings.orange, settings.red]
+
+    for i in np.arange(2):
+        datplot = df_SSVEPtraineffects[df_SSVEPtraineffects["Attention Type"] == settings.string_attntrained[i]]
+
+        sns.swarmplot(x="Attention Trained", y="∆ Selectivity Topo", data=datplot, color="0", alpha=0.3, ax=ax[i])
+        sns.violinplot(x="Attention Trained", y="∆ Selectivity Topo", data=datplot, palette=sns.color_palette(colors),
+                       style="ticks",
+                       ax=ax[i], inner="box", alpha=0.6)
+
+        ax[i].spines['top'].set_visible(False)
+        ax[i].spines['right'].set_visible(False)
+        if i == 0:
+            ax[i].set_ylim([-0.4, 0.6])
+        ax[i].set_title(settings.string_attntrained[i])
+
+    titlestring = 'Motion Task SSVEP Selectivity topo training effect by attention mot coher'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')

@@ -50,19 +50,19 @@ class SetupMetaData:
 
         # get correct subject indices
         if (self.attntrained == 0): # Space
-            self.subsIDX =        np.array(([107 ]))  # to analyse
+            self.subsIDX =        np.array(([10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112,      118, 123, 125, 128 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60])) ]))  # to analyse
             self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112,      118, 123, 125, 128 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
             self.subsIDXall =     np.array(([10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112, 113, 118, 123, 125, 128]))
             # 35
 
         if (self.attntrained == 1):  # Feature
-            self.subsIDX =        np.array(([80, 110, 116])) # 1, 2,
+            self.subsIDX =        np.array(([77, 78, 80])) # 1, 2,
             self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 119, 120, 121])) #np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
             self.subsIDXall =     np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 119, 120, 121]))
             # 37
 
         if (self.attntrained == 2):  # Sham
-            self.subsIDX =        np.array(([14, 27]))
+            self.subsIDX =        np.array(([23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39]))
             self.subsIDXcollate = np.array(([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39]))
             self.subsIDXall =     np.array(([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39]))
             # 37
@@ -78,7 +78,7 @@ class SetupMetaData:
         self.daysuse = [1, 4]
         self.num_trials = 192
         self.num_conditions = 4
-
+        self.num_conditionsRSA = 32
         # EEG settings
         self.samplingfreq = 1200
         self.num_electrodes = 9
@@ -89,12 +89,14 @@ class SetupMetaData:
         self.timelimits_zeropad = np.array([self.timelimits[0]-self.zeropading, self.timelimits[1]+self.zeropading])
 
         self.timelimits_motionepochs = np.array([-1, 2]) # Epoch start and end time (seconds) relative to cue onset
+        self.timelimits_RSA = np.array([-1, 2])  # Epoch start and end time (seconds) relative to cue onset
 
         # relevant triggers
         trig_cuestart_cuediff = {'Feat/Black': 121, 'Feat/White': 122,
                                  'Space/Left_diag': 123,
                                  'Space/Right_diag': 124}  # will be different triggers for training days
 
+        # Motion Onset triggers - programmed version and fixed version.
         self.num_relativepositions = 2 # top or bottom patch
         self.trig_motiononset = np.zeros((4, self.num_spaces, self.num_features, self.num_relativepositions)) # [FASA, FUSA, FASU, FUFU]
 
@@ -111,11 +113,7 @@ class SetupMetaData:
         self.trig_motiononset_new[:, 0, 1] = [5, 6]
         self.trig_motiononset_new[:, 1, 1] = [7, 8]
 
-        # settings.trig_motiononset_new = np.zeros((settings.num_attnstates, settings.num_levels, settings.num_attd_unattd))  # cue (space, feat), where was cued (level a, level b), where was movement (cued, uncued)
-        # settings.trig_motiononset_new[:, 0, 0] = [1, 2]
-        # settings.trig_motiononset_new[:, 1, 0] = [3, 4]
-        # settings.trig_motiononset_new[:, 0, 1] = [5, 6]
-        # settings.trig_motiononset_new[:, 1, 1] = [7, 8]
+
         return self
 
     def get_settings_behave_prepost(self):

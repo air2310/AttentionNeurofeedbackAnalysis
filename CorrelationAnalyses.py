@@ -176,11 +176,12 @@ def load_SSVEPdata_electrodes(settings, day):
 
             # load results
             results = np.load(bids.direct_results / Path(bids.substring + "EEG_pre_post_results.npz"), allow_pickle=True)
+            # results = np.load(bids.direct_results / Path(bids.substring + "EEG_pre_post_results_coherentmotionepochs.npz"), allow_pickle=True)
             # saved vars: SSVEPs_prepost_channelmean, SSVEPs_prepost_channelmean_epochs, wavelets_prepost, timepoints_zp, erps_days_wave, fftdat, fftdat_epochs, freq)
 
             # store results
             # tmp = results['SSVEPs_prepost']
-            tmp = results['SSVEPs_prepost'] #Settings.numchans, settings.num_attd_unattd, settings.num_days, settings.num_attnstates
+            tmp = results['SSVEPs_prepost_epochs'] #Settings.numchans, settings.num_attd_unattd, settings.num_days, settings.num_attnstates
 
             for i in np.arange(settings.num_electrodes):
                 attd, state = 0, 0
@@ -383,19 +384,59 @@ def ElectrodePerformanceRegression(settings):
     # TODO: Gather data from motion epochs (rather than full trial).
     import scipy.stats as stats
     from sklearn import linear_model
-    import random
+    import itertools
+    from sklearn.model_selection import cross_validate
 
     # Get data
     df_sensitivity, bids, behaveexcludestrings_space, behaveexcludestrings_feat = load_MotionDiscrimBehaveResults(settings)
 
+    # Cross validate Alpha
     ## Regression for space task
     predictors = ['amp_space_attd', 'amp_space_unattd', 'amp_space_select']
-    num_iter = 100
+
+    num_iter = 126
     num_traininggroups = 3
     num_prepost = 2
+    settings.num_electrodes = 9
+    num_folds = 10
+    alphas = [0.001, 0.005, 0.01, 0.7, 0.05, 0.2, 0.1, 0.5]
+    RSquared_alpha = np.zeros((num_folds, len(alphas), num_traininggroups, num_prepost))
+    RSquared_alpha[:] = np.nan
 
-    RSquared = np.zeros((settings.num_electrodes, num_traininggroups, num_prepost, num_iter))
+    for testday in np.arange(num_prepost):
+        df_SSVEPs = load_SSVEPdata_electrodes(settings, day=testday)
+
+        for alphacount, alpha in enumerate(alphas):
+            for traininggroup, traininggroupstr in enumerate(settings.string_attntrained):
+                y = df_sensitivity.loc[df_sensitivity.TrainingGroup == traininggroupstr,].reset_index()['sensitivity_pre_spacecue']
+                datuse = df_SSVEPs.loc[df_SSVEPs.TrainingGroup == traininggroupstr,].reset_index()
+
+                # choose all 9 electrodes
+                electrodesuse = np.arange(settings.num_electrodes)
+                dfuse = datuse.loc[datuse.electrode_vec.isin([0]),].reset_index()['SubID'].copy()  # get the data
+                for chan in electrodesuse:
+                    dfuse = pd.concat([dfuse, datuse.loc[datuse.electrode_vec.isin([chan]),].reset_index()[predictors]], axis=1)
+                X = dfuse[predictors]
+
+                # predict
+                lm = linear_model.Lasso(alpha=alpha)  # linear_model.LinearRegression()
+                lm.fit(X=X, y=y)
+                cv_results = cross_validate(lm, X, y, cv=num_folds, scoring=('r2', 'neg_mean_squared_error'), return_train_score=True)
+                RSquared_alpha[:, alphacount, traininggroup, testday] = cv_results['test_r2']
+
+    alpha_index=np.argmax(RSquared_alpha[:, :, :, :].mean(axis=0).mean(axis=1).mean(axis=1))
+    print(alphas[alpha_index])
+    alphause = 0.001 # 0.05
+
+    ## Regression for space task
+    predictors = ['amp_space_attd', 'amp_space_unattd', 'amp_space_select']
+    num_iter = 126
+    num_traininggroups = 3
+    num_prepost = 2
+    settings.num_electrodes = 9
+    RSquared = np.zeros((num_folds, settings.num_electrodes, num_traininggroups, num_prepost, num_iter))
     RSquared[:] = np.nan
+
 
     for testday in np.arange(num_prepost):
         df_SSVEPs = load_SSVEPdata_electrodes(settings, day=testday)
@@ -405,8 +446,10 @@ def ElectrodePerformanceRegression(settings):
             datuse = df_SSVEPs.loc[df_SSVEPs.TrainingGroup == traininggroupstr,].reset_index()
 
             for numchansuse in np.arange(1,settings.num_electrodes+1):
-                for iterations in np.arange(num_iter):
-                    electrodesuse = np.random.choice(settings.num_electrodes, numchansuse, replace=False)  # choose a random group of electrodes to use
+
+                electrodesuse_combos = list(itertools.combinations(np.arange(settings.num_electrodes), numchansuse))
+                for iterations in np.arange(len(electrodesuse_combos)):
+                    electrodesuse = electrodesuse_combos[0]  # choose a random group of electrodes to use
 
                     dfuse = datuse.loc[datuse.electrode_vec.isin([0]), ].reset_index()['SubID'].copy()  # get the data
                     for chan in electrodesuse:
@@ -414,22 +457,114 @@ def ElectrodePerformanceRegression(settings):
                     X = dfuse[predictors]
 
                     # predict
-                    lm = linear_model.LinearRegression()
-                    lm.fit(X, y)
-                    RSquared[numchansuse-1, traininggroup, testday, iterations] = lm.score(X, y)
+                    # lm = linear_model.LinearRegression()
+                    # lm.fit(X, y)
+                    lm = linear_model.Lasso(alpha=0.01)  # linear_model.LinearRegression()
+                    # lm.fit(X=X, y=y)
+                    # RSquared[:, numchansuse-1, traininggroup, testday, iterations] = lm.score(X, y)
+                    cv_results = cross_validate(lm, X, y, cv=num_folds, scoring=('r2', 'neg_mean_squared_error'), return_train_score=True)
+                    RSquared[:, numchansuse-1, traininggroup, testday, iterations]  = cv_results['test_r2']
 
-        fig, axuse = plt.subplots(1, 3, figsize=(12, 6))
-        axuse[0].plot(RSquared[:, :, 0, :].mean(axis=2), '-x')
-        axuse[0].legend(settings.string_attntrained)
+    rplot  = np.nanmean(np.nanmean(RSquared, axis=0), axis=2)
+    fig, axuse = plt.subplots(1, 3, figsize=(12, 6))
+    axuse[0].plot(rplot[:, :, 0], '-x')
+    axuse[0].legend(settings.string_attntrained)
 
-        axuse[1].plot(RSquared[:, :, 1, :].mean(axis=2), '-x')
-        axuse[1].legend(settings.string_attntrained)
+    axuse[1].plot(rplot[:, :, 1], '-x')
+    axuse[1].legend(settings.string_attntrained)
 
-        dat = RSquared[:, :, 1, :].mean(axis=2) - RSquared[:, :, 0, :].mean(axis=2)
-        axuse[2].plot(dat, '-x')
-        axuse[2].legend(settings.string_attntrained)
+    dat =rplot[:, :, 1]- rplot[:, :, 0]
+    axuse[2].plot(dat, '-x')
+    axuse[2].legend(settings.string_attntrained)
+
+    predictors = ['amp_feature_attd', 'amp_feature_unattd', 'amp_feature_select']
+    num_iter = 126
+    num_traininggroups = 3
+    num_prepost = 2
+    settings.num_electrodes = 9
+    RSquared = np.zeros((num_folds, settings.num_electrodes, num_traininggroups, num_prepost, num_iter))
+    RSquared[:] = np.nan
+
+    for testday in np.arange(num_prepost):
+        df_SSVEPs = load_SSVEPdata_electrodes(settings, day=testday)
+
+        for traininggroup, traininggroupstr in enumerate(settings.string_attntrained):
+            y = df_sensitivity.loc[df_sensitivity.TrainingGroup == traininggroupstr,].reset_index()['sensitivity_pre_featcue']
+            datuse = df_SSVEPs.loc[df_SSVEPs.TrainingGroup == traininggroupstr,].reset_index()
+
+            for numchansuse in np.arange(1, settings.num_electrodes + 1):
+
+                electrodesuse_combos = list(itertools.combinations(np.arange(settings.num_electrodes), numchansuse))
+                for iterations in np.arange(len(electrodesuse_combos)):
+                    electrodesuse = electrodesuse_combos[0]  # choose a random group of electrodes to use
+
+                    dfuse = datuse.loc[datuse.electrode_vec.isin([0]),].reset_index()['SubID'].copy()  # get the data
+                    for chan in electrodesuse:
+                        dfuse = pd.concat([dfuse, datuse.loc[datuse.electrode_vec.isin([chan]),].reset_index()[predictors]], axis=1)
+                    X = dfuse[predictors]
+
+                    # predict
+                    # lm = linear_model.LinearRegression()
+                    # lm.fit(X, y)
+                    lm = linear_model.Lasso(alpha=alphause)  # linear_model.LinearRegression()
+                    # lm.fit(X=X, y=y)
+                    # RSquared[:, numchansuse-1, traininggroup, testday, iterations] = lm.score(X, y)
+                    cv_results = cross_validate(lm, X, y, cv=num_folds, scoring=('r2', 'neg_mean_squared_error'), return_train_score=True)
+                    RSquared[:, numchansuse - 1, traininggroup, testday, iterations] = cv_results['test_r2']
+
+    rplot = np.nanmean(np.nanmean(RSquared, axis=0), axis=2)
+    fig, axuse = plt.subplots(1, 3, figsize=(12, 6))
+    axuse[0].plot(rplot[:, :, 0], '-x')
+    axuse[0].legend(settings.string_attntrained)
+
+    axuse[1].plot(rplot[:, :, 1], '-x')
+    axuse[1].legend(settings.string_attntrained)
+
+    dat = rplot[:, :, 1] - rplot[:, :, 0]
+    axuse[2].plot(dat, '-x')
+    axuse[2].legend(settings.string_attntrained)
 
     # next up - 9 electrodes but look at the weight changes
+    ## Regression for space task
+    predictors = ['amp_feature_attd', 'amp_feature_unattd', 'amp_feature_select']
+    num_traininggroups = 3
+    num_prepost = 2
+
+    Weights = np.zeros((settings.num_electrodes*3, num_traininggroups, num_prepost))
+    Weights[:] = np.nan
+
+    for testday in np.arange(num_prepost):
+        df_SSVEPs = load_SSVEPdata_electrodes(settings, day=testday)
+
+        for traininggroup, traininggroupstr in enumerate(settings.string_attntrained):
+            y = df_sensitivity.loc[df_sensitivity.TrainingGroup == traininggroupstr,].reset_index()['sensitivity_pre_featcue']
+            datuse = df_SSVEPs.loc[df_SSVEPs.TrainingGroup == traininggroupstr,].reset_index()
+
+            # choose all 9 electrodes
+            electrodesuse = np.arange(settings.num_electrodes)
+            dfuse = datuse.loc[datuse.electrode_vec.isin([0]),].reset_index()['SubID'].copy()  # get the data
+            for chan in electrodesuse:
+                dfuse = pd.concat([dfuse, datuse.loc[datuse.electrode_vec.isin([chan]),].reset_index()[predictors]], axis=1)
+            X = dfuse[predictors]
+
+            # predict
+            lm = linear_model.Lasso(alpha=0.00001) #linear_model.LinearRegression()
+            lm.fit(X=X, y=y)
+            Weights[:, traininggroup, testday] = lm.coef_
+            print(lm.score(X, y))
+
+    fig, axuse = plt.subplots(1, 3, figsize=(12, 6))
+    cond =2
+    axuse[0].bar(np.arange(9*3), Weights[:, cond, 0])
+    # axuse[0].set_ylim([-50,50])
+
+    axuse[1].bar(np.arange(9*3), Weights[:, cond, 1])
+    # axuse[1].set_ylim([-50,50])
+
+    dat = Weights[:, cond, 1] - Weights[:, cond, 0]
+    axuse[2].bar(np.arange(9*3), dat)
+    # axuse[2].set_ylim([-50,50])
+
 
 def classification_acc_correlations(settings):
     # TODO: Gather data from motion epochs (rather than full trial).
