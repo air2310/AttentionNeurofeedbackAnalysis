@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 
 
 # setup generic settings
-attntrained = 0  # 0 = Space, 1 = Feature, 2 = Sham
+attntrained = 1 # 0 = Space, 1 = Feature, 2 = Sham
 settings = helper.SetupMetaData(attntrained)
 print("Analysing Data for condition train: " + settings.string_attntrained[settings.attntrained])
 
@@ -92,12 +92,14 @@ collate_Neurofeedback = False  # collate Neurofeedback and sustained attention
 # collate_behaviour_prepost_compare = True # Collate Behaviour Pre Vs. Post Training compare training groups
 collate_behaviour_prepost_compare = False  # Collate Behaviour Pre Vs. Post Training compare training groups
 
-# collate_behaviour_duringNF_compare = True # Collate Behaviour during Training compare training groups
-collate_behaviour_duringNF_compare = False  # Collate Behaviour during Training compare training groups
+collate_behaviour_duringNF_compare = True # Collate Behaviour during Training compare training groups
+# collate_behaviour_duringNF_compare = False  # Collate Behaviour during Training compare training groups
 
 # collateEEGprepostcompare = True # Collate EEG Pre Vs. Post Training across subjects
 collateEEGprepostcompare = False  # Collate EEG Pre Vs. Post Training across subjects
 
+# collate_RSA = True
+collate_RSA = False
 
 # Some settings for how things will run
 pd.set_option('display.max_rows', None)
@@ -108,7 +110,7 @@ pd.set_option('display.max_columns', None)
 
 for sub_count, sub_val in enumerate(settings.subsIDX):
     print(sub_val)
-    # plt.close('all')
+    plt.close('all')
     if analyse_behaviour_prepost:
         test_train = 0
         analyse_motiontask.run(settings, sub_val, test_train)
@@ -187,3 +189,7 @@ if collate_nbacktask:
 
 if classification_acc_correlations:
     analyse_corr.classification_acc_correlations(settings)
+
+# Collate RSA
+if collate_RSA:
+    RSA.collate_RSA(settings)

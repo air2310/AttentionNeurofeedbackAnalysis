@@ -36,6 +36,8 @@ def getMotionEventInfo(settings, sub_val, day_val):
     return MovePos, MoveFeat
 
 def participantRSA(settings, sub_val):
+    from scipy.fft import fft, fftfreq, fftshift
+    import matplotlib.pyplot as plt
     print('analysing SSVEP amplitudes pre Vs. post training')
 
     # get settings specific to this analysis
@@ -48,6 +50,9 @@ def participantRSA(settings, sub_val):
     # preallocate
     ERPs_days = np.empty(( settings.num_electrodes, len(timepoints_zp) + 1, settings.num_conditionsRSA, settings.num_days))
     ERPs_days[:] = np.nan
+
+    FFTs_days = np.empty((settings.num_electrodes, len(timepoints_zp) + 1, settings.num_conditionsRSA, settings.num_days))
+    FFTs_days[:] = np.nan
 
     # iterate through test days to get data
     for day_count, day_val in enumerate(settings.daysuse):
@@ -127,14 +132,24 @@ def participantRSA(settings, sub_val):
         for ii, label in enumerate(event_id.keys()):
             ERPs_days[:, :, ii, day_count] = np.mean(epochs[label].get_data(), axis=0)
 
+            # zeropad
+            epochsuse = epochs[label].get_data()
+            epochsuse[:, :, epochs.times < 0] = 0
+            epochsuse[:, :, epochs.times > 1] = 0
+
+            # Get FFT
+            fftdat = np.abs(fft(epochsuse, axis=2)) / len(epochs.times)
+            FFTs_days[:, :, ii, day_count] = np.mean(fftdat, axis=0)
+
+
+    # zeropad
+    ERPs_days_zp = ERPs_days
+    ERPs_days_zp[:, epochs.times < 0, :, :] = 0
+    ERPs_days_zp[:, epochs.times > 1, :, :] = 0
 
     # Get FFT
-    timepoints_zp = epochs.times
-    from scipy.fft import fft, fftfreq, fftshift
-    import matplotlib.pyplot as plt
-    fftdat = np.abs(fft(ERPs_days, axis=1)) / len(epochs.times)
+    fftdat = np.abs(fft(ERPs_days_zp, axis=1)) / len(epochs.times)
     freq = fftfreq(len(epochs.times), d=1 / settings.samplingfreq)  # get frequency bins
-
 
     # Plot FFT
     # fig, (ax1, ax2) = plt.subplots(2,1, figsize=(10, 5))
@@ -150,6 +165,14 @@ def participantRSA(settings, sub_val):
     # titlestring = bids.substring + 'FFT Spectrum RSA'
     # fig.suptitle(titlestring)
 
+    # get single trial amp for Alpha
+    frequse = freq[np.logical_and(freq < 11.9, freq > 8)]
+    frequse = frequse[np.logical_or(frequse < 8.9, frequse > 9.1)]
+    lowalpha = np.isin(freq, frequse[0:3])
+    highalpha = np.isin(freq, frequse[3:])
+
+    lowalphadat = FFTs_days[:, lowalpha, :, :].mean(axis=1)
+    highalphadat = FFTs_days[:, highalpha, :, :].mean(axis=1)
 
     # get indices for frequencies of interest
     hz_attn_index = list()
@@ -158,8 +181,10 @@ def participantRSA(settings, sub_val):
             hz_attn_index.append(np.argmin(np.abs(freq - settings.hz_attn[space_count, feat_count]))) # ['\B \W'], ['/B /W']
 
     settings.num_Hz = 4
-    SSVEPS_RSA = fftdat[:,hz_attn_index, :, :].reshape(settings.num_electrodes*settings.num_Hz, settings.num_conditionsRSA, settings.num_days)
+    freqtagdat = fftdat[:,hz_attn_index, :, :].reshape(settings.num_electrodes*settings.num_Hz, settings.num_conditionsRSA, settings.num_days)
 
+    SSVEPS_RSA = np.concatenate((freqtagdat, lowalphadat, highalphadat), axis=0)
+    SSVEPS_RSA_plot = SSVEPS_RSA - SSVEPS_RSA.mean(axis=1)[:, None, :]
 
     # Run RSA!
     import scipy.stats as stats
@@ -171,7 +196,7 @@ def participantRSA(settings, sub_val):
         for conditionA in np.arange(settings.num_conditionsRSA):
             for conditionB in np.arange(settings.num_conditionsRSA):
 
-                corr = stats.pearsonr(SSVEPS_RSA[:,conditionA, day_count] , SSVEPS_RSA[:,conditionB, day_count])
+                corr = stats.pearsonr(SSVEPS_RSA_plot[:,conditionA, day_count], SSVEPS_RSA_plot[:,conditionB, day_count])
                 correlation_distance = 1-corr[0]
                 RDM[conditionA, conditionB, day_count] = correlation_distance
 
@@ -197,16 +222,21 @@ def collate_RSA(settings):
     settings = settings.get_settings_EEG_prepost()
     settings.num_traininggroups = 3
 
+
     # list objects for individual participant RSA
     TrainingGroup = list()
     SUB_ID = list()
     SUB_ID_unique = list()
     RDM_Score = list()
 
+    # list objects for bootstrapped group RSA
+    TrainingGroup_grp = list()
+    Bootstrap_grp = list()
+    RDM_Score_grp = list()
 
 
     # Preallocate for group
-    SSVEPS_RSA_Group = np.zeros((36, settings.num_conditionsRSA, settings.num_days, settings.num_traininggroups))
+    SSVEPS_RSA_Group = np.zeros((54, settings.num_conditionsRSA, settings.num_days, settings.num_traininggroups))
     RDM_Group = np.zeros((settings.num_conditionsRSA, settings.num_conditionsRSA, settings.num_days, settings.num_traininggroups))
     RDM_Group[:] = np.nan
     # cycle trough space and feature train groups
@@ -218,7 +248,7 @@ def collate_RSA(settings):
         # preallocate for group
         settings.num_Hz = 4
         RDM_individual = np.zeros((settings.num_conditionsRSA, settings.num_conditionsRSA, settings.num_days, settings.num_subs))
-        SSVEPS_RSA = np.zeros((settings.num_electrodes * settings.num_Hz, settings.num_conditionsRSA, settings.num_days, settings.num_subs))
+        SSVEPS_RSA = np.zeros((settings.num_electrodes * settings.num_Hz + settings.num_electrodes *2, settings.num_conditionsRSA, settings.num_days, settings.num_subs))
         dissimilarity_days = np.zeros((settings.num_subs))
         SSVEPS_RSA[:] = np.nan
         # iterate through subjects for individual subject analyses
@@ -231,22 +261,6 @@ def collate_RSA(settings):
             results = np.load(bids.direct_results / Path(bids.substring + "RSA_data.npz"), allow_pickle=True) #, RDM=RDM, SSVEPS_RSA=SSVEPS_RSA)
             RDM_individual[:, :, :, sub_count] = results['RDM']
             SSVEPS_RSA[:, :, :, sub_count] = results['SSVEPS_RSA']
-
-
-
-            # subtract mean value from each electrode and frequency so we're just targetting the variance across conditions.
-            SSVEPS_RSA[:, :, 0, sub_count] = SSVEPS_RSA[:, :, 0, sub_count] - SSVEPS_RSA[:, :, 0, sub_count].mean(axis=1)[:, None]
-            SSVEPS_RSA[:, :, 1, sub_count] = SSVEPS_RSA[:, :, 1, sub_count] - SSVEPS_RSA[:, :, 1, sub_count].mean(axis=1)[:, None]
-
-            # Run RSA on group data
-            for day_count, day_val in enumerate(settings.daysuse):
-                for conditionA in np.arange(settings.num_conditionsRSA):
-                    for conditionB in np.arange(settings.num_conditionsRSA):
-                        corr = stats.pearsonr(SSVEPS_RSA[:, conditionA, day_count, sub_count], SSVEPS_RSA[:, conditionB, day_count, sub_count])
-                        correlation_distance = 1 - corr[0]
-                        RDM_individual[conditionA, conditionB, day_count, sub_count] = correlation_distance
-
-
 
             # work out Representational dissimilarity across days
             day1 = np.array((np.nan))
@@ -265,47 +279,50 @@ def collate_RSA(settings):
             RDM_Score.append(dissimilarity_days[sub_count])
 
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
-        ax1.imshow(RDM_individual[:, :, 0, :].mean(axis=2), clim=(0.0, 2))
-        ax1.set_title('Pre-Training')
-
-        ax2.imshow(RDM_individual[:, :, 1, :].mean(axis=2), clim=(0.0, 2))
-        ax2.set_title('Post-Training')
-
-        plt.set_cmap('jet')
-        titlestring = attntrained + 'subject mean RSA'
-        fig.suptitle(titlestring)
-        # plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
-
-
         # Collate data
+        # subtract mean value from each electrode and frequency so we're just targetting the variance across conditions.
+        SSVEPS_RSA[:, :, 0, :] = np.divide(SSVEPS_RSA[:, :, 0, :] - SSVEPS_RSA[:, :, 0, :].mean(axis=1)[:, None, :], SSVEPS_RSA[:, :, 0, :].std(axis=1)[:, None, :])
+        SSVEPS_RSA[:, :, 1, :] = np.divide(SSVEPS_RSA[:, :, 1, :] - SSVEPS_RSA[:, :, 1, :].mean(axis=1)[:, None, :], SSVEPS_RSA[:, :, 1, :].std(axis=1)[:, None, :])
+
         SSVEPS_RSA_Group[:, :, :, attntrainedcount] = SSVEPS_RSA.mean(axis=3)
 
-        # subtract mean value from each electrode and frequency so we're just targetting the variance across conditions.
-        SSVEPS_RSA_Group[:, :, 0, attntrainedcount] = SSVEPS_RSA_Group[:, :, 0, attntrainedcount] - SSVEPS_RSA_Group[:, :, 0, attntrainedcount].mean(axis=1)[:,None]
-        SSVEPS_RSA_Group[:, :, 1, attntrainedcount] = SSVEPS_RSA_Group[:, :, 1, attntrainedcount] - SSVEPS_RSA_Group[:, :, 1, attntrainedcount].mean(axis=1)[:, None]
+        # # average across two types of alpha
+        # valsuse = np.arange(settings.num_electrodes * settings.num_Hz,settings.num_electrodes * settings.num_Hz + settings.num_electrodes)
+        # alphalow = SSVEPS_RSA_Group[valsuse, :, :, :]
+        # valsuse = np.arange(settings.num_electrodes * settings.num_Hz + settings.num_electrodes, settings.num_electrodes * settings.num_Hz + settings.num_electrodes  + settings.num_electrodes)
+        # alphahigh = SSVEPS_RSA_Group[valsuse, :, :, :]
+        #
+        # dat = np.mean([alphalow, alphahigh], axis=0)
+        # SSVEPS_RSA_Groupuse = np.concatenate((SSVEPS_RSA_Group[np.arange(36), :, :, :], dat), axis=0)
 
+        SSVEPS_RSA_Groupuse = SSVEPS_RSA_Group
         # Run RSA on group data
         for day_count, day_val in enumerate(settings.daysuse):
             for conditionA in np.arange(settings.num_conditionsRSA):
                 for conditionB in np.arange(settings.num_conditionsRSA):
-                    corr = stats.spearmanr(SSVEPS_RSA_Group[:, conditionA, day_count, attntrainedcount], SSVEPS_RSA_Group[:, conditionB, day_count, attntrainedcount])
+                    corr = stats.spearmanr(SSVEPS_RSA_Groupuse[:, conditionA, day_count, attntrainedcount], SSVEPS_RSA_Groupuse[:, conditionB, day_count, attntrainedcount])
                     correlation_distance = 1 - corr[0]
                     RDM_Group[conditionA, conditionB, day_count, attntrainedcount] = correlation_distance
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
-        ax1.imshow(RDM_Group[:, :, 0, attntrainedcount], clim=(0.0, 2))
+        im = ax1.imshow(RDM_Group[:, :, 0, attntrainedcount], clim=(0.0, 2))
         ax1.set_title('Pre-Training')
 
-        ax2.imshow(RDM_Group[:, :, 1, attntrainedcount], clim=(0.0, 2))
+        im = ax2.imshow(RDM_Group[:, :, 1, attntrainedcount], clim=(0.0, 2))
         ax2.set_title('Post-Training')
 
         plt.set_cmap('jet')
         titlestring = attntrained + ' RSA'
         fig.suptitle(titlestring)
         plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+        plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
 
-        # work out Representational dissimilarity across days
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+        fig.colorbar(im, ax=ax1)
+        fig.colorbar(im, ax=ax2)
+        titlestring = attntrained + ' RSAcolorbars'
+        fig.suptitle(titlestring)
+        plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
 
         day1 = np.array((np.nan))
         day4 = np.array((np.nan))
@@ -314,8 +331,34 @@ def collate_RSA(settings):
             day4 = np.hstack((day4, RDM_Group[i, i + 1:, 1, attntrainedcount]))
 
         corr = stats.spearmanr(day1[1:], day4[1:])
-        print(1 - corr[0])
+        print(1-corr[0])
 
+        ## Bootstrap analysis
+        # Run RSA on group data
+        num_bootstraps = 100
+        RDM_Group_bootstrap = np.empty((settings.num_conditionsRSA, settings.num_conditionsRSA, settings.num_days, num_bootstraps))
+
+        for bootstrap in np.arange(num_bootstraps):
+            # work out Representational dissimilarity across days
+            day1 = np.array((np.nan))
+            day4 = np.array((np.nan))
+
+            conduse = np.random.choice(settings.num_conditionsRSA, settings.num_conditionsRSA, replace=True)
+            # conduse = np.arange(32)
+            datuse = RDM_Group[:, conduse, :, attntrainedcount]
+
+            for i in np.arange(settings.num_conditionsRSA):
+                day1 = np.hstack((day1, datuse[i, i + 1:, 0]))
+                day4 = np.hstack((day4, datuse[i, i + 1:, 1]))
+
+            nans = np.logical_or(day1 ==0, day4==0)
+            day1 = np.delete(day1, nans)
+            day4 = np.delete(day4, nans)
+            corr = stats.spearmanr(day1[1:], day4[1:])
+
+            TrainingGroup_grp.append(attntrained)
+            Bootstrap_grp.append(bootstrap)
+            RDM_Score_grp.append(1 - corr[0])
 
 
     # create dataframe of individual participant results
@@ -328,4 +371,35 @@ def collate_RSA(settings):
     stats.ttest_ind(df_RDM.loc[df_RDM.TrainingGroup.isin(["Feature"]), 'RDM_Score'], df_RDM.loc[df_RDM.TrainingGroup.isin(["Sham"]), 'RDM_Score'])
     stats.ttest_ind(df_RDM.loc[df_RDM.TrainingGroup.isin(["Space"]), 'RDM_Score'], df_RDM.loc[df_RDM.TrainingGroup.isin(["Sham"]), 'RDM_Score'])
     stats.ttest_ind(df_RDM.loc[df_RDM.TrainingGroup.isin(["Space"]), 'RDM_Score'], df_RDM.loc[df_RDM.TrainingGroup.isin(["Feature"]), 'RDM_Score'])
+
+    # create dataframe of group results
+    data = {'TrainingGroup': TrainingGroup_grp, 'Bootstrap': Bootstrap_grp, 'RDM_Score': RDM_Score_grp}
+    df_RDM_grp = pd.DataFrame(data)
+
+    # stats n stuff.
+    df_RDM_grp.groupby('TrainingGroup').mean()
+    stats.ttest_ind(df_RDM_grp.loc[df_RDM_grp.TrainingGroup.isin(["Feature"]), 'RDM_Score'], df_RDM_grp.loc[df_RDM_grp.TrainingGroup.isin(["Sham"]), 'RDM_Score'])
+    stats.ttest_ind(df_RDM_grp.loc[df_RDM_grp.TrainingGroup.isin(["Space"]), 'RDM_Score'], df_RDM_grp.loc[df_RDM_grp.TrainingGroup.isin(["Sham"]), 'RDM_Score'])
+    stats.ttest_ind(df_RDM_grp.loc[df_RDM_grp.TrainingGroup.isin(["Space"]), 'RDM_Score'], df_RDM_grp.loc[df_RDM_grp.TrainingGroup.isin(["Feature"]), 'RDM_Score'])
+
+
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+
+    # Reaction time Grouped violinplot
+    colors = [settings.yellow, settings.orange, settings.red]
+
+    sns.swarmplot(x="TrainingGroup", y="RDM_Score", data=df_RDM_grp, color="0", alpha=0.3, ax=ax)
+    sns.violinplot(x="TrainingGroup", y="RDM_Score", data=df_RDM_grp, palette=sns.color_palette(colors), style="ticks",
+                   ax=ax, inner="box", alpha=0.6)
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+    ax.set_ylabel('Distance from pre-training')
+
+    titlestring = 'RSA pre to post training distance'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
+
 

@@ -742,64 +742,70 @@ def collate_behaviour_prepost_compare(settings):
             df_behaveresults = df_behaveresults.append(df_behaveresults_tmp[['subID', 'subIDval', 'AttentionTrained', 'Attention Type', 'Testday', 'Sensitivity', 'Criterion', 'correct', 'LikelihoodRatio', 'RT', 'RT_STD', 'InverseEfficiency']])
 
 
+    # # Exclude extremely poor performers.
+    # cutoff = 10
+    # tmp1 = df_behaveresults['Testday'].isin(['Day 1']) & df_behaveresults['Attention Type'].isin(['Space'])
+    # tmp = df_behaveresults[tmp1].groupby('subID').mean()['correct']
+    # exclude = df_behaveresults.groupby('subID').mean()[tmp < cutoff]
+    #
+    # tmp1 = df_behaveresults['Testday'].isin(['Day 4']) & df_behaveresults['Attention Type'].isin(['Space'])
+    # tmp = df_behaveresults[tmp1].groupby('subID').mean()['correct']
+    # exclude2 = df_behaveresults.groupby('subID').mean()[tmp < cutoff]
+    #
+    # toexclude_space = np.unique(np.hstack([exclude.index.values, exclude2.index.values]))
+    # df_behaveresults_cleanA = df_behaveresults[~df_behaveresults['subID'].isin(exclude.index) & ~df_behaveresults['subID'].isin(exclude2.index) & df_behaveresults['Attention Type'].isin(['Space'])]
+    #
+    # tmp1 = df_behaveresults['Testday'].isin(['Day 1']) & df_behaveresults['Attention Type'].isin(['Feature'])
+    # tmp = df_behaveresults[tmp1].groupby('subID').mean()['correct']
+    # exclude = df_behaveresults.groupby('subID').mean()[tmp < cutoff]
+    #
+    # tmp1 = df_behaveresults['Testday'].isin(['Day 4']) & df_behaveresults['Attention Type'].isin(['Feature'])
+    # tmp = df_behaveresults[tmp1].groupby('subID').mean()['correct']
+    # exclude2 = df_behaveresults.groupby('subID').mean()[tmp < cutoff]
+    #
+    # toexclude_feat = np.unique(np.hstack([ exclude.index.values, exclude2.index.values]))
+    # df_behaveresults_cleanB = df_behaveresults[~df_behaveresults['subID'].isin(exclude.index) & ~df_behaveresults['subID'].isin(exclude2.index) & df_behaveresults['Attention Type'].isin(['Feature'])]
+    #
+    # df_behaveresults_clean = pd.concat([df_behaveresults_cleanA, df_behaveresults_cleanB])
+    #
+    # # list excluded participants
+    # tmp = df_behaveresults.loc[df_behaveresults.subID.isin(toexclude_space), ['subIDval', 'AttentionTrained']].reset_index().copy()
+    # excludestrings = list()
+    # for i in tmp.index: excludestrings.append(tmp.loc[i, 'AttentionTrained'] + str(tmp.loc[i, 'subIDval']))
+    # excludestrings_space = np.unique(excludestrings)
+    # # array(['Feature1', 'Feature2', 'Feature23', 'Feature4', 'Feature9',
+    # #        'Sham10', 'Sham12', 'Sham16', 'Sham17', 'Sham3', 'Sham31',
+    # #        'Sham34', 'Sham39', 'Sham9', 'Space112', 'Space59', 'Space90'],
+    #
+    # tmp = df_behaveresults.loc[df_behaveresults.subID.isin(toexclude_feat), ['subIDval', 'AttentionTrained']].reset_index().copy()
+    # excludestrings = list()
+    # for i in tmp.index: excludestrings.append(tmp.loc[i, 'AttentionTrained'] + str(tmp.loc[i, 'subIDval']))
+    # excludestrings_feat = np.unique(excludestrings)
+    # # array(['Feature1', 'Feature2', 'Feature23', 'Feature4', 'Feature69',
+    # #        'Sham10', 'Sham16', 'Sham17', 'Sham22', 'Sham3', 'Sham31',
+    # #        'Sham39', 'Sham9', 'Space112', 'Space38', 'Space74', 'Space79',
+    # #        'Space90'], dtype='<U9')
+
+
     # Exclude extremely poor performers.
     cutoff = 10
-    tmp1 = df_behaveresults['Testday'].isin(['Day 1']) & df_behaveresults['Attention Type'].isin(['Space'])
-    tmp = df_behaveresults[tmp1].groupby('subID').mean()['correct']
-    exclude = df_behaveresults.groupby('subID').mean()[tmp < cutoff]
+    exclude = list()
+    for testday, testdaystr in enumerate(['Day 1', 'Day 4']):
+        for traininggroup, traininggroupstr in enumerate(settings.string_attntrained):
+                for cuetype, cuetypestr in enumerate(settings.string_attntrained):
+                    tmp1 = df_behaveresults['Testday'].isin([testdaystr]) & df_behaveresults['AttentionTrained'].isin([traininggroupstr]) & df_behaveresults['Attention Type'].isin([cuetypestr])
+                    # tmp = df_behaveresults[tmp1]['Sensitivity']
+                    # exclude.extend(df_behaveresults[tmp1][tmp < tmp.quantile(cutoff)]['subID'].tolist())
 
-    tmp1 = df_behaveresults['Testday'].isin(['Day 4']) & df_behaveresults['Attention Type'].isin(['Space'])
-    tmp = df_behaveresults[tmp1].groupby('subID').mean()['correct']
-    exclude2 = df_behaveresults.groupby('subID').mean()[tmp < cutoff]
+                    tmp = df_behaveresults[tmp1]['correct']
+                    exclude.extend(df_behaveresults[tmp1][tmp < cutoff]['subID'].tolist())
 
-    toexclude_space = np.unique(np.hstack([exclude.index.values, exclude2.index.values]))
-    df_behaveresults_cleanA = df_behaveresults[~df_behaveresults['subID'].isin(exclude.index) & ~df_behaveresults['subID'].isin(exclude2.index) & df_behaveresults['Attention Type'].isin(['Space'])]
+    toexclude = np.unique(exclude)
+    df_behaveresults_clean = df_behaveresults[~df_behaveresults['subID'].isin(toexclude)]
 
-    tmp1 = df_behaveresults['Testday'].isin(['Day 1']) & df_behaveresults['Attention Type'].isin(['Feature'])
-    tmp = df_behaveresults[tmp1].groupby('subID').mean()['correct']
-    exclude = df_behaveresults.groupby('subID').mean()[tmp < cutoff]
-
-    tmp1 = df_behaveresults['Testday'].isin(['Day 4']) & df_behaveresults['Attention Type'].isin(['Feature'])
-    tmp = df_behaveresults[tmp1].groupby('subID').mean()['correct']
-    exclude2 = df_behaveresults.groupby('subID').mean()[tmp < cutoff]
-
-    toexclude_feat = np.unique(np.hstack([ exclude.index.values, exclude2.index.values]))
-    df_behaveresults_cleanB = df_behaveresults[~df_behaveresults['subID'].isin(exclude.index) & ~df_behaveresults['subID'].isin(exclude2.index) & df_behaveresults['Attention Type'].isin(['Feature'])]
-
-    df_behaveresults_clean = pd.concat([df_behaveresults_cleanA, df_behaveresults_cleanB])
-
-    # list excluded participants
-    tmp = df_behaveresults.loc[df_behaveresults.subID.isin(toexclude_space), ['subIDval', 'AttentionTrained']].reset_index().copy()
-    excludestrings = list()
-    for i in tmp.index: excludestrings.append(tmp.loc[i, 'AttentionTrained'] + str(tmp.loc[i, 'subIDval']))
-    excludestrings_space = np.unique(excludestrings)
-    # array(['Feature1', 'Feature2', 'Feature23', 'Feature4', 'Feature9',
-    #        'Sham10', 'Sham12', 'Sham16', 'Sham17', 'Sham3', 'Sham31',
-    #        'Sham34', 'Sham39', 'Sham9', 'Space112', 'Space59', 'Space90'],
-
-    tmp = df_behaveresults.loc[df_behaveresults.subID.isin(toexclude_feat), ['subIDval', 'AttentionTrained']].reset_index().copy()
-    excludestrings = list()
-    for i in tmp.index: excludestrings.append(tmp.loc[i, 'AttentionTrained'] + str(tmp.loc[i, 'subIDval']))
-    excludestrings_feat = np.unique(excludestrings)
-    # array(['Feature1', 'Feature2', 'Feature23', 'Feature4', 'Feature69',
-    #        'Sham10', 'Sham16', 'Sham17', 'Sham22', 'Sham3', 'Sham31',
-    #        'Sham39', 'Sham9', 'Space112', 'Space38', 'Space74', 'Space79',
-    #        'Space90'], dtype='<U9')
     # # lets run some stats with R - save it out
     df_behaveresults_clean.to_csv(bids.direct_results_group_compare / Path("motiondiscrim_behaveresults_ALL.csv"),
                                   index=False)
-
-    ##########################################  plot day 1 Vs. Day 4 Results ##########################################
-    df_grouped = df_behaveresults_clean.groupby(["subIDval", "Testday"]).mean().reset_index()
-
-    # coloruse = settings.lightteal_
-    # plotgroupedresult(df_grouped, "RT", 'all', bids,  coloruse)
-    # plotgroupedresult(df_grouped, "RT_STD", 'all',bids,  coloruse)
-    # plotgroupedresult(df_grouped, "InverseEfficiency", 'all',bids,  coloruse)
-    # plotgroupedresult(df_grouped, "Sensitivity", 'all',bids, coloruse)
-    # plotgroupedresult(df_grouped, "correct",'all', bids, coloruse)
-    # plotgroupedresult(df_grouped, "Criterion", 'all',bids,  coloruse)
-    # plotgroupedresult(df_grouped, "LikelihoodRatio",'all', bids,  coloruse)
 
     ##########################################  plot day 1 Vs. Day 4 Results by task, and group ##########################################
     coloruse = [settings.lightteal, settings.medteal]
@@ -879,6 +885,7 @@ def collate_behaviour_prepost_compare(settings):
     print(len(df_behtraineffects[df_behtraineffects['AttentionTrained'] == 'Space'].subID.unique()))
     print(len(df_behtraineffects[df_behtraineffects['AttentionTrained'] == 'Feature'].subID.unique()))
     print(len(df_behtraineffects[df_behtraineffects['AttentionTrained'] == 'Sham'].subID.unique()))
+
 
 def collate_behaviour_duringNF(settings):
     print('Collating Motion Task Behaviour during Neurofeedback')
@@ -1074,14 +1081,93 @@ def collate_behaviour_duringNF(settings):
         bids.direct_results_group / Path("motiondiscrim_behaveresults_" + settings.string_testtrain[1] + ".pkl"))
 
 
+def plotgroupedresult_complex_duringNF(df_grouped, measurestring, bids, coloruse, ylims):
+
+    fig, (ax1) = plt.subplots(1, 1, figsize=(15, 6))
+
+    # Reaction time Grouped violinplot
+    colors = coloruse
+
+    sns.swarmplot(x="AttentionTrained", y=measurestring, hue="Testday", dodge = True, data=df_grouped, color="0", alpha=0.3)
+    sns.violinplot(x="AttentionTrained", y=measurestring, hue="Testday", data=df_grouped, palette=sns.color_palette(colors), style="ticks", ax=ax1,
+                   inner="box", alpha=0.6)
+
+    handles, labels = ax1.get_legend_handles_labels()
+    ax1.legend(handles[:3], labels[:3])
+
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+    ax1.set_ylim(ylims)
+
+    titlestring = 'Motion Task ' + measurestring + ' by Day during NF'
+    plt.suptitle(titlestring)
+
+    import warnings
+    warnings.filterwarnings("ignore", module="matplotlib\..*")
+
+
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
+
+
+def plotgroupedresult_complexNF_duringNF(df_grouped, measurestring, bids, coloruse, ylims):
+
+    df_grouped.loc[df_grouped['AttentionTrained'] == 'Space', ['AttentionTrained']] = 'Neurofeedback'
+    df_grouped.loc[df_grouped['AttentionTrained'] == 'Feature', ['AttentionTrained']] = 'Neurofeedback'
+
+    fig, (ax1) = plt.subplots(1, 1, figsize=(12, 6))
+
+    # Reaction time Grouped violinplot
+    colors = coloruse
+
+    sns.swarmplot(x="AttentionTrained", y=measurestring, hue="Testday", dodge = True, data=df_grouped, color="0", alpha=0.3)
+    sns.violinplot(x="AttentionTrained", y=measurestring, hue="Testday", data=df_grouped, palette=sns.color_palette(colors), style="ticks", ax=ax1,
+                   inner="box", alpha=0.6)
+
+    handles, labels = ax1.get_legend_handles_labels()
+    ax1.legend(handles[:3], labels[:3])
+
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+    ax1.set_ylim(ylims)
+
+    titlestring = 'Motion Task ' + measurestring + 'NF grouped by Day during NF'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
+
+
+def plotbehavetrainingeffects_duringNF(df_behtraineffects, measurestring, titlestring, bids, settings, ylims):
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+
+    colors = [settings.yellow, settings.orange, settings.red ]
+
+    datplot = df_behtraineffects
+
+    sns.swarmplot(x="AttentionTrained", y=measurestring, data=datplot, color="0", alpha=0.3, ax=ax)
+    sns.violinplot(x="AttentionTrained", y=measurestring, data=datplot, palette=sns.color_palette(colors), style="ticks",
+                   ax=ax, inner="box", alpha=0.6)
+
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles[:3], labels[:3])
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+    ax.set_title(settings.string_attntype)
+    ax.set_ylim(ylims)
+
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+
 def collate_behaviour_duringNF_compare(settings):
 
     # get task specific settings
     settings = settings.get_settings_behave_duringNF()
 
     # cycle trough space and feature train groups
-    for attntrainedcount, attntrained in enumerate(
-            settings.string_attntrained):  # cycle trough space and feature train groups
+    for attntrainedcount, attntrained in enumerate(settings.string_attntrained):  # cycle trough space and feature train groups
         # setup generic settings
         settings = helper.SetupMetaData(attntrainedcount)
         settings = settings.get_settings_behave_duringNF()
@@ -1095,128 +1181,112 @@ def collate_behaviour_duringNF_compare(settings):
         df_behaveresults_tmp['AttentionTrained'] = attntrained
 
         if (attntrainedcount == 0):
-            df_behaveresults = df_behaveresults_tmp[
-                ['subID', 'subIDval', 'AttentionTrained', 'Attention Type', 'Testday', 'Sensitivity', 'Criterion',
+            df_behaveresults = df_behaveresults_tmp[['subID', 'subIDval', 'AttentionTrained', 'Attention Type', 'Testday', 'Sensitivity', 'Criterion',
                  'correct', 'LikelihoodRatio', 'RT']]
         else:
-            df_behaveresults_tmp['subID'] = df_behaveresults_tmp['subID'] + 34
+            df_behaveresults_tmp['subID'] = df_behaveresults_tmp['subID'] + 37*attntrainedcount
             df_behaveresults = df_behaveresults.append(df_behaveresults_tmp[
                                                            ['subID', 'subIDval', 'AttentionTrained', 'Attention Type',
                                                             'Testday', 'Sensitivity', 'Criterion', 'correct',
                                                             'LikelihoodRatio', 'RT']])
 
-    # Exclude extremely poor performers.
-    tmp = df_behaveresults.groupby('subIDval').mean()['correct']
-    exclude = df_behaveresults.groupby('subIDval').mean()[tmp < 10]  # SUBIDs 1,2,23, 90
 
-    df_behaveresults_clean = df_behaveresults[~df_behaveresults['subID'].isin(exclude['subID'])]
+
+    # Exclude extremely poor performers.
+    cutoff = 0.05
+    exclude = list()
+    for testday, testdaystr in enumerate(settings.string_testday[:-1]):
+        for traininggroup, traininggroupstr in enumerate(settings.string_attntrained):
+            tmp1 = df_behaveresults['Testday'].isin([testdaystr]) & df_behaveresults['AttentionTrained'].isin([traininggroupstr])
+            tmp = df_behaveresults[tmp1]['Sensitivity']
+            exclude.extend(df_behaveresults[tmp1][tmp < tmp.quantile(cutoff)]['subID'].tolist())
+
+    toexclude = np.unique(exclude)
+    df_behaveresults_clean = df_behaveresults[~df_behaveresults['subID'].isin(toexclude)]
+
+
+    # list excluded participants
+    tmp = df_behaveresults.loc[df_behaveresults.subID.isin(toexclude), ['subIDval', 'AttentionTrained']].reset_index().copy()
+    excludestrings = list()
+    for i in tmp.index: excludestrings.append(tmp.loc[i, 'AttentionTrained'] + str(tmp.loc[i, 'subIDval']))
+    excludestrings = np.unique(excludestrings)
+    # array(['Feature2', 'Feature23', 'Feature67', 'Feature70', 'Sham22',
+    #        'Sham3', 'Sham34', 'Sham39', 'Space118', 'Space90', 'Space94'],
+    #       dtype='<U9')
 
     # # lets run some stats with R - save it out
-    df_behaveresults_clean.to_csv(
-        bids.direct_results_group_compare / Path("motiondiscrim_behaveresults_ALL_duringNF.csv"), index=False)
+    df_behaveresults_clean.to_csv(bids.direct_results_group_compare / Path("motiondiscrim_behaveresults_ALL_duringNF.csv"), index=False)
+
 
     ##### Plot grouped results across training groups #####
-    #### Reaction Time ####
-    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+    coloruse = [settings.lightteal, settings.medteal, settings.darkteal]
+    datplot = df_behaveresults_clean.copy()
 
-    # Reaction time Grouped violinplot
-    colors = [settings.lightteal, settings.medteal, settings.darkteal]
-    for i in np.arange(2):
-        datplot = df_behaveresults_clean[df_behaveresults_clean["AttentionTrained"] == settings.string_attntrained[i]]
+    plotgroupedresult_complex_duringNF(datplot, "Sensitivity", bids, coloruse, [0, 3])
+    plotgroupedresult_complex_duringNF(datplot, "Criterion", bids, coloruse, [-2.5, 1])
+    plotgroupedresult_complex_duringNF(datplot, "RT", bids, coloruse, [0.5, 1.2])
+    plotgroupedresult_complex_duringNF(datplot, "correct", bids, coloruse, [0, 100])
+    plotgroupedresult_complex_duringNF(datplot, "LikelihoodRatio", bids, coloruse, [-3, 1])
 
-        sns.swarmplot(x="Testday", y="RT", data=datplot, color="0", alpha=0.3, ax=ax[i])
-        sns.violinplot(x="Testday", y="RT", data=datplot, palette=sns.color_palette(colors), style="ticks", ax=ax[i],
-                       inner="box", alpha=0.6)
+    plotgroupedresult_complexNF_duringNF(datplot, "Sensitivity", bids, coloruse, [-1, 3])
+    plotgroupedresult_complexNF_duringNF(datplot, "Criterion", bids, coloruse, [-2.5, 1])
+    plotgroupedresult_complexNF_duringNF(datplot, "RT", bids, coloruse, [0.5, 1.2])
+    plotgroupedresult_complexNF_duringNF(datplot, "correct", bids, coloruse, [0, 100])
+    plotgroupedresult_complexNF_duringNF(datplot, "LikelihoodRatio", bids, coloruse, [-3, 1])
 
-        ax[i].spines['top'].set_visible(False)
-        ax[i].spines['right'].set_visible(False)
+    #### Plot daily change
+    ##########################################  Calculate training effects  ##########################################
+    idx_d1 = df_behaveresults_clean["Testday"] == "Day 1"
+    idx_d2 = df_behaveresults_clean["Testday"] == "Day 2"
+    idx_d3 = df_behaveresults_clean["Testday"] == "Day 3"
 
-        ax[i].set_title(settings.string_attntrained[i])
+    tmpd1 = df_behaveresults_clean[idx_d1].reset_index()
+    tmpd2 = df_behaveresults_clean[idx_d2].reset_index()
+    tmpd3 = df_behaveresults_clean[idx_d3].reset_index()
 
-    titlestring = 'Motion Task RT training effect by attention during NF'
-    plt.suptitle(titlestring)
-    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+    df_behtraineffects = tmpd1[["subID", "AttentionTrained", "Attention Type"]].copy()
 
-    #### Sensitivity ####
-    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+    df_behtraineffects["∆Sensitivity_d1d2"] = tmpd2['Sensitivity'] - tmpd1['Sensitivity']
+    df_behtraineffects["∆Sensitivity_d2d3"] = tmpd3['Sensitivity'] - tmpd2['Sensitivity']
+    df_behtraineffects["∆Sensitivity_d1d3"] = tmpd3['Sensitivity'] - tmpd1['Sensitivity']
 
-    # Reaction time Grouped violinplot
-    colors = [settings.lightteal, settings.medteal, settings.darkteal]
-    for i in np.arange(2):
-        datplot = df_behaveresults_clean[df_behaveresults_clean["AttentionTrained"] == settings.string_attntrained[i]]
+    df_behtraineffects["∆Criterion_d1d2"] = tmpd2['Criterion'] - tmpd1['Criterion']
+    df_behtraineffects["∆Criterion_d2d3"] = tmpd3['Criterion'] - tmpd2['Criterion']
+    df_behtraineffects["∆Criterion_d1d3"] = tmpd3['Criterion'] - tmpd1['Criterion']
 
-        sns.swarmplot(x="Testday", y="Sensitivity", data=datplot, color="0", alpha=0.3, ax=ax[i])
-        sns.violinplot(x="Testday", y="Sensitivity", data=datplot, palette=sns.color_palette(colors), style="ticks",
-                       ax=ax[i], inner="box", alpha=0.6)
+    df_behtraineffects["∆Correct_d1d2"] = tmpd2['correct'] - tmpd1['correct']
+    df_behtraineffects["∆Correct_d2d3"] = tmpd3['correct'] - tmpd2['correct']
+    df_behtraineffects["∆Correct_d1d3"] = tmpd3['correct'] - tmpd1['correct']
 
-        ax[i].spines['top'].set_visible(False)
-        ax[i].spines['right'].set_visible(False)
+    df_behtraineffects["∆RT_d1d2"] = tmpd2['RT'] - tmpd1['RT']
+    df_behtraineffects["∆RT_d2d3"] = tmpd3['RT'] - tmpd2['RT']
+    df_behtraineffects["∆RT_d1d3"] = tmpd3['RT'] - tmpd1['RT']
 
-        ax[i].set_title(settings.string_attntrained[i])
+    # Plot during NF Training effects
+    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Sensitivity_d1d3", 'Motion Task Sensitivity training effect by attention', bids, settings, [-1.0, 1.5])
+    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Correct_d1d3", 'Motion Task Correct training effect by attention', bids, settings, [-40, 40])
+    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆RT_d1d3",  'Motion Task RT training effect by attention', bids, settings, [-0.3, 0.2])
+    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Criterion_d1d3", 'Motion Task Criterion training effect by attention', bids, settings, [-1, 1.0])
 
-    titlestring = 'Motion Task Sensitivity training effect by attention during NF'
-    plt.suptitle(titlestring)
-    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+    # simple stats
+    import scipy.stats as stats
 
-    #### Criterion ####
-    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+    datplot = df_behtraineffects
+    cat1 = datplot[datplot['AttentionTrained'] == 'Space']
+    cat2 = datplot[datplot['AttentionTrained'] == 'Feature']
+    cat12 = datplot[datplot['AttentionTrained'].isin(['Feature', 'Space'])]
+    cat3 = datplot[datplot['AttentionTrained'] == 'Sham']
 
-    # Reaction time Grouped violinplot
-    colors = [settings.lightteal, settings.medteal, settings.darkteal]
-    for i in np.arange(2):
-        datplot = df_behaveresults_clean[df_behaveresults_clean["AttentionTrained"] == settings.string_attntrained[i]]
+    measure = '∆Sensitivity_d1d3'
+    stats.ttest_ind(cat1[measure], cat3[measure])
+    stats.ttest_ind(cat2[measure], cat3[measure])
+    stats.ttest_ind(cat12[measure], cat3[measure])
 
-        sns.swarmplot(x="Testday", y="Criterion", data=datplot, color="0", alpha=0.3, ax=ax[i])
-        sns.violinplot(x="Testday", y="Criterion", data=datplot, palette=sns.color_palette(colors), style="ticks",
-                       ax=ax[i], inner="box", alpha=0.6)
+    stats.ttest_1samp(cat1[measure], 0)
+    stats.ttest_1samp(cat2[measure], 0)
+    stats.ttest_1samp(cat3[measure], 0)
 
-        ax[i].spines['top'].set_visible(False)
-        ax[i].spines['right'].set_visible(False)
+    print(len(df_behtraineffects[df_behtraineffects['AttentionTrained'] == 'Space'].subID.unique()))
+    print(len(df_behtraineffects[df_behtraineffects['AttentionTrained'] == 'Feature'].subID.unique()))
+    print(len(df_behtraineffects[df_behtraineffects['AttentionTrained'] == 'Sham'].subID.unique()))
 
-        ax[i].set_title(settings.string_attntrained[i])
-
-    titlestring = 'Motion Task Criterion training effect by attention during NF'
-    plt.suptitle(titlestring)
-    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
-
-    #### % Correct ####
-    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
-
-    # Reaction time Grouped violinplot
-    colors = [settings.lightteal, settings.medteal, settings.darkteal]
-    for i in np.arange(2):
-        datplot = df_behaveresults_clean[df_behaveresults_clean["AttentionTrained"] == settings.string_attntrained[i]]
-
-        sns.swarmplot(x="Testday", y="correct", data=datplot, color="0", alpha=0.3, ax=ax[i])
-        sns.violinplot(x="Testday", y="correct", data=datplot, palette=sns.color_palette(colors), style="ticks",
-                       ax=ax[i], inner="box", alpha=0.6)
-
-        ax[i].spines['top'].set_visible(False)
-        ax[i].spines['right'].set_visible(False)
-
-        ax[i].set_title(settings.string_attntrained[i])
-
-    titlestring = 'Motion Task Correct training effect by attention during NF'
-    plt.suptitle(titlestring)
-    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
-
-    #### Likelihood Ratio ####
-    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
-
-    # Reaction time Grouped violinplot
-    colors = [settings.lightteal, settings.medteal, settings.darkteal]
-    for i in np.arange(2):
-        datplot = df_behaveresults_clean[df_behaveresults_clean["AttentionTrained"] == settings.string_attntrained[i]]
-
-        sns.swarmplot(x="Testday", y="LikelihoodRatio", data=datplot, color="0", alpha=0.3, ax=ax[i])
-        sns.violinplot(x="Testday", y="LikelihoodRatio", data=datplot, palette=sns.color_palette(colors), style="ticks",
-                       ax=ax[i], inner="box", alpha=0.6)
-
-        ax[i].spines['top'].set_visible(False)
-        ax[i].spines['right'].set_visible(False)
-
-        ax[i].set_title(settings.string_attntrained[i])
-
-    titlestring = 'Motion Task LikelihoodRatio training effect by attention during NF'
-    plt.suptitle(titlestring)
-    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')

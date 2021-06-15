@@ -23,7 +23,6 @@ def analyseEEGprepost(settings, sub_val):
 
     # iterate through test days to get data
     for day_count, day_val in enumerate(settings.daysuse):
-        # TODO: save daily plots for events, drop logs, ERPs and FFTs
         print(day_val)
         # get file names
         bids = helper.BIDS_FileNaming(sub_val, settings, day_val)
@@ -147,9 +146,17 @@ def getSSVEPs(erps_days, epochs_days, epochs, settings, bids):
     from scipy.fft import fft, fftfreq, fftshift
     import matplotlib.pyplot as plt
 
+    # 0 pad
+    erps_days_use = erps_days.copy()
+    epochs_days_use = epochs_days.copy()
+    erps_days_use[:, epochs.times < 0, :, :, :, :] = 0
+    erps_days_use[:, epochs.times > 1, :, :, :, :] = 0
+    epochs_days_use[:, :, epochs.times < 0, :, :, :, :] = 0
+    epochs_days_use[:, :, epochs.times > 1, :, :, :, :] = 0
+
     # for fft - fft
-    fftdat = np.abs(fft(erps_days, axis=1)) / len(epochs.times)
-    fftdat_epochs = np.abs(fft(epochs_days, axis=2)) / len(epochs.times)
+    fftdat = np.abs(fft(erps_days_use, axis=1)) / len(epochs.times)
+    fftdat_epochs = np.abs(fft(epochs_days_use, axis=2)) / len(epochs.times)
 
     # plot single trial FFT spectrum
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
@@ -273,6 +280,7 @@ def getSSVEPS_conditions(settings, fftdat, freq, cueduncued):
     SSVEPs_prepost[:, :, :, 1] = np.mean(featureSSVEPs_topo, axis=3)
 
     return SSVEPs_prepost, SSVEPs_prepost_mean, BEST
+
 
 def plotResultsPrePost_subjects(SSVEPs_prepost_mean, settings, ERPstring, bids):
     import matplotlib.pyplot as plt
