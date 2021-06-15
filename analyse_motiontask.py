@@ -789,10 +789,12 @@ def collate_behaviour_prepost_compare(settings):
 
     # Exclude extremely poor performers.
     cutoff = 10
-    exclude = list()
-    for testday, testdaystr in enumerate(['Day 1', 'Day 4']):
-        for traininggroup, traininggroupstr in enumerate(settings.string_attntrained):
-                for cuetype, cuetypestr in enumerate(settings.string_attntrained):
+
+    for cuetype, cuetypestr in enumerate(settings.string_attntype):
+        exclude = list()
+        for testday, testdaystr in enumerate(['Day 1', 'Day 4']):
+            for traininggroup, traininggroupstr in enumerate(settings.string_attntrained):
+
                     tmp1 = df_behaveresults['Testday'].isin([testdaystr]) & df_behaveresults['AttentionTrained'].isin([traininggroupstr]) & df_behaveresults['Attention Type'].isin([cuetypestr])
                     # tmp = df_behaveresults[tmp1]['Sensitivity']
                     # exclude.extend(df_behaveresults[tmp1][tmp < tmp.quantile(cutoff)]['subID'].tolist())
@@ -800,8 +802,14 @@ def collate_behaviour_prepost_compare(settings):
                     tmp = df_behaveresults[tmp1]['correct']
                     exclude.extend(df_behaveresults[tmp1][tmp < cutoff]['subID'].tolist())
 
-    toexclude = np.unique(exclude)
-    df_behaveresults_clean = df_behaveresults[~df_behaveresults['subID'].isin(toexclude)]
+        toexclude = np.unique(exclude)
+
+        if cuetype == 0:
+            df_behaveresults_cleanA = df_behaveresults[~df_behaveresults['subID'].isin(toexclude) & df_behaveresults['Attention Type'].isin([cuetypestr])]
+        else:
+            df_behaveresults_cleanB = df_behaveresults[~df_behaveresults['subID'].isin(toexclude) & df_behaveresults['Attention Type'].isin([cuetypestr])]
+
+    df_behaveresults_clean = pd.concat([df_behaveresults_cleanA, df_behaveresults_cleanB])
 
     # # lets run some stats with R - save it out
     df_behaveresults_clean.to_csv(bids.direct_results_group_compare / Path("motiondiscrim_behaveresults_ALL.csv"),
@@ -1249,24 +1257,28 @@ def collate_behaviour_duringNF_compare(settings):
     df_behtraineffects["∆Sensitivity_d1d2"] = tmpd2['Sensitivity'] - tmpd1['Sensitivity']
     df_behtraineffects["∆Sensitivity_d2d3"] = tmpd3['Sensitivity'] - tmpd2['Sensitivity']
     df_behtraineffects["∆Sensitivity_d1d3"] = tmpd3['Sensitivity'] - tmpd1['Sensitivity']
+    df_behtraineffects["∆Sensitivity_mean"] = (df_behtraineffects["∆Sensitivity_d1d2"] + df_behtraineffects["∆Sensitivity_d2d3"]) / 2
 
     df_behtraineffects["∆Criterion_d1d2"] = tmpd2['Criterion'] - tmpd1['Criterion']
     df_behtraineffects["∆Criterion_d2d3"] = tmpd3['Criterion'] - tmpd2['Criterion']
     df_behtraineffects["∆Criterion_d1d3"] = tmpd3['Criterion'] - tmpd1['Criterion']
+    df_behtraineffects["∆Criterion_mean"] = (df_behtraineffects["∆Criterion_d1d2"] + df_behtraineffects["∆Criterion_d2d3"]) / 2
 
     df_behtraineffects["∆Correct_d1d2"] = tmpd2['correct'] - tmpd1['correct']
     df_behtraineffects["∆Correct_d2d3"] = tmpd3['correct'] - tmpd2['correct']
     df_behtraineffects["∆Correct_d1d3"] = tmpd3['correct'] - tmpd1['correct']
+    df_behtraineffects["∆Correct_mean"] = (df_behtraineffects["∆Correct_d1d2"] + df_behtraineffects["∆Correct_d2d3"]) / 2
 
     df_behtraineffects["∆RT_d1d2"] = tmpd2['RT'] - tmpd1['RT']
     df_behtraineffects["∆RT_d2d3"] = tmpd3['RT'] - tmpd2['RT']
     df_behtraineffects["∆RT_d1d3"] = tmpd3['RT'] - tmpd1['RT']
+    df_behtraineffects["∆RT_mean"] = (df_behtraineffects["∆RT_d1d2"] + df_behtraineffects["∆RT_d2d3"]) / 2
 
     # Plot during NF Training effects
-    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Sensitivity_d1d3", 'Motion Task Sensitivity training effect by attention', bids, settings, [-1.0, 1.5])
-    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Correct_d1d3", 'Motion Task Correct training effect by attention', bids, settings, [-40, 40])
-    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆RT_d1d3",  'Motion Task RT training effect by attention', bids, settings, [-0.3, 0.2])
-    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Criterion_d1d3", 'Motion Task Criterion training effect by attention', bids, settings, [-1, 1.0])
+    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Sensitivity_mean", 'Motion Task Sensitivity training effect by attention', bids, settings, [-0.4, 0.6])
+    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Correct_mean", 'Motion Task Correct training effect by attention', bids, settings, [-10, 20])
+    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆RT_mean",  'Motion Task RT training effect by attention', bids, settings, [-0.15, 0.1])
+    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Criterion_mean", 'Motion Task Criterion training effect by attention', bids, settings, [-0.5, 0.5])
 
     # simple stats
     import scipy.stats as stats
@@ -1277,7 +1289,7 @@ def collate_behaviour_duringNF_compare(settings):
     cat12 = datplot[datplot['AttentionTrained'].isin(['Feature', 'Space'])]
     cat3 = datplot[datplot['AttentionTrained'] == 'Sham']
 
-    measure = '∆Sensitivity_d1d3'
+    measure = '∆Sensitivity_mean'
     stats.ttest_ind(cat1[measure], cat3[measure])
     stats.ttest_ind(cat2[measure], cat3[measure])
     stats.ttest_ind(cat12[measure], cat3[measure])
