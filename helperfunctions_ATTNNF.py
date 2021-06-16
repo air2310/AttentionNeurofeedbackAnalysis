@@ -14,6 +14,7 @@ class SetupMetaData:
 
     # Flicker frequencies
     hz_attn = np.array([[8, 12], [4.5, 14.4]]) #['\B \W'], ['/B /W']
+    hz_NF = 10.3
 
     # numerical settings
     num_features = 2
@@ -50,7 +51,7 @@ class SetupMetaData:
 
         # get correct subject indices
         if (self.attntrained == 0): # Space
-            self.subsIDX =        np.array(([10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112,      118, 123, 125, 128]))
+            self.subsIDX =        np.array(([10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54,  60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107,     118, 123, 125, 128 ]))
             self.subsIDXcollate = np.array(([10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112,      118, 123, 125, 128 ])) #, 19, 22, 28, 29, 43, 45, 46, 49, 52, 53, 54, 59, 60]))
             self.subsIDXall =     np.array(([10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112, 113, 118, 123, 125, 128]))
             # 35
@@ -62,7 +63,7 @@ class SetupMetaData:
             # 37
 
         if (self.attntrained == 2):  # Sham
-            self.subsIDX =        np.array(([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39]))
+            self.subsIDX =        np.array(([1, 2, 3,  5, 6, 7, 8, 9,  11, 12, 13, 14, 15,  17, 18, 19, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39]))
             self.subsIDXcollate = np.array(([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39]))
             self.subsIDXall =     np.array(([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39]))
             # 37
@@ -329,6 +330,12 @@ def get_eeg_data(bids, day_count, day_val, settings):
         if np.logical_and(bids.substring == 'sub-125', day_val == 3):
             raw.info['bads'] = ['PO4']
 
+        if np.logical_and(bids.substring == 'sub-59', day_val == 1): #
+            raw.info['bads'] = ['O2']
+        if np.logical_and(bids.substring == 'sub-112', day_val == 1): #
+            raw.info['bads'] = ['Iz']
+
+
     if settings.attntrained == 1:
         if np.logical_and(bids.substring == 'sub-02', day_val == 1):
             raw.info['bads'] = ['O1']
@@ -342,18 +349,32 @@ def get_eeg_data(bids, day_count, day_val, settings):
             raw.info['bads'] = ['PO8']
         if np.logical_and(bids.substring == 'sub-70', day_val == 1):
             raw.info['bads'] = ['O2', 'Iz']
+        if np.logical_and(bids.substring == 'sub-77', day_val == 1):
+            raw.info['bads'] = ['PO7']
         if np.logical_and(bids.substring == 'sub-121', day_val == 1):
             raw.info['bads'] = ['Iz']
 
 
     if settings.attntrained == 2:
+        if np.logical_and(bids.substring == 'sub-04', day_val == 3): #
+            raw.info['bads'] = ['PO3']
+        if np.logical_and(bids.substring == 'sub-10', day_val == 1): #
+            raw.info['bads'] = ['Iz']
+        if np.logical_and(bids.substring == 'sub-10', day_val == 2): #
+            raw.info['bads'] = ['Oz']
         if np.logical_and(bids.substring == 'sub-03', day_val == 4):
             raw.info['bads'] = ['PO3']
+        if np.logical_and(bids.substring == 'sub-11', day_val == 2):
+            raw.info['bads'] = ['O2']
         if np.logical_and(bids.substring == 'sub-14', day_val == 4):
             raw.info['bads'] = ['Oz']
         if np.logical_and(bids.substring == 'sub-15', day_val == 4):
             raw.info['bads'] = ['O1']
+        if np.logical_and(bids.substring == 'sub-16', day_val == 1): #
+            raw.info['bads'] = ['Iz']
         if np.logical_and(bids.substring == 'sub-16', day_val == 4):
+            raw.info['bads'] = ['POz']
+        if np.logical_and(bids.substring == 'sub-18', day_val == 2):
             raw.info['bads'] = ['POz']
         if np.logical_and(bids.substring == 'sub-19', day_val == 1):
             raw.info['bads'] = ['POz']
@@ -361,8 +382,10 @@ def get_eeg_data(bids, day_count, day_val, settings):
             raw.info['bads'] = ['POz']
         if np.logical_and(bids.substring == 'sub-21', day_val == 1):
             raw.info['bads'] = ['Iz']
-        if np.logical_and(bids.substring == 'sub-22', day_val == 4):
+        if np.logical_and(bids.substring == 'sub-21', day_val == 2):
             raw.info['bads'] = ['Iz']
+        if np.logical_and(bids.substring == 'sub-22', day_val == 4): #
+            raw.info['bads'] = ['Oz']
         if np.logical_and(bids.substring == 'sub-24', day_val == 1):
             raw.info['bads'] = ['POz', 'PO4']
         if np.logical_and(bids.substring == 'sub-28', day_val == 2):
