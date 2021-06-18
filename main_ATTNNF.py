@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 
 
 # setup generic settings
-attntrained = 1  # 0 = Space, 1 = Feature, 2 = Sham
+attntrained = 0  # 0 = Space, 1 = Feature, 2 = Sham
 settings = helper.SetupMetaData(attntrained)
 print("Analysing Data for condition train: " + settings.string_attntrained[settings.attntrained])
 
@@ -66,14 +66,14 @@ collate_behaviour_prepost = False  # Collate Behaviour Pre Vs. Post Training
 # collate_behaviour_duringNF = True # Collate Behaviour during Training
 collate_behaviour_duringNF = False  # Collate Behaviour during Training
 #
-# collateEEGprepost = True # Collate EEG Pre Vs. Post Training across subjects
-collateEEGprepost = False  # Collate EEG Pre Vs. Post Training across subjects
+collateEEGprepost = True # Collate EEG Pre Vs. Post Training across subjects
+# collateEEGprepost = False  # Collate EEG Pre Vs. Post Training across subjects
 
 # collateEEGprepost_motioncoherenceepochs = True # Collate EEG Pre Vs. Post Training across subjects
 collateEEGprepost_motioncoherenceepochs = False  # Collate EEG Pre Vs. Post Training across subjects
 
-collateEEG_duringNF = True  # Collate EEG during Neurofeedback
-# collateEEG_duringNF = False  # Collate EEG during Neurofeedback
+# collateEEG_duringNF = True  # Collate EEG during Neurofeedback
+collateEEG_duringNF = False  # Collate EEG during Neurofeedback
 
 # collate_visualsearchtask = True # Collate Visual Search results
 collate_visualsearchtask = False  # Collate Visual Search results

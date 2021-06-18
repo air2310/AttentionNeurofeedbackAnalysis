@@ -640,7 +640,7 @@ def topoplot_SSVEPs_group(raw, SSVEPs, ERPstring, settings, bids):
     SSVEPs_Select_day = SSVEPs_Select[:, 1, :] - SSVEPs_Select[:, 0, :]  #  day, attd
 
     fig, ax = plt.subplots(1, 2, figsize=(12, 6))
-    vmin, vmax = -np.max(np.abs(SSVEPs_Select_day[:])), np.max(np.abs(SSVEPs_Select_day[:]))  # get limits
+    vmin, vmax =  -0.035, 0.035 #-np.max(np.abs(SSVEPs_Select_day[:])), np.max(np.abs(SSVEPs_Select_day[:]))  # get limits
 
     for attntype in np.arange(2):
 
