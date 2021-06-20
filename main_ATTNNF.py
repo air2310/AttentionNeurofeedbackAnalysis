@@ -1,27 +1,29 @@
 # Import necessary packages
-import pandas as pd
+# import pandas as pd
+# import matplotlib.pyplot as plt
+
 import helperfunctions_ATTNNF as helper
-import functions_getEEGprepost as geegpp
-import functions_CohMotEpochEEG_Prepost as geeg_cohmotepoch
-import functions_getEEG_duringNF as geegdnf
+
+import analyse_EEGprepost as geegpp
+import analyse_CohMotEpochEEG_Prepost as geeg_cohmotepoch
+import analyse_EEGduringNF as geegdnf
 import analyse_visualsearchtask as avissearch
 import analyse_nbacktask as anback
 import analyse_motiontask as analyse_motiontask
 import analyseNeurofeedback as analyse_NF
+
 import CorrelationAnalyses as analyse_corr
 import RSA as RSA
-import matplotlib.pyplot as plt
+
 
 #### New Analyses
 
-# TODO: During NF. -NF flicker
+# TODO: During NF stats. -NF flicker
 
 # TODO: Statistical tests for wavelets (time in each state)
 # TODO: individual trial independance of spatial and feature based-attention neurofeedback - how correlated are they really?
 
 # TODO: look at differences between classifiable and unclassifiable participants.
-# TODO: Training Effects for people who started out bad vs. good (based on that correlation for sham participants).
-
 
 # setup generic settings
 attntrained = 0  # 0 = Space, 1 = Feature, 2 = Sham
@@ -194,3 +196,4 @@ if classification_acc_correlations:
 # Collate RSA
 if collate_RSA:
     RSA.collate_RSA(settings)
+    RSA.collate_RSA_bybehave(settings)

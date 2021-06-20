@@ -770,7 +770,7 @@ def collate_RSA_bybehave(settings):
         fig, ax1 = plt.subplots(1, 1, figsize=(6,6))
         im = ax1.imshow(RDM_Group_HP[:, :], clim=(0.0, 2))
         plt.set_cmap('jet')
-        titlestring = attntrained + ' RSA High Performing Participants ' + cuetypestring
+        titlestring = 'RSA High Performing Participants ' + cuetypestring
         fig.suptitle(titlestring)
         plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
         plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
@@ -927,14 +927,14 @@ def collate_RSA_bybehave(settings):
 
     # Plot RSA training effect
     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-    colors = [settings.yellow, settings.orange, settings.red]
+    colors = [settings.lightteal, settings.darkteal]
     sns.violinplot(x="TrainingGroup", y="RDM_Score_effect", hue='Cuetype', data=df_training, palette=sns.color_palette(colors), style="ticks",
                    ax=ax, inner="box", alpha=0.6)
 
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.axhline(0, color='k', linestyle='--')
-    ax.set_ylabel('Distance from pre-training (post - pre)')
+    ax.set_ylabel('Distance from high performing participants (post - pre)')
     ax.set_ylim([-0.15, 0.15])
     titlestring = 'RSA training distance training effect all conditions'
     plt.suptitle(titlestring)
@@ -950,7 +950,7 @@ def collate_RSA_bybehave(settings):
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.axhline(0, color='k', linestyle='--')
-    ax.set_ylabel('Distance from pre-training (post - pre)')
+    ax.set_ylabel('Distance from high performing participants (post - pre)')
     ax.set_ylim([-0.15, 0.15])
     titlestring = 'RSA training distance training effect Neurofeedback participants'
     plt.suptitle(titlestring)
