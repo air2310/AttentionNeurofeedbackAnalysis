@@ -82,7 +82,7 @@ DisplayANOVAResults2X2 <- function(formula, data, maineffectstringA, maineffects
   bfInteraction = bf[7]/bf[4] # is the full model better than just strait main effects?
   bf_main_A = bf[7]/bf[5] # is the full model better than the main effect A knock out?
   bf_main_B = bf[7]/bf[6] # is the full model better than the main effect B knock out?
-
+  
   
   # display results
   print(bf)
@@ -124,65 +124,71 @@ Runstats_NFvsSham <- function(behavedata, taskstring, measure) {
     
     
   # Run followup stats
-  cat("\n\nFollowup Tests")
-  followuptests(measure ~  Testday, dataA = datuse_NF, dataB = datuse_sham)
+  # cat("\n\nFollowup Tests")
+  # followuptests(measure ~  Testday, dataA = datuse_NF, dataB = datuse_sham)
 
   return(dat)
 }
   
-
-followuptests <- function(formula, dataA, dataB) {
-  bf = ttestBF(formula = formula, data = dataA)
-  cat('\n\nNeurofeedback Group Pre Vs. Post\n\n')
-  print(bf)
-  
-  cat('\n\nSham Group Pre Vs. Post\n\n')
-  bf = ttestBF(formula = formula, data = dataB)
-  print(bf)
-}
+# followuptests <- function(formula, dataA, dataB) {
+#   bf = ttestBF(formula = formula, data = dataA)
+#   cat('\n\nNeurofeedback Group Pre Vs. Post\n\n')
+#   print(bf)
+#   
+#   cat('\n\nSham Group Pre Vs. Post\n\n')
+#   bf = ttestBF(formula = formula, data = dataB)
+#   print(bf)
+# }
 
 
 ```
 
 ```{r, include=FALSE}
 
-followuptests2 <-function(behavedata, formula){
+followuptests2 <-function(behavedata_train, measure){
+  
+  # 
+  # datuse = behavedata[behavedata['Attention.Type']=="Space",]
+  # bf = anovaBF(Sensitivity ~ Testday + subID, data=datuse[datuse['AttentionTrained']=="Sham",], whichRandom = "subID")
+  # print(bf)
   
   cat('\nSpace Cue \n')
-  datuse = behavedata[behavedata['Attention.Type']=="Space",]
+  datuse = behavedata_train[behavedata_train['Attention.Type']=="Space", ]
   cat('\nNF')
-  print(ttestBF(formula = formula, data = datuse[datuse['NFTraining']=="Neurofeedback",]))
+  print(ttestBF(x = datuse[datuse['NFTraining']=="Neurofeedback", measure]))
   cat('\nSham')
-  print(ttestBF(formula = formula, data = datuse[datuse['NFTraining']=="Sham",]))
+  print(ttestBF(x = datuse[datuse['NFTraining']=="Sham", measure]))
   cat('\nSpace')
-  print(ttestBF(formula = formula, data = datuse[datuse['AttentionTrained']=="Space",]))
+  print(ttestBF(x = datuse[datuse['AttentionTrained']=="Space", measure]))
   cat('\nFeat')
-  print(ttestBF(formula = formula, data = datuse[datuse['AttentionTrained']=="Feature",]))
+  print(ttestBF(x = datuse[datuse['AttentionTrained']=="Feature", measure]))
+  
   
   cat('\nFeat Cue \n')
-  datuse = behavedata[behavedata['Attention.Type']=="Feature",]
+  datuse = behavedata_train[behavedata_train['Attention.Type']=="Feature",]
   cat('\nNF')
-  print(ttestBF(formula = formula, data = datuse[datuse['NFTraining']=="Neurofeedback",]))
+  print(ttestBF(x = datuse[datuse['NFTraining']=="Neurofeedback", measure]))
   cat('\nSham')
-  print(ttestBF(formula = formula, data = datuse[datuse['NFTraining']=="Sham",]))
+  print(ttestBF(x = datuse[datuse['NFTraining']=="Sham", measure]))
   cat('\nSpace')
-  print(ttestBF(formula = formula, data = datuse[datuse['AttentionTrained']=="Space",]))
+  print(ttestBF(x = datuse[datuse['AttentionTrained']=="Space", measure]))
   cat('\nFeat')
-  print(ttestBF(formula = formula, data = datuse[datuse['AttentionTrained']=="Feature",]))
+  print(ttestBF(x = datuse[datuse['AttentionTrained']=="Feature", measure]))
   
   cat('\nOverall \n')
-  datuse = behavedata
+  datuse = behavedata_train
   cat('\nNF')
-  print(ttestBF(formula = formula, data = datuse[datuse['NFTraining']=="Neurofeedback",]))
+  print(ttestBF(x = datuse[datuse['NFTraining']=="Neurofeedback", measure]))
   cat('\nSham')
-  print(ttestBF(formula = formula, data = datuse[datuse['NFTraining']=="Sham",]))
+  print(ttestBF(x = datuse[datuse['NFTraining']=="Sham", measure]))
   cat('\nSpace')
-  print(ttestBF(formula = formula, data = datuse[datuse['AttentionTrained']=="Space",]))
+  print(ttestBF(x = datuse[datuse['AttentionTrained']=="Space", measure]))
   cat('\nFeat')
-  print(ttestBF(formula = formula, data = datuse[datuse['AttentionTrained']=="Feature",]))
+  print(ttestBF(x = datuse[datuse['AttentionTrained']=="Feature", measure]))
 }
 
 followuptests3 <-function(behavedata, formula1, formula2){
+  
   
   cat('\nSpace Cue Training Effects \n')
   datuse = behavedata_train[behavedata_train['Attention.Type']=="Space",]
@@ -192,8 +198,16 @@ followuptests3 <-function(behavedata, formula1, formula2){
   
   cat('\nSpace V Sham \n')
   tmpdat = datuse[datuse$AttentionTrained %in% c("Space" ,"Sham"),]
-  levels(tmpdat$AttentionTrained) = c(1,2,1)
+  tmpdat$AttentionTrained = factor(tmpdat$AttentionTrained)
   print(ttestBF(formula = formula2 , data = tmpdat))
+  
+  
+  print(ttestBF(formula = Sensitivity_TrEfct ~ AttentionTrained , data = tmpdat))
+  print(t.test(formula = Sensitivity_TrEfct ~ AttentionTrained , data = tmpdat, alternative = "two.sided", var.equal = FALSE ))
+  
+  
+  Sensitivity_TrEfct ~ NFTraining, 
+  
   
   cat('\nFeature V Sham \n')
   tmpdat = datuse[datuse$AttentionTrained %in% c("Feature" ,"Sham"),]
@@ -265,7 +279,7 @@ For sensitivity alone, we see a significant interaction between NF training type
 datuse_train = behavedata_train
 DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Type + subID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
 
-followuptests2(behavedata, Sensitivity ~ Testday)
+followuptests2(behavedata_train, "Sensitivity_TrEfct")
 
 ```
 
@@ -273,7 +287,7 @@ followuptests2(behavedata, Sensitivity ~ Testday)
 ```{r}
 DisplayANOVAResults2X2(formula = RT_TrEfct ~ NFTraining * Attention.Type + subID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
 
-followuptests2(behavedata, RT ~ Testday)
+followuptests2(behavedata_train,  "RT_TrEfct")
 
 ```
 
@@ -281,7 +295,7 @@ followuptests2(behavedata, RT ~ Testday)
 ```{r}
 DisplayANOVAResults2X2(formula = correct_TrEfct ~ NFTraining * Attention.Type + subID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
 
-followuptests2(behavedata, correct ~ Testday)
+followuptests2(behavedata_train, "correct_TrEfct")
 
 ```
 
@@ -289,7 +303,7 @@ followuptests2(behavedata, correct ~ Testday)
 ```{r}
 DisplayANOVAResults2X2(formula = Criterion_TrEfct ~ NFTraining * Attention.Type + subID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
 
-followuptests2(behavedata, Criterion ~ Testday)
+followuptests2(behavedata_train, "Criterion_TrEfct")
 
 ```
 
@@ -297,7 +311,7 @@ followuptests2(behavedata, Criterion ~ Testday)
 ```{r}
 DisplayANOVAResults2X2(formula = IE_TrEfct ~ NFTraining * Attention.Type + subID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
 
-followuptests2(behavedata, Criterion ~ Testday)
+followuptests2(behavedata_train, "IE_TrEfct")
 
 ```
 

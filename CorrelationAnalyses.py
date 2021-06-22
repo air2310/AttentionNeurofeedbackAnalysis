@@ -216,6 +216,7 @@ def load_SSVEPdata_electrodes(settings, day):
 
     return df_SSVEPS
 
+
 def load_MotionDiscrimBehaveResults(settings):
 
     # initialise
@@ -354,6 +355,7 @@ def plotscatter_bytraininggroups(datusecorrSp, datusecorrFt, titlestring, xlim, 
 
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
 
 
 def plotscatter_bytraininggroups_sham(datusecorrSp, datusecorrFt, datusecorrSh, titlestring, xlim, ylim, corr, corrsh, bids, settings, measure):
@@ -567,13 +569,40 @@ def ElectrodePerformanceRegression(settings):
 
 
 def classification_acc_correlations(settings):
-    # TODO: Gather data from motion epochs (rather than full trial).
     import scipy.stats as stats
 
     # Get data
     df_classifier, df_classifier_condensed = load_classifierdata(settings)
     df_selectivity = load_SSVEPdata(settings)
     df_sensitivity, bids, behaveexcludestrings_space, behaveexcludestrings_feat = load_MotionDiscrimBehaveResults(settings)
+
+    # sensitivity pre vs post
+    fig, [axuse, axuse2] = plt.subplots(1, 2, figsize=(12, 6))
+
+    sns.scatterplot(data=df_sensitivity[df_sensitivity['TrainingGroup']=="Space"], x='sensitivity_pre_spacecue', y='sensitivity_post_spacecue', ax=axuse, color=settings.darkteal_)
+    sns.scatterplot(data=df_sensitivity[df_sensitivity['TrainingGroup']=="Feature"], x='sensitivity_pre_spacecue', y='sensitivity_post_spacecue', ax=axuse, color=settings.lightteal_)
+    axuse.legend(['Space', 'Feature'], title="Training Group", loc='upper left')
+
+    axuse.set_ylim([-1, 4])
+    axuse.set_xlim([-1, 4])
+    axuse.spines['top'].set_visible(True)
+    axuse.spines['right'].set_visible(True)
+
+    sns.scatterplot(data=df_sensitivity[df_sensitivity['TrainingGroup']=="Sham"], x='sensitivity_pre_spacecue', y='sensitivity_post_spacecue', ax=axuse2, color=settings.yellow_)
+    axuse2.legend(['Sham'], title="Training Group", loc='upper left')
+
+    axuse2.set_ylim([-1, 4])
+    axuse2.set_xlim([-1, 4])
+    axuse2.spines['top'].set_visible(False)
+    axuse2.spines['right'].set_visible(False)
+
+    # plt.suptitle(titlestring)
+    # plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+
+
+
+
+
 
     # plot classifier accuracy by attention type
     plot_classificationacc(df_classifier_condensed, bids, settings)

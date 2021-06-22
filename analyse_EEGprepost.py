@@ -85,8 +85,7 @@ def analyseEEGprepost(settings, sub_val):
 
     # get ssvep amplitudes
     SSVEPs_prepost, SSVEPs_prepost_channelmean, BEST = getSSVEPS_conditions(settings, fftdat, freq)  # trial average
-    SSVEPs_prepost_epochs, SSVEPs_prepost_channelmean_epochs, BEST_epochs = getSSVEPS_conditions(settings, fftdat_epochs,
-                                                                                                        freq)  # single trial
+    SSVEPs_prepost_epochs, SSVEPs_prepost_channelmean_epochs, BEST_epochs = getSSVEPS_conditions(settings, fftdat_epochs, freq)  # single trial
 
     # get ssvep amplitudes SNR
     SSVEPs_prepost_snr, SSVEPs_prepost_channelmean_snr, BEST_snr = getSSVEPS_conditions(settings, fftdat_snr,

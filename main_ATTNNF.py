@@ -1,6 +1,6 @@
 # Import necessary packages
-# import pandas as pd
-# import matplotlib.pyplot as plt
+import pandas as pd
+import matplotlib.pyplot as plt
 
 import helperfunctions_ATTNNF as helper
 
@@ -11,7 +11,7 @@ import analyse_visualsearchtask as avissearch
 import analyse_nbacktask as anback
 import analyse_motiontask as analyse_motiontask
 import analyseNeurofeedback as analyse_NF
-
+import analyse_EEGsingletrialwavelets as analyse_sustattn
 import CorrelationAnalyses as analyse_corr
 import RSA as RSA
 
@@ -26,7 +26,7 @@ import RSA as RSA
 # TODO: look at differences between classifiable and unclassifiable participants.
 
 # setup generic settings
-attntrained = 0  # 0 = Space, 1 = Feature, 2 = Sham
+attntrained = 2  # 0 = Space, 1 = Feature, 2 = Sham
 settings = helper.SetupMetaData(attntrained)
 print("Analysing Data for condition train: " + settings.string_attntrained[settings.attntrained])
 
@@ -59,6 +59,9 @@ analyse_Neurofeedback = False  # Analyse Neurofeedback and sustained attention
 # analyse_subjectRSA = True
 analyse_subjectRSA = False
 
+analyse_singletrialEEG = True
+# analyse_singletrialEEG = False
+
 
 ######## Decide which group analyses to do ########
 
@@ -68,8 +71,8 @@ collate_behaviour_prepost = False  # Collate Behaviour Pre Vs. Post Training
 # collate_behaviour_duringNF = True # Collate Behaviour during Training
 collate_behaviour_duringNF = False  # Collate Behaviour during Training
 #
-collateEEGprepost = True # Collate EEG Pre Vs. Post Training across subjects
-# collateEEGprepost = False  # Collate EEG Pre Vs. Post Training across subjects
+# collateEEGprepost = True # Collate EEG Pre Vs. Post Training across subjects
+collateEEGprepost = False  # Collate EEG Pre Vs. Post Training across subjects
 
 # collateEEGprepost_motioncoherenceepochs = True # Collate EEG Pre Vs. Post Training across subjects
 collateEEGprepost_motioncoherenceepochs = False  # Collate EEG Pre Vs. Post Training across subjects
@@ -142,6 +145,9 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
 
     if analyse_subjectRSA:
         RSA.participantRSA(settings, sub_val)
+
+    if analyse_singletrialEEG:
+        analyse_sustattn.analyseEEGprepost(settings, sub_val)
 
 
 ##### Collate results across all subjects analyses #####

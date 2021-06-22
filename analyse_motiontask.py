@@ -704,6 +704,8 @@ def plotbehavetrainingeffects(df_behtraineffects, measurestring, titlestring, bi
         sns.violinplot(x="AttentionTrained", y=measurestring, data=datplot, palette=sns.color_palette(colors), style="ticks",
                        ax=ax[i], inner="box", alpha=0.6)
 
+        sns.lineplot(x="AttentionTrained", y=measurestring, data=datplot, markers=True, dashes=False, color="k", err_style="bars", ci=68, ax=ax[i])
+
         handles, labels = ax[i].get_legend_handles_labels()
         ax[i].legend(handles[:2], labels[:2])
 
@@ -715,6 +717,7 @@ def plotbehavetrainingeffects(df_behtraineffects, measurestring, titlestring, bi
 
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
 
 
 def collate_behaviour_prepost_compare(settings):
@@ -741,69 +744,18 @@ def collate_behaviour_prepost_compare(settings):
             df_behaveresults_tmp['subID'] = df_behaveresults_tmp['subID'] + 37*attntrainedcount
             df_behaveresults = df_behaveresults.append(df_behaveresults_tmp[['subID', 'subIDval', 'AttentionTrained', 'Attention Type', 'Testday', 'Sensitivity', 'Criterion', 'correct', 'LikelihoodRatio', 'RT', 'RT_STD', 'InverseEfficiency']])
 
-
-    # # Exclude extremely poor performers.
-    # cutoff = 10
-    # tmp1 = df_behaveresults['Testday'].isin(['Day 1']) & df_behaveresults['Attention Type'].isin(['Space'])
-    # tmp = df_behaveresults[tmp1].groupby('subID').mean()['correct']
-    # exclude = df_behaveresults.groupby('subID').mean()[tmp < cutoff]
-    #
-    # tmp1 = df_behaveresults['Testday'].isin(['Day 4']) & df_behaveresults['Attention Type'].isin(['Space'])
-    # tmp = df_behaveresults[tmp1].groupby('subID').mean()['correct']
-    # exclude2 = df_behaveresults.groupby('subID').mean()[tmp < cutoff]
-    #
-    # toexclude_space = np.unique(np.hstack([exclude.index.values, exclude2.index.values]))
-    # df_behaveresults_cleanA = df_behaveresults[~df_behaveresults['subID'].isin(exclude.index) & ~df_behaveresults['subID'].isin(exclude2.index) & df_behaveresults['Attention Type'].isin(['Space'])]
-    #
-    # tmp1 = df_behaveresults['Testday'].isin(['Day 1']) & df_behaveresults['Attention Type'].isin(['Feature'])
-    # tmp = df_behaveresults[tmp1].groupby('subID').mean()['correct']
-    # exclude = df_behaveresults.groupby('subID').mean()[tmp < cutoff]
-    #
-    # tmp1 = df_behaveresults['Testday'].isin(['Day 4']) & df_behaveresults['Attention Type'].isin(['Feature'])
-    # tmp = df_behaveresults[tmp1].groupby('subID').mean()['correct']
-    # exclude2 = df_behaveresults.groupby('subID').mean()[tmp < cutoff]
-    #
-    # toexclude_feat = np.unique(np.hstack([ exclude.index.values, exclude2.index.values]))
-    # df_behaveresults_cleanB = df_behaveresults[~df_behaveresults['subID'].isin(exclude.index) & ~df_behaveresults['subID'].isin(exclude2.index) & df_behaveresults['Attention Type'].isin(['Feature'])]
-    #
-    # df_behaveresults_clean = pd.concat([df_behaveresults_cleanA, df_behaveresults_cleanB])
-    #
-    # # list excluded participants
-    # tmp = df_behaveresults.loc[df_behaveresults.subID.isin(toexclude_space), ['subIDval', 'AttentionTrained']].reset_index().copy()
-    # excludestrings = list()
-    # for i in tmp.index: excludestrings.append(tmp.loc[i, 'AttentionTrained'] + str(tmp.loc[i, 'subIDval']))
-    # excludestrings_space = np.unique(excludestrings)
-    # # array(['Feature1', 'Feature2', 'Feature23', 'Feature4', 'Feature9',
-    # #        'Sham10', 'Sham12', 'Sham16', 'Sham17', 'Sham3', 'Sham31',
-    # #        'Sham34', 'Sham39', 'Sham9', 'Space112', 'Space59', 'Space90'],
-    #
-    # tmp = df_behaveresults.loc[df_behaveresults.subID.isin(toexclude_feat), ['subIDval', 'AttentionTrained']].reset_index().copy()
-    # excludestrings = list()
-    # for i in tmp.index: excludestrings.append(tmp.loc[i, 'AttentionTrained'] + str(tmp.loc[i, 'subIDval']))
-    # excludestrings_feat = np.unique(excludestrings)
-    # # array(['Feature1', 'Feature2', 'Feature23', 'Feature4', 'Feature69',
-    # #        'Sham10', 'Sham16', 'Sham17', 'Sham22', 'Sham3', 'Sham31',
-    # #        'Sham39', 'Sham9', 'Space112', 'Space38', 'Space74', 'Space79',
-    # #        'Space90'], dtype='<U9')
-
-
     # Exclude extremely poor performers.
-    cutoff = 10
-
+    cutoffS, cutoffC = -20, 25
+    allexcluded = list()
     for cuetype, cuetypestr in enumerate(settings.string_attntype):
-        exclude = list()
-        for testday, testdaystr in enumerate(['Day 1', 'Day 4']):
-            for traininggroup, traininggroupstr in enumerate(settings.string_attntrained):
 
-                    tmp1 = df_behaveresults['Testday'].isin([testdaystr]) & df_behaveresults['AttentionTrained'].isin([traininggroupstr]) & df_behaveresults['Attention Type'].isin([cuetypestr])
-                    # tmp = df_behaveresults[tmp1]['Sensitivity']
-                    # exclude.extend(df_behaveresults[tmp1][tmp < tmp.quantile(cutoff)]['subID'].tolist())
-
-                    tmp = df_behaveresults[tmp1]['correct']
-                    exclude.extend(df_behaveresults[tmp1][tmp < cutoff]['subID'].tolist())
+        tmp1 = df_behaveresults['Attention Type'].isin([cuetypestr]) #& df_behaveresults['Testday'].isin(["Day 1"])
+        tmp = np.logical_or(df_behaveresults[tmp1]['Sensitivity'] < cutoffS, df_behaveresults[tmp1]['correct'] < cutoffC)
+        exclude = df_behaveresults[tmp1][tmp]['subID'].tolist()
 
         toexclude = np.unique(exclude)
-
+        print(toexclude)
+        allexcluded.extend(toexclude)
         if cuetype == 0:
             df_behaveresults_cleanA = df_behaveresults[~df_behaveresults['subID'].isin(toexclude) & df_behaveresults['Attention Type'].isin([cuetypestr])]
         else:
@@ -811,9 +763,34 @@ def collate_behaviour_prepost_compare(settings):
 
     df_behaveresults_clean = pd.concat([df_behaveresults_cleanA, df_behaveresults_cleanB])
 
+    # allexcluded = list()
+    # for cuetype, cuetypestr in enumerate(settings.string_attntype):
+    #     exclude = list()
+    #     # for traininggroup, traininggroupstr in enumerate(settings.string_attntrained):
+    #     tmp1 = df_behaveresults['Attention Type'].isin([cuetypestr]) #& df_behaveresults['AttentionTrained'].isin([traininggroupstr])# & df_behaveresults['Testday'].isin(["Day 1"])
+    #
+    #     cutoffC = df_behaveresults[tmp1].groupby(['subID',  'AttentionTrained', 'Attention Type']).mean()['correct'].quantile(0.10)
+    #     print(cutoffC)
+    #
+    #     # cutoffS = df_behaveresults[tmp1].groupby(['subID',  'AttentionTrained', 'Attention Type']).mean()['Sensitivity'].quantile(0.10)
+    #     tmp = np.logical_or(df_behaveresults[tmp1]['Sensitivity'] < 0, df_behaveresults[tmp1]['correct'] < cutoffC)
+    #     exclude.extend(df_behaveresults[tmp1][tmp]['subID'].tolist())
+    #
+    #     toexclude = np.unique(exclude)
+    #     print(toexclude)
+    #     allexcluded.extend(toexclude)
+    #     if cuetype == 0:
+    #         df_behaveresults_cleanA = df_behaveresults[~df_behaveresults['subID'].isin(toexclude) & df_behaveresults['Attention Type'].isin([cuetypestr])]
+    #     else:
+    #         df_behaveresults_cleanB = df_behaveresults[~df_behaveresults['subID'].isin(toexclude) & df_behaveresults['Attention Type'].isin([cuetypestr])]
+    #
+    # df_behaveresults_clean = pd.concat([df_behaveresults_cleanA, df_behaveresults_cleanB])
+
     # # lets run some stats with R - save it out
     df_behaveresults_clean.to_csv(bids.direct_results_group_compare / Path("motiondiscrim_behaveresults_ALL.csv"),
                                   index=False)
+
+    allexcluded = np.unique(allexcluded)
 
     ##########################################  plot day 1 Vs. Day 4 Results by task, and group ##########################################
     coloruse = [settings.lightteal, settings.medteal]
@@ -822,8 +799,8 @@ def collate_behaviour_prepost_compare(settings):
         titstring = attentiontype + ' task'
 
         plotgroupedresult_complex(datplot, "Sensitivity", titstring, bids, coloruse, [-1, 5])
-        plotgroupedresult_complex(datplot, "Criterion", titstring, bids, coloruse, [-2.5, 1])
         plotgroupedresult_complex(datplot, "RT", titstring, bids, coloruse, [0.5, 1.2])
+        plotgroupedresult_complex(datplot, "Criterion", titstring, bids, coloruse, [-2.5, 1])
         plotgroupedresult_complex(datplot, "correct", titstring, bids, coloruse, [0, 100])
         plotgroupedresult_complex(datplot, "InverseEfficiency", titstring, bids, coloruse, [-2, 10])
         plotgroupedresult_complex(datplot, "LikelihoodRatio", titstring, bids, coloruse, [-6, 2])
@@ -856,7 +833,7 @@ def collate_behaviour_prepost_compare(settings):
     # df_behtraineffects = df_behtraineffects.reset_index()
     ##########################################  plot training effects against attention trained and attention type ##########################################
 
-    plotbehavetrainingeffects(df_behtraineffects, "∆Sensitivity", 'Motion Task Sensitivity training effect by attention', bids, settings, [-1.5, 2.5])
+    plotbehavetrainingeffects(df_behtraineffects, "∆Sensitivity", 'Motion Task Sensitivity training effect by attention', bids, settings, [-2, 3])
     plotbehavetrainingeffects(df_behtraineffects, "∆Correct", 'Motion Task Correct training effect by attention', bids, settings, [-40, 80])
     plotbehavetrainingeffects(df_behtraineffects, "∆RT",  'Motion Task RT training effect by attention', bids, settings, [-0.3, 0.2])
     plotbehavetrainingeffects(df_behtraineffects, "∆Criterion", 'Motion Task Criterion training effect by attention', bids, settings, [-1, 1.7])
@@ -868,32 +845,26 @@ def collate_behaviour_prepost_compare(settings):
     import scipy.stats as stats
 
     datplot = df_behtraineffects[df_behtraineffects["Attention Type"] == settings.string_attntype[0]]
-    cat1 = datplot[datplot['AttentionTrained'] == 'Space']
-    cat2 = datplot[datplot['AttentionTrained'] == 'Feature']
+    space = datplot[datplot['AttentionTrained'] == 'Space']
+    feat = datplot[datplot['AttentionTrained'] == 'Feature']
     cat12 = datplot[datplot['AttentionTrained'].isin(['Feature', 'Space'])]
-    cat3 = datplot[datplot['AttentionTrained'] == 'Sham']
+    sham = datplot[datplot['AttentionTrained'] == 'Sham']
 
-    stats.ttest_ind(cat1['∆Sensitivity'], cat3['∆Sensitivity'])
-    stats.ttest_ind(cat2['∆Sensitivity'], cat3['∆Sensitivity'])
-    stats.ttest_ind(cat12['∆Sensitivity'], cat3['∆Sensitivity'])
+    print(stats.ttest_ind(space['∆Sensitivity'], sham['∆Sensitivity']))
+    print(stats.ttest_ind(feat['∆Sensitivity'], sham['∆Sensitivity']))
+    print(stats.ttest_ind(cat12['∆Sensitivity'], sham['∆Sensitivity']))
 
-    stats.ttest_1samp(cat1['∆Sensitivity'], 0)
-    stats.ttest_1samp(cat2['∆Sensitivity'], 0)
-    stats.ttest_1samp(cat3['∆Sensitivity'], 0)
+    print(stats.ttest_1samp(space['∆Sensitivity'], 0))
+    print(stats.ttest_1samp(feat['∆Sensitivity'], 0))
+    print(stats.ttest_1samp(sham['∆Sensitivity'], 0))
 
-    cond = '∆LikelihoodRatio'
-    stats.ttest_ind(cat1[cond], cat3[cond])
-    stats.ttest_ind(cat2[cond], cat3[cond])
-    stats.ttest_ind(cat12[cond], cat3[cond])
+    print(len(df_behtraineffects[np.logical_and(df_behtraineffects['AttentionTrained'] == 'Space', df_behtraineffects["Attention Type"] == 'Space')].subID.unique()))
+    print(len(df_behtraineffects[np.logical_and(df_behtraineffects['AttentionTrained'] == 'Feature', df_behtraineffects["Attention Type"] == 'Space')].subID.unique()))
+    print(len(df_behtraineffects[np.logical_and(df_behtraineffects['AttentionTrained'] == 'Sham', df_behtraineffects["Attention Type"] == 'Space')].subID.unique()))
 
-    stats.ttest_1samp(cat1[cond], 0)
-    stats.ttest_1samp(cat2[cond], 0)
-    stats.ttest_1samp(cat3[cond], 0)
-
-    print(len(df_behtraineffects[df_behtraineffects['AttentionTrained'] == 'Space'].subID.unique()))
-    print(len(df_behtraineffects[df_behtraineffects['AttentionTrained'] == 'Feature'].subID.unique()))
-    print(len(df_behtraineffects[df_behtraineffects['AttentionTrained'] == 'Sham'].subID.unique()))
-
+    print(len(df_behtraineffects[np.logical_and(df_behtraineffects['AttentionTrained'] == 'Space', df_behtraineffects["Attention Type"] == 'Feature')].subID.unique()))
+    print(len(df_behtraineffects[np.logical_and(df_behtraineffects['AttentionTrained'] == 'Feature', df_behtraineffects["Attention Type"] == 'Feature')].subID.unique()))
+    print(len(df_behtraineffects[np.logical_and(df_behtraineffects['AttentionTrained'] == 'Sham', df_behtraineffects["Attention Type"] == 'Feature')].subID.unique()))
 
 def collate_behaviour_duringNF(settings):
     print('Collating Motion Task Behaviour during Neurofeedback')
@@ -1156,6 +1127,9 @@ def plotbehavetrainingeffects_duringNF(df_behtraineffects, measurestring, titles
     sns.violinplot(x="AttentionTrained", y=measurestring, data=datplot, palette=sns.color_palette(colors), style="ticks",
                    ax=ax, inner="box", alpha=0.6)
 
+
+    sns.lineplot(x="AttentionTrained", y=measurestring, data=datplot, markers=True, dashes=False, color="k", err_style="bars", ci=68)
+
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(handles[:3], labels[:3])
 
@@ -1167,6 +1141,7 @@ def plotbehavetrainingeffects_duringNF(df_behtraineffects, measurestring, titles
 
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
 
 
 def collate_behaviour_duringNF_compare(settings):
@@ -1201,27 +1176,30 @@ def collate_behaviour_duringNF_compare(settings):
 
 
     # Exclude extremely poor performers.
-    cutoff = 0.05
-    exclude = list()
-    for testday, testdaystr in enumerate(settings.string_testday[:-1]):
-        for traininggroup, traininggroupstr in enumerate(settings.string_attntrained):
-            tmp1 = df_behaveresults['Testday'].isin([testdaystr]) & df_behaveresults['AttentionTrained'].isin([traininggroupstr])
-            tmp = df_behaveresults[tmp1]['Sensitivity']
-            exclude.extend(df_behaveresults[tmp1][tmp < tmp.quantile(cutoff)]['subID'].tolist())
+    # cutoff = 0.05
+    # exclude = list()
+    # for testday, testdaystr in enumerate(settings.string_testday[:-1]):
+    #     for traininggroup, traininggroupstr in enumerate(settings.string_attntrained):
+    #         tmp1 = df_behaveresults['Testday'].isin([testdaystr]) & df_behaveresults['AttentionTrained'].isin([traininggroupstr])
+    #         tmp = df_behaveresults[tmp1]['Sensitivity']
+    #         exclude.extend(df_behaveresults[tmp1][tmp < tmp.quantile(cutoff)]['subID'].tolist())
+    #
+    # toexclude = np.unique(exclude)
 
-    toexclude = np.unique(exclude)
+    toexlude = np.array([6,  14,  18,  19,  23,  29,  37,  38,  39,  41,  43,  52,  76, 82,  83,  85,  89,  90,  95, 104, 107, 110])
     df_behaveresults_clean = df_behaveresults[~df_behaveresults['subID'].isin(toexclude)]
 
 
-    # list excluded participants
-    tmp = df_behaveresults.loc[df_behaveresults.subID.isin(toexclude), ['subIDval', 'AttentionTrained']].reset_index().copy()
-    excludestrings = list()
-    for i in tmp.index: excludestrings.append(tmp.loc[i, 'AttentionTrained'] + str(tmp.loc[i, 'subIDval']))
-    excludestrings = np.unique(excludestrings)
-    # array(['Feature2', 'Feature23', 'Feature67', 'Feature70', 'Sham22',
-    #        'Sham3', 'Sham34', 'Sham39', 'Space118', 'Space90', 'Space94'],
-    #       dtype='<U9')
-
+    # # list excluded participants
+    # tmp = df_behaveresults.loc[df_behaveresults.subID.isin(toexclude), ['subIDval', 'AttentionTrained']].reset_index().copy()
+    # excludestrings = list()
+    # for i in tmp.index: excludestrings.append(tmp.loc[i, 'AttentionTrained'] + str(tmp.loc[i, 'subIDval']))
+    # excludestrings = np.unique(excludestrings)
+    # # array(['Feature1', 'Feature2', 'Feature23', 'Feature4', 'Feature69',
+    # #        'Sham10', 'Sham16', 'Sham17', 'Sham22', 'Sham3', 'Sham31',
+    # #        'Sham39', 'Sham9', 'Space112', 'Space38', 'Space74', 'Space79',
+    # #        'Space90'], dtype='<U9')
+    #
     # # lets run some stats with R - save it out
     df_behaveresults_clean.to_csv(bids.direct_results_group_compare / Path("motiondiscrim_behaveresults_ALL_duringNF.csv"), index=False)
 
@@ -1275,10 +1253,10 @@ def collate_behaviour_duringNF_compare(settings):
     df_behtraineffects["∆RT_mean"] = (df_behtraineffects["∆RT_d1d2"] + df_behtraineffects["∆RT_d2d3"]) / 2
 
     # Plot during NF Training effects
-    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Sensitivity_mean", 'Motion Task Sensitivity training effect by attention', bids, settings, [-0.4, 0.6])
-    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Correct_mean", 'Motion Task Correct training effect by attention', bids, settings, [-10, 20])
-    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆RT_mean",  'Motion Task RT training effect by attention', bids, settings, [-0.15, 0.1])
-    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Criterion_mean", 'Motion Task Criterion training effect by attention', bids, settings, [-0.5, 0.5])
+    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Sensitivity_mean", 'Motion Task Sensitivity training effect by attention during NF', bids, settings, [-0.4, 0.6])
+    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Correct_mean", 'Motion Task Correct training effect by attention during NF', bids, settings, [-10, 20])
+    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆RT_mean",  'Motion Task RT training effect by attention during NF', bids, settings, [-0.15, 0.1])
+    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Criterion_mean", 'Motion Task Criterion training effect by attention during NF', bids, settings, [-0.5, 0.5])
 
     # simple stats
     import scipy.stats as stats
@@ -1289,7 +1267,7 @@ def collate_behaviour_duringNF_compare(settings):
     cat12 = datplot[datplot['AttentionTrained'].isin(['Feature', 'Space'])]
     cat3 = datplot[datplot['AttentionTrained'] == 'Sham']
 
-    measure = '∆Sensitivity_mean'
+    measure = '∆RT_mean'
     stats.ttest_ind(cat1[measure], cat3[measure])
     stats.ttest_ind(cat2[measure], cat3[measure])
     stats.ttest_ind(cat12[measure], cat3[measure])
