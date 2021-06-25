@@ -26,8 +26,8 @@ SSVEPdata = read.csv("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Results/CompareSpaceF
 SSVEPdata$SSVEP = SSVEPdata$Selectivity..Î.ÂµV.
 
 #### step 1 - visualise the data 
-coplot(SSVEP ~ Attention.Trained |  Testday, data = SSVEPdata, panel = panel.smooth,
-       xlab = "Selectivity data: Selectivity vs attention trained, given testday")
+# coplot(SSVEP ~ Attention.Trained |  Testday, data = SSVEPdata, panel = panel.smooth,
+#        xlab = "Selectivity data: Selectivity vs attention trained, given testday")
 
 #### Step 2 - create factors
 
@@ -243,7 +243,6 @@ followuptests3 <-function(data_train, formula1, formula2){
 datuse_train = SSVEPdata_train
 DisplayANOVAResults2X2(formula = SSVEP_TrEfct ~ NFTraining * Attention.Type + SubID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
 
-followuptests2(SSVEPdata, SSVEP ~ Testday)
 
 ```
 

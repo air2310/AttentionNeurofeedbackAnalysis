@@ -201,13 +201,10 @@ followuptests3 <-function(behavedata, formula1, formula2){
   tmpdat$AttentionTrained = factor(tmpdat$AttentionTrained)
   print(ttestBF(formula = formula2 , data = tmpdat))
   
-  
-  print(ttestBF(formula = Sensitivity_TrEfct ~ AttentionTrained , data = tmpdat))
-  print(t.test(formula = Sensitivity_TrEfct ~ AttentionTrained , data = tmpdat, alternative = "two.sided", var.equal = FALSE ))
-  
-  
-  Sensitivity_TrEfct ~ NFTraining, 
-  
+  # 
+  # bf = ttestBF(formula = Sensitivity_TrEfct ~ AttentionTrained , data = tmpdat)
+  # print(t.test(formula = Sensitivity_TrEfct ~ AttentionTrained , data = tmpdat, alternative = "less", var.equal = TRUE ))
+  # 
   
   cat('\nFeature V Sham \n')
   tmpdat = datuse[datuse$AttentionTrained %in% c("Feature" ,"Sham"),]

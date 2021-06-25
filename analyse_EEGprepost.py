@@ -1168,10 +1168,14 @@ def collateEEGprepostcompare(settings):
                        style="ticks",
                        ax=ax[i], inner="box", alpha=0.6)
 
+        sns.lineplot(x="Attention Trained", y="∆ Selectivity", data=datplot, ax=ax[i],markers=True, dashes=False, color="k", err_style="bars", ci=68)
+
         ax[i].spines['top'].set_visible(False)
         ax[i].spines['right'].set_visible(False)
         if i == 0:
             ax[i].set_ylim([-0.75, 0.75])
+        else:
+            ax[i].set_ylim([-0.2, 0.2])
         ax[i].set_title(settings.string_attntrained[i])
 
     titlestring = 'Motion Task SSVEP Selectivity training effect by attention'

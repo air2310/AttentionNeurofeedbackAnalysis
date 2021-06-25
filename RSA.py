@@ -184,7 +184,8 @@ def participantRSA(settings, sub_val):
     freqtagdat = fftdat[:,hz_attn_index, :, :].reshape(settings.num_electrodes*settings.num_Hz, settings.num_conditionsRSA, settings.num_days)
 
     SSVEPS_RSA = np.concatenate((freqtagdat, lowalphadat, highalphadat), axis=0)
-    SSVEPS_RSA_plot = SSVEPS_RSA - SSVEPS_RSA.mean(axis=1)[:, None, :]
+
+    SSVEPS_RSA_plot = np.divide(SSVEPS_RSA - SSVEPS_RSA.mean(axis=1)[:, None, :], SSVEPS_RSA.std(axis=1)[:, None, :])
 
     # Run RSA!
     import scipy.stats as stats
@@ -259,15 +260,30 @@ def collate_RSA(settings):
 
             # load results
             results = np.load(bids.direct_results / Path(bids.substring + "RSA_data.npz"), allow_pickle=True) #, RDM=RDM, SSVEPS_RSA=SSVEPS_RSA)
-            RDM_individual[:, :, :, sub_count] = results['RDM']
+            # RDM_individual[:, :, :, sub_count] = results['RDM']
             SSVEPS_RSA[:, :, :, sub_count] = results['SSVEPS_RSA']
+
+            # Get individual subject RDM
+            SSVEPS_RSA_plot = results['SSVEPS_RSA']  #np.divide(results['SSVEPS_RSA'] - results['SSVEPS_RSA'].mean(axis=1)[:, None, :], results['SSVEPS_RSA'].std(axis=1)[:, None, :])
+            RDM = np.zeros((settings.num_conditionsRSA, settings.num_conditionsRSA, settings.num_days))
+            RDM[:] = np.nan
+            for day_count, day_val in enumerate(settings.daysuse):
+                for conditionA in np.arange(settings.num_conditionsRSA):
+                    for conditionB in np.arange(settings.num_conditionsRSA):
+                        corr = stats.pearsonr(SSVEPS_RSA_plot[:, conditionA, day_count], SSVEPS_RSA_plot[:, conditionB, day_count])
+                        correlation_distance = 1 - corr[0]
+                        RDM[conditionA, conditionB, day_count] = correlation_distance
+
+            # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+            # im = ax1.imshow(RDM[:, :, 0], clim=(0.0, 2))
+            # im = ax2.imshow(RDM[:, :, 1], clim=(0.0, 2))
 
             # work out Representational dissimilarity across days
             day1 = np.array((np.nan))
             day4 = np.array((np.nan))
             for i in np.arange(settings.num_conditionsRSA):
-                day1 = np.hstack((day1, RDM_individual[i, i + 1:, 0, sub_count]))
-                day4 = np.hstack((day4, RDM_individual[i, i + 1:, 1, sub_count]))
+                day1 = np.hstack((day1, RDM[i, i + 1:, 0]))
+                day4 = np.hstack((day4, RDM[i, i + 1:, 1]))
 
             corr = stats.spearmanr(day1[1:], day4[1:])
             dissimilarity_days[sub_count] = 1 - corr[0]
@@ -396,45 +412,44 @@ def collate_RSA(settings):
 
 
 
-    # # create dataframe of individual participant results
-    # data = {'SubID': SUB_ID, 'SUB_ID_unique': SUB_ID_unique, 'TrainingGroup': TrainingGroup,
-    #         'RDM_Score': RDM_Score}
-    # df_RDM = pd.DataFrame(data)
-    #
-    # # stats n stuff.
-    # df_RDM.groupby('TrainingGroup').mean()
-    # stats.ttest_ind(df_RDM.loc[df_RDM.TrainingGroup.isin(["Feature"]), 'RDM_Score'], df_RDM.loc[df_RDM.TrainingGroup.isin(["Sham"]), 'RDM_Score'])
-    # stats.ttest_ind(df_RDM.loc[df_RDM.TrainingGroup.isin(["Space"]), 'RDM_Score'], df_RDM.loc[df_RDM.TrainingGroup.isin(["Sham"]), 'RDM_Score'])
-    # stats.ttest_ind(df_RDM.loc[df_RDM.TrainingGroup.isin(["Space"]), 'RDM_Score'], df_RDM.loc[df_RDM.TrainingGroup.isin(["Feature"]), 'RDM_Score'])
-    #
-    # ## Individual subject behaviour correlation
-    # df_sensitivity, bids = load_MotionDiscrimBehaveResults(settings)
-    #
-    # # exclude data
-    # df_RDM = df_RDM.loc[~df_sensitivity.exclude_spacetask,].copy()
-    # df_sensitivity = df_sensitivity.loc[~df_sensitivity.exclude_spacetask,].copy()
-    #
-    # datuse = pd.concat([df_RDM, df_sensitivity[['sensitivity_train_spacecue', 'sensitivity_train_featcue', 'sensitivity_pre_spacecue', 'sensitivity_pre_featcue', 'sensitivity_post_spacecue', 'sensitivity_post_featcue']]], axis=1)
-    #
-    # # Correlate
-    # corr = stats.pearsonr(df_RDM['RDM_Score'], df_sensitivity['sensitivity_train_spacecue'])
-    # print(corr)
-    #
-    # # median split
-    # highRDM = datuse.loc[datuse['RDM_Score'] > datuse['RDM_Score'].quantile(0.5), ]
-    # lowRDM = datuse.loc[datuse['RDM_Score'] < datuse['RDM_Score'].quantile(0.5), ]
-    #
-    # highRDM['sensitivity_train_spacecue'].mean()
-    # lowRDM['sensitivity_train_spacecue'].mean()
-    #
-    # stats.ttest_ind(highRDM['sensitivity_train_spacecue'], lowRDM['sensitivity_train_spacecue'])
-    #
-    #
-    # # Plot
-    # fig, axuse = plt.subplots(1, 1, figsize=(6, 6))
-    # sns.scatterplot(data=datuse, x='RDM_Score', y='sensitivity_train_spacecue', ax=axuse, color=settings.darkteal_)
-    # axuse.spines['top'].set_visible(False)
-    # axuse.spines['right'].set_visible(False)
+    # create dataframe of individual participant results
+    data = {'SubID': SUB_ID, 'SUB_ID_unique': SUB_ID_unique, 'TrainingGroup': TrainingGroup,
+            'RDM_Score': RDM_Score}
+    df_RDM = pd.DataFrame(data)
+
+    # stats n stuff.
+    df_RDM.groupby('TrainingGroup').mean()
+    stats.ttest_ind(df_RDM.loc[df_RDM.TrainingGroup.isin(["Feature"]), 'RDM_Score'], df_RDM.loc[df_RDM.TrainingGroup.isin(["Sham"]), 'RDM_Score'])
+    stats.ttest_ind(df_RDM.loc[df_RDM.TrainingGroup.isin(["Space"]), 'RDM_Score'], df_RDM.loc[df_RDM.TrainingGroup.isin(["Sham"]), 'RDM_Score'])
+    stats.ttest_ind(df_RDM.loc[df_RDM.TrainingGroup.isin(["Space"]), 'RDM_Score'], df_RDM.loc[df_RDM.TrainingGroup.isin(["Feature"]), 'RDM_Score'])
+
+    ## Individual subject behaviour correlation
+    df_sensitivity, bids = load_MotionDiscrimBehaveResults(settings)
+
+    # exclude data
+    df_RDM = df_RDM.loc[~df_sensitivity.exclude_spacetask,].copy()
+    df_sensitivity = df_sensitivity.loc[~df_sensitivity.exclude_spacetask,].copy()
+
+    datuse = pd.concat([df_RDM, df_sensitivity[['sensitivity_train_spacecue', 'sensitivity_train_featcue', 'sensitivity_pre_spacecue', 'sensitivity_pre_featcue', 'sensitivity_post_spacecue', 'sensitivity_post_featcue']]], axis=1)
+
+    # Correlate
+    corr = stats.pearsonr(df_RDM['RDM_Score'], df_sensitivity['sensitivity_train_spacecue'])
+    print(corr)
+
+    # median split
+    highRDM = datuse.loc[datuse['RDM_Score'] > datuse['RDM_Score'].quantile(0.80), ]
+    lowRDM = datuse.loc[datuse['RDM_Score'] < datuse['RDM_Score'].quantile(0.20), ]
+
+    print(highRDM['sensitivity_train_spacecue'].mean())
+    print(lowRDM['sensitivity_train_spacecue'].mean())
+    print(stats.ttest_ind(highRDM['sensitivity_train_spacecue'], lowRDM['sensitivity_train_spacecue']))
+
+
+    # Plot
+    fig, axuse = plt.subplots(1, 1, figsize=(6, 6))
+    sns.scatterplot(data=datuse, x='RDM_Score', y='sensitivity_train_spacecue', ax=axuse, color=settings.darkteal_)
+    axuse.spines['top'].set_visible(False)
+    axuse.spines['right'].set_visible(False)
 
 
 def load_MotionDiscrimBehaveResults(settings):
@@ -617,8 +632,8 @@ def collate_RSA_bybehave_old(settings):
             plt.set_cmap('jet')
             titlestring = attntrained + ' RSA ' + behavetrainstr
             fig.suptitle(titlestring)
-            plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
-            plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
+            # plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+            # plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
 
             # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
             # fig.colorbar(im, ax=ax1)
@@ -715,11 +730,11 @@ def collate_RSA_bybehave(settings):
 
         # get top 25% of people from each group - even numbers of people then get removed from each group.
         datuse = df_sensitivity.loc[df_sensitivity['TrainingGroup'].isin(["Space"]),]
-        highperformers = datuse.loc[datuse['perform'] > datuse['perform'].quantile(.80), 'SubID']
+        highperformers = datuse.loc[datuse['perform'] > datuse['perform'].quantile(.75), 'SubID']
         datuse = df_sensitivity.loc[df_sensitivity['TrainingGroup'].isin(["Feature"]),]
-        highperformers = pd.concat([highperformers, datuse.loc[datuse['perform'] > datuse['perform'].quantile(.80), 'SubID']], axis=0)
+        highperformers = pd.concat([highperformers, datuse.loc[datuse['perform'] > datuse['perform'].quantile(.75), 'SubID']], axis=0)
         datuse = df_sensitivity.loc[df_sensitivity['TrainingGroup'].isin(["Sham"]),]
-        highperformers = pd.concat([highperformers, datuse.loc[datuse['perform'] > datuse['perform'].quantile(.80), 'SubID']], axis=0)
+        highperformers = pd.concat([highperformers, datuse.loc[datuse['perform'] > datuse['perform'].quantile(.75), 'SubID']], axis=0)
 
         ## preallocate for group
         settings.num_Hz = 4

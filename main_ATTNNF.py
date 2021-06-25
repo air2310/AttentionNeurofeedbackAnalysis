@@ -59,8 +59,8 @@ analyse_Neurofeedback = False  # Analyse Neurofeedback and sustained attention
 # analyse_subjectRSA = True
 analyse_subjectRSA = False
 
-analyse_singletrialEEG = True
-# analyse_singletrialEEG = False
+# analyse_singletrialEEG = True
+analyse_singletrialEEG = False
 
 
 ######## Decide which group analyses to do ########

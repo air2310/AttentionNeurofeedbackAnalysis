@@ -10,7 +10,6 @@ SSVEPdata = read.csv("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Results/CompareSpaceF
 SSVEPdata$SSVEP = SSVEPdata$Selectivity..Î.ÂµV.
 
 #### step 1 - visualise the data 
-coplot(SSVEP ~ Attention.Trained |  Testday, data = SSVEPdata, panel = panel.smooth,
        xlab = "Selectivity data: Selectivity vs attention trained, given testday")
 
 #### Step 2 - create factors
@@ -104,3 +103,20 @@ plot(bf)
 #   SSVEP_TrEfct ~ Attention.Type + Attention.Type:Attention.Trained + SubID 
 # ---
 #   Bayes factor type: BFlinearModel, JZS
+
+
+cat('\nSpace Cue Training Effects \n')
+datuse = SSVEPdata_train[SSVEPdata_train['Attention.Type']=="Space",]
+
+cat('\nNF V Sham \n')
+print(ttestBF(formula = SSVEP_TrEfct  ~ Attention.Trained, data = datuse))
+
+cat('\nSpace V Sham \n')
+tmpdat = datuse[datuse$AttentionTrained %in% c("Space" ,"Sham"),]
+tmpdat$AttentionTrained = factor(tmpdat$AttentionTrained)
+print(ttestBF(formula = formula2 , data = tmpdat))
+
+# 
+# bf = ttestBF(formula = Sensitivity_TrEfct ~ AttentionTrained , data = tmpdat)
+# print(t.test(formula = Sensitivity_TrEfct ~ AttentionTrained , data = tmpdat, alternative = "less", var.equal = TRUE ))
+# 

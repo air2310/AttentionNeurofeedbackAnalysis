@@ -745,12 +745,15 @@ def collate_behaviour_prepost_compare(settings):
             df_behaveresults = df_behaveresults.append(df_behaveresults_tmp[['subID', 'subIDval', 'AttentionTrained', 'Attention Type', 'Testday', 'Sensitivity', 'Criterion', 'correct', 'LikelihoodRatio', 'RT', 'RT_STD', 'InverseEfficiency']])
 
     # Exclude extremely poor performers.
-    cutoffS, cutoffC = -20, 25
+    cutoffS, cutoffC = 0,10#12
     allexcluded = list()
     for cuetype, cuetypestr in enumerate(settings.string_attntype):
 
-        tmp1 = df_behaveresults['Attention Type'].isin([cuetypestr]) #& df_behaveresults['Testday'].isin(["Day 1"])
-        tmp = np.logical_or(df_behaveresults[tmp1]['Sensitivity'] < cutoffS, df_behaveresults[tmp1]['correct'] < cutoffC)
+        tmp1 = df_behaveresults['Attention Type'].isin([cuetypestr]) & df_behaveresults['Testday'].isin(["Day 1"])
+        # tmp = np.logical_or(df_behaveresults[tmp1]['Sensitivity'] < cutoffS, df_behaveresults[tmp1]['correct'] < cutoffC)
+
+        tmp =  df_behaveresults[tmp1]['correct'] < cutoffC
+        # tmp = df_behaveresults[tmp1]['Criterion'] < -1.5
         exclude = df_behaveresults[tmp1][tmp]['subID'].tolist()
 
         toexclude = np.unique(exclude)
@@ -763,33 +766,9 @@ def collate_behaviour_prepost_compare(settings):
 
     df_behaveresults_clean = pd.concat([df_behaveresults_cleanA, df_behaveresults_cleanB])
 
-    # allexcluded = list()
-    # for cuetype, cuetypestr in enumerate(settings.string_attntype):
-    #     exclude = list()
-    #     # for traininggroup, traininggroupstr in enumerate(settings.string_attntrained):
-    #     tmp1 = df_behaveresults['Attention Type'].isin([cuetypestr]) #& df_behaveresults['AttentionTrained'].isin([traininggroupstr])# & df_behaveresults['Testday'].isin(["Day 1"])
-    #
-    #     cutoffC = df_behaveresults[tmp1].groupby(['subID',  'AttentionTrained', 'Attention Type']).mean()['correct'].quantile(0.10)
-    #     print(cutoffC)
-    #
-    #     # cutoffS = df_behaveresults[tmp1].groupby(['subID',  'AttentionTrained', 'Attention Type']).mean()['Sensitivity'].quantile(0.10)
-    #     tmp = np.logical_or(df_behaveresults[tmp1]['Sensitivity'] < 0, df_behaveresults[tmp1]['correct'] < cutoffC)
-    #     exclude.extend(df_behaveresults[tmp1][tmp]['subID'].tolist())
-    #
-    #     toexclude = np.unique(exclude)
-    #     print(toexclude)
-    #     allexcluded.extend(toexclude)
-    #     if cuetype == 0:
-    #         df_behaveresults_cleanA = df_behaveresults[~df_behaveresults['subID'].isin(toexclude) & df_behaveresults['Attention Type'].isin([cuetypestr])]
-    #     else:
-    #         df_behaveresults_cleanB = df_behaveresults[~df_behaveresults['subID'].isin(toexclude) & df_behaveresults['Attention Type'].isin([cuetypestr])]
-    #
-    # df_behaveresults_clean = pd.concat([df_behaveresults_cleanA, df_behaveresults_cleanB])
-
     # # lets run some stats with R - save it out
-    df_behaveresults_clean.to_csv(bids.direct_results_group_compare / Path("motiondiscrim_behaveresults_ALL.csv"),
-                                  index=False)
-
+    df_behaveresults_clean.to_csv(bids.direct_results_group_compare / Path("motiondiscrim_behaveresults_ALL.csv"),index=False)
+    # df_behaveresults_clean.to_csv(bids.direct_results_group_compare / Path("motiondiscrim_behaveresults_highperform.csv"), index=False)
     allexcluded = np.unique(allexcluded)
 
     ##########################################  plot day 1 Vs. Day 4 Results by task, and group ##########################################
@@ -1186,8 +1165,8 @@ def collate_behaviour_duringNF_compare(settings):
     #
     # toexclude = np.unique(exclude)
 
-    toexlude = np.array([6,  14,  18,  19,  23,  29,  37,  38,  39,  41,  43,  52,  76, 82,  83,  85,  89,  90,  95, 104, 107, 110])
-    df_behaveresults_clean = df_behaveresults[~df_behaveresults['subID'].isin(toexclude)]
+    # toexlude = np.array([6,  14,  18,  19,  23,  29,  37,  38,  39,  41,  43,  52,  76, 82,  83,  85,  89,  90,  95, 104, 107, 110])
+    df_behaveresults_clean = df_behaveresults[~df_behaveresults['subID'].isin([6, 12, 14, 18, 19, 23, 28, 29, 37, 38, 39, 41, 43, 44, 52, 64, 76, 78, 82, 83, 85, 86, 88, 89, 90, 95, 100, 104, 107, 110])]
 
 
     # # list excluded participants
@@ -1253,9 +1232,9 @@ def collate_behaviour_duringNF_compare(settings):
     df_behtraineffects["∆RT_mean"] = (df_behtraineffects["∆RT_d1d2"] + df_behtraineffects["∆RT_d2d3"]) / 2
 
     # Plot during NF Training effects
-    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Sensitivity_mean", 'Motion Task Sensitivity training effect by attention during NF', bids, settings, [-0.4, 0.6])
+    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Sensitivity_mean", 'Motion Task Sensitivity training effect by attention during NF', bids, settings, [-0.8, 0.8])
     plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Correct_mean", 'Motion Task Correct training effect by attention during NF', bids, settings, [-10, 20])
-    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆RT_mean",  'Motion Task RT training effect by attention during NF', bids, settings, [-0.15, 0.1])
+    plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆RT_mean",  'Motion Task RT training effect by attention during NF', bids, settings, [-0.2, 0.15])
     plotbehavetrainingeffects_duringNF(df_behtraineffects, "∆Criterion_mean", 'Motion Task Criterion training effect by attention during NF', bids, settings, [-0.5, 0.5])
 
     # simple stats
