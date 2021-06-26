@@ -745,15 +745,14 @@ def collate_behaviour_prepost_compare(settings):
             df_behaveresults = df_behaveresults.append(df_behaveresults_tmp[['subID', 'subIDval', 'AttentionTrained', 'Attention Type', 'Testday', 'Sensitivity', 'Criterion', 'correct', 'LikelihoodRatio', 'RT', 'RT_STD', 'InverseEfficiency']])
 
     # Exclude extremely poor performers.
-    cutoffS, cutoffC = 0,10#12
+    cutoffS, cutoffC = 0, 25#12
     allexcluded = list()
     for cuetype, cuetypestr in enumerate(settings.string_attntype):
 
         tmp1 = df_behaveresults['Attention Type'].isin([cuetypestr]) & df_behaveresults['Testday'].isin(["Day 1"])
         # tmp = np.logical_or(df_behaveresults[tmp1]['Sensitivity'] < cutoffS, df_behaveresults[tmp1]['correct'] < cutoffC)
 
-        tmp =  df_behaveresults[tmp1]['correct'] < cutoffC
-        # tmp = df_behaveresults[tmp1]['Criterion'] < -1.5
+        tmp = df_behaveresults[tmp1]['correct'] < cutoffC
         exclude = df_behaveresults[tmp1][tmp]['subID'].tolist()
 
         toexclude = np.unique(exclude)

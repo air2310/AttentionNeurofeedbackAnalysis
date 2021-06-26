@@ -515,6 +515,7 @@ def load_MotionDiscrimBehaveResults(settings):
 
     df_sensitivity = pd.DataFrame(data)
 
+    # exclude
     # subjects to exlude
     exclude_sp = list()
     exclude_ft = list()
@@ -538,109 +539,206 @@ def load_MotionDiscrimBehaveResults(settings):
     return df_sensitivity, bids
 
 
-def collate_RSA_bybehave_old(settings):
+def getSSVEPs_allsubs(attntrainedcount, attntrained):
+
+    # setup generic settings
+    settings = helper.SetupMetaData(attntrainedcount)
+    settings = settings.get_settings_EEG_prepost()
+
+    ## preallocate for group
+    settings.num_Hz = 4
+    SSVEPS_RSA = np.zeros((settings.num_electrodes * settings.num_Hz + settings.num_electrodes * 2, settings.num_conditionsRSA, settings.num_days, settings.num_subs))
+    SSVEPS_RSA[:] = np.nan
+
+    substrings = list()
+    # iterate through subjects for individual subject analyses
+    for sub_count, sub_val in enumerate(settings.subsIDXcollate):
+        # get directories and file names
+        bids = helper.BIDS_FileNaming(int(sub_val), settings, 1)
+        print(bids.substring)
+
+        # sort by behaviour
+        substrings.append(attntrained + str(sub_val))
+
+        # load results
+        results = np.load(bids.direct_results / Path(bids.substring + "RSA_data.npz"), allow_pickle=True)  # , RDM=RDM, SSVEPS_RSA=SSVEPS_RSA)
+        SSVEPS_RSA[:, :, :, sub_count] = results['SSVEPS_RSA']
+
+    return SSVEPS_RSA, substrings
+
+def separate_groups(df_sensitivity, traininggroup, cuetype):
+    if cuetype == 0:
+        df_sensitivity['perform'] = (df_sensitivity['sensitivity_pre_spacecue'] + df_sensitivity['sensitivity_post_spacecue']) / 2
+    else:
+        df_sensitivity['perform'] = (df_sensitivity['sensitivity_pre_featcue'] + df_sensitivity['sensitivity_post_featcue']) / 2
+
+    # get top 25% of people from each group - even numbers of people then get removed from each group.
+    datuse = df_sensitivity.loc[df_sensitivity['TrainingGroup'].isin([traininggroup]),]
+    highperformers = datuse.loc[datuse['perform'] > datuse['perform'].quantile(.75), 'SubID']
+    lowperformers = datuse.loc[datuse['perform'] < datuse['perform'].quantile(.75), 'SubID']
+
+    num_HP = len(highperformers)
+    num_LP = len(lowperformers)
+
+    return highperformers, lowperformers, num_HP, num_LP
+
+def collate_RSA_bybehavepermute(settings):
 
     import scipy.stats as stats
     settings = helper.SetupMetaData(0)
     settings = settings.get_settings_EEG_prepost()
     settings.num_traininggroups = 3
+    settings.num_Hz = 4
 
-    # get behave data and split participants by performance
+    ## get behave data and split participants by performance
     df_sensitivity, bids = load_MotionDiscrimBehaveResults(settings)
 
-    # list objects for bootstrapped group RSA
-    TrainingGroup_grp = list()
-    Bootstrap_grp = list()
-    RDM_Score_grp = list()
-    BehaveTraining_grp = list()
+    ## Step 1 - get all the SSVEP data
+    SSVEPS_RSA_space, substrings_space = getSSVEPs_allsubs(0, "Space")
+    SSVEPS_RSA_feat, substrings_feat =   getSSVEPs_allsubs(1, "Feature")
+    SSVEPS_RSA_sham, substrings_sham =   getSSVEPs_allsubs(2, "Sham")
 
-    # Preallocate for group
-    # SSVEPS_RSA_Group_high = np.zeros((54, settings.num_conditionsRSA, settings.num_days, settings.num_traininggroups))
-    # SSVEPS_RSA_Group_low = np.zeros((54, settings.num_conditionsRSA, settings.num_days, settings.num_traininggroups))
+    ## Step 2 - Define real high achievers for each group
 
-    # cycle trough space and feature train groups
-    for attntrainedcount, attntrained in enumerate(settings.string_attntrained):
-        # setup generic settings
-        settings = helper.SetupMetaData(attntrainedcount)
-        settings = settings.get_settings_EEG_prepost()
+    highperformers_spacecue_sp, lowperformers_spacecue_sp, num_HP_spsp, num_LP = separate_groups(df_sensitivity, traininggroup="Space", cuetype=0)
+    highperformers_spacecue_ft, lowperformers_spacecue_ft, num_HP_spft, num_LP = separate_groups(df_sensitivity, traininggroup="Feature", cuetype=0)
+    highperformers_spacecue_sh, lowperformers_spacecue_sh, num_HP_spsh, num_LP = separate_groups(df_sensitivity, traininggroup="Sham", cuetype=0)
+    highperformers_featcue_sp, lowperformers_featcue_sp, num_HP_ftsp, num_LP = separate_groups(df_sensitivity, traininggroup="Space", cuetype=1)
+    highperformers_featcue_ft, lowperformers_featcue_ft, num_HP_ftft, num_LP = separate_groups(df_sensitivity, traininggroup="Feature", cuetype=1)
+    highperformers_featcue_sh, lowperformers_featcue_sh, num_HP_ftsh, num_LP = separate_groups(df_sensitivity, traininggroup="Sham", cuetype=1)
 
-        datuse = df_sensitivity.loc[df_sensitivity['TrainingGroup'].isin([attntrained]),]
-        lowtrain = datuse.loc[datuse['sensitivity_pre_featcue'] < datuse['sensitivity_post_featcue'].quantile(.5), 'SubID']
-        hightrain = datuse.loc[datuse['sensitivity_pre_featcue'] > datuse['sensitivity_post_featcue'].quantile(.5), 'SubID']
+    highperformers_space = pd.concat([highperformers_spacecue_sp, highperformers_spacecue_ft, highperformers_spacecue_sh], axis=0).tolist()
+    highperformers_feat = pd.concat([highperformers_featcue_sp, highperformers_featcue_ft, highperformers_featcue_sh], axis=0).tolist()
 
-        ## preallocate for group
-        settings.num_Hz = 4
-        SSVEPS_RSA_low = np.zeros((settings.num_electrodes * settings.num_Hz + settings.num_electrodes *2, settings.num_conditionsRSA, settings.num_days, len(lowtrain)))
-        SSVEPS_RSA_high = np.zeros((settings.num_electrodes * settings.num_Hz + settings.num_electrodes * 2, settings.num_conditionsRSA, settings.num_days, len(hightrain)))
-        SSVEPS_RSA_low[:] = np.nan
+    ## Step 3 - Define permuted groups
+    num_subs_all = int(len(highperformers_feat))
+    num_subs = int(round(num_subs_all/3))
+    num_perms = 100
+
+    sample_sp = list()
+    for PERM in np.arange(num_perms):
+        a = np.random.choice(lowperformers_spacecue_sp, num_HP_spsp, replace=True)
+        b = np.random.choice(lowperformers_spacecue_ft, num_HP_spft, replace=True)
+        c = np.random.choice(lowperformers_spacecue_sh, num_HP_spsh, replace=True)
+        sample_sp.append(np.hstack([a, b, c]))
+    sample_sp.append(highperformers_space) # the real samples go on the end
+
+    sample_ft = list()
+    for PERM in np.arange(num_perms):
+        a = np.random.choice(lowperformers_featcue_sp, num_HP_ftsp, replace=True)
+        b = np.random.choice(lowperformers_featcue_ft, num_HP_ftft, replace=True)
+        c = np.random.choice(lowperformers_featcue_sh, num_HP_ftsh, replace=True)
+        sample_ft.append(np.hstack([a, b, c]))
+    sample_ft.append(highperformers_feat)  # the real samples go on the end
+
+    ## Step 4 - get permuted RDMS for high performers
+    num_cues = 2
+    highperformersRDM = np.empty((497, num_perms+1, num_cues))
+    for PERM in np.arange(num_perms + 1): # last two will be space and feature high performance groups (respectively)
+        # get sample to use
+        sample2use = sample[PERM]
+
+        # preallocate for group
+        SSVEPS_RSA_high = np.zeros((settings.num_electrodes * settings.num_Hz + settings.num_electrodes * 2, settings.num_conditionsRSA, settings.num_days, num_subs_all))
         SSVEPS_RSA_high[:] = np.nan
 
-        # iterate through subjects for individual subject analyses
-        sub_count_low = -1
+        # cycle through training groups
         sub_count_high = -1
-        for sub_count, sub_val in enumerate(settings.subsIDXcollate):
-            # get directories and file names
-            bids = helper.BIDS_FileNaming(int(sub_val), settings, 1)
-            print(bids.substring)
+        for attntrainedcount, attntrained in enumerate(settings.string_attntrained):
+            # Get data
+            if attntrained == "Space":
+                SSVEPS_RSA_use, substrings_use = SSVEPS_RSA_space, substrings_space
+            if attntrained == "Feature":
+                SSVEPS_RSA_use, substrings_use = SSVEPS_RSA_feat, substrings_feat
+            if attntrained == "Sham":
+                SSVEPS_RSA_use, substrings_use = SSVEPS_RSA_sham, substrings_sham
 
-            # load results
-            results = np.load(bids.direct_results / Path(bids.substring + "RSA_data.npz"), allow_pickle=True) #, RDM=RDM, SSVEPS_RSA=SSVEPS_RSA)
-
-            # sort by behaviour
-            subcondstring = attntrained + str(sub_val)
-            if any(hightrain.isin([subcondstring])):
-                sub_count_high = sub_count_high+1
-                SSVEPS_RSA_high[:, :, :, sub_count_high] = results['SSVEPS_RSA']
-            if any(lowtrain.isin([subcondstring])):
-                sub_count_low = sub_count_low+1
-                SSVEPS_RSA_low[:, :, :, sub_count_low] = results['SSVEPS_RSA']
+            # iterate through subjects for individual subject analyses
+            for sub_count, sub_val in enumerate(sample2use):
+                if sub_val in substrings_use:
+                    sub_count_high = sub_count_high + 1
+                    SSVEPS_RSA_high[:, :, :, sub_count_high] = SSVEPS_RSA_use[:, :, :, substrings_use.index(sub_val)]
 
         # Collate data
         # subtract mean value from each electrode and frequency so we're just targetting the variance across conditions.
-        SSVEPS_RSA_high[:, :, 0, :] = np.divide(SSVEPS_RSA_high[:, :, 0, :] - SSVEPS_RSA_high[:, :, 0, :].mean(axis=1)[:, None, :], SSVEPS_RSA_high[:, :, 0, :].std(axis=1)[:, None, :])
-        SSVEPS_RSA_high[:, :, 1, :] = np.divide(SSVEPS_RSA_high[:, :, 1, :] - SSVEPS_RSA_high[:, :, 1, :].mean(axis=1)[:, None, :], SSVEPS_RSA_high[:, :, 1, :].std(axis=1)[:, None, :])
+        SSVEPS_RSA_high = SSVEPS_RSA_high.mean(axis=2) # average across days
+        SSVEPS_RSA_high = np.divide(SSVEPS_RSA_high - SSVEPS_RSA_high.mean(axis=1)[:, None, :], SSVEPS_RSA_high.std(axis=1)[:, None, :])
+        SSVEPS_RSA_Groupuse = np.nanmean(SSVEPS_RSA_high, axis=2) # average across participants in group
 
-        SSVEPS_RSA_low[:, :, 0, :] = np.divide(SSVEPS_RSA_low[:, :, 0, :] - SSVEPS_RSA_low[:, :, 0, :].mean(axis=1)[:, None, :], SSVEPS_RSA_low[:, :, 0, :].std(axis=1)[:, None, :])
-        SSVEPS_RSA_low[:, :, 1, :] = np.divide(SSVEPS_RSA_low[:, :, 1, :] - SSVEPS_RSA_low[:, :, 1, :].mean(axis=1)[:, None, :], SSVEPS_RSA_low[:, :, 1, :].std(axis=1)[:, None, :])
+        # Run RSA on group data
+        RDM_Group_HP = np.zeros((settings.num_conditionsRSA, settings.num_conditionsRSA))
+        RDM_Group_HP[:] = np.nan
+        for conditionA in np.arange(settings.num_conditionsRSA):
+            corr = stats.spearmanr(SSVEPS_RSA_Groupuse[:, conditionA], SSVEPS_RSA_Groupuse)
+            correlation_distance = 1 - corr[0]
+            RDM_Group_HP[conditionA, :] = correlation_distance[0][1:]
 
-        SSVEPS_RSA_Group_high = SSVEPS_RSA_high.mean(axis=3)
-        SSVEPS_RSA_Group_low = SSVEPS_RSA_low.mean(axis=3)
+        # fig, ax1 = plt.subplots(1, 1, figsize=(6, 6))
+        # im = ax1.imshow(RDM_Group_HP[:, :], clim=(0.0, 2))
+        # plt.set_cmap('jet')
+        # titlestring = 'RSA High Performing Participants ' + cuetypestring
+        # fig.suptitle(titlestring)
 
-        for behavetrain, behavetrainstr in enumerate(['hightrain', 'lowtrain']):
-            if behavetrain == 0:
-                SSVEPS_RSA_Groupuse = SSVEPS_RSA_Group_high
-            if behavetrain == 1:
-                SSVEPS_RSA_Groupuse = SSVEPS_RSA_Group_low
+        tmp = np.array((np.nan))
+        for i in np.arange(settings.num_conditionsRSA):
+            tmp = np.hstack((tmp, RDM_Group_HP[i, i + 1:]))
 
+        highperformersRDM[:, PERM] = tmp
+
+    ## Step 5 - get permuted RDMS for remaining performers and calculate distances
+    TrainingGroup_grp = list()
+    permutation_grp = list()
+    RDM_D1_Score = list()
+    RDM_D4_Score = list()
+    RDM_Diff_Score = list()
+
+    import time
+    for PERM in np.arange(num_perms + 2):
+        # get sample to use
+        sample2use = sample[PERM]
+
+        # cycle through training groups
+        for attntrainedcount, attntrained in enumerate(settings.string_attntrained):
+
+            # Get data
+            if attntrained == "Space":
+                SSVEPS_RSA, substrings_use = SSVEPS_RSA_space.copy(), substrings_space
+            if attntrained == "Feature":
+                SSVEPS_RSA, substrings_use = SSVEPS_RSA_feat.copy(), substrings_feat
+            if attntrained == "Sham":
+                SSVEPS_RSA, substrings_use = SSVEPS_RSA_sham.copy(), substrings_sham
+
+
+            # iterate through subjects to knock-out high performing participants
+            for sub_count, sub_val in enumerate(sample2use):
+                if sub_val in substrings_use:
+                    SSVEPS_RSA[:, :, :, substrings_use.index(sub_val)] = np.nan
+
+            # Collate data
+            # subtract mean value from each electrode and frequency so we're just targetting the variance across conditions.
+            SSVEPS_RSA[:, :, 0, :] = np.divide(SSVEPS_RSA[:, :, 0, :] - np.mean(SSVEPS_RSA[:, :, 0, :], axis=1)[:, None, :], SSVEPS_RSA[:, :, 0, :].std(axis=1)[:, None, :])
+            SSVEPS_RSA[:, :, 1, :] = np.divide(SSVEPS_RSA[:, :, 1, :] - np.mean(SSVEPS_RSA[:, :, 1, :], axis=1)[:, None, :], SSVEPS_RSA[:, :, 1, :].std(axis=1)[:, None, :])
+            SSVEPS_RSA_Groupuse = np.nanmean(SSVEPS_RSA, axis=3) # average across participants
+
+            # tic = time.perf_counter()
             # Run RSA on group data
             RDM_Group = np.zeros((settings.num_conditionsRSA, settings.num_conditionsRSA, settings.num_days))
             RDM_Group[:] = np.nan
             for day_count, day_val in enumerate(settings.daysuse):
                 for conditionA in np.arange(settings.num_conditionsRSA):
-                    for conditionB in np.arange(settings.num_conditionsRSA):
-                        corr = stats.spearmanr(SSVEPS_RSA_Groupuse[:, conditionA, day_count], SSVEPS_RSA_Groupuse[:, conditionB, day_count])
+                        corr = stats.spearmanr(SSVEPS_RSA_Groupuse[:, conditionA, day_count], SSVEPS_RSA_Groupuse[:, :, day_count])
                         correlation_distance = 1 - corr[0]
-                        RDM_Group[conditionA, conditionB, day_count] = correlation_distance
+                        RDM_Group[conditionA, :, day_count] = correlation_distance[0][1:]
 
-            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
-            im = ax1.imshow(RDM_Group[:, :, 0], clim=(0.0, 2))
-            ax1.set_title('Pre-Training')
-
-            im = ax2.imshow(RDM_Group[:, :, 1], clim=(0.0, 2))
-            ax2.set_title('Post-Training')
-
-            plt.set_cmap('jet')
-            titlestring = attntrained + ' RSA ' + behavetrainstr
-            fig.suptitle(titlestring)
-            # plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
-            # plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
-
+            # print(time.perf_counter() - tic)
             # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
-            # fig.colorbar(im, ax=ax1)
-            # fig.colorbar(im, ax=ax2)
-            # titlestring = attntrained + ' RSAcolorbars'
+            # im = ax1.imshow(RDM_Group[:, :, 0], clim=(0.0, 2))
+            # ax1.set_title('Pre-Training')
+            # im = ax2.imshow(RDM_Group[:, :, 1], clim=(0.0, 2))
+            # ax2.set_title('Post-Training')
+            # plt.set_cmap('jet')
+            # titlestring = attntrained + ' RSA ' + cuetypestring
             # fig.suptitle(titlestring)
-            # plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
 
             day1 = np.array((np.nan))
             day4 = np.array((np.nan))
@@ -648,64 +746,42 @@ def collate_RSA_bybehave_old(settings):
                 day1 = np.hstack((day1, RDM_Group[i, i + 1:, 0]))
                 day4 = np.hstack((day4, RDM_Group[i, i + 1:, 1]))
 
-            corr = stats.spearmanr(day1[1:], day4[1:])
-            print(1-corr[0])
+            print(PERM)
+            corr1 = stats.spearmanr(day1[1:], highperformersRDM[1:, PERM])
+            print(1 - corr1[0])
+            corr2 = stats.spearmanr(day4[1:], highperformersRDM[1:, PERM])
+            print(1 - corr2[0])
 
-            ## Bootstrap analysis
-            # Run RSA on group data
-            num_bootstraps = 100
-            RDM_Group_bootstrap = np.empty((settings.num_conditionsRSA, settings.num_conditionsRSA, settings.num_days, num_bootstraps))
+            TrainingGroup_grp.append(attntrained)
+            permutation_grp.append(PERM)
+            RDM_D1_Score.append(1 - corr1[0])
+            RDM_D4_Score.append(1 - corr2[0])
+            RDM_Diff_Score.append(corr1[0] - corr2[0])
 
-            for bootstrap in np.arange(num_bootstraps):
-                # work out Representational dissimilarity across days
-                day1 = np.array((np.nan))
-                day4 = np.array((np.nan))
-
-                conduse = np.random.choice(settings.num_conditionsRSA, settings.num_conditionsRSA, replace=True)
-                # conduse = np.arange(32)
-                datuse = RDM_Group[:, conduse, :]
-
-                for i in np.arange(settings.num_conditionsRSA):
-                    day1 = np.hstack((day1, datuse[i, i + 1:, 0]))
-                    day4 = np.hstack((day4, datuse[i, i + 1:, 1]))
-
-                nans = np.logical_or(day1 ==0, day4==0)
-                day1 = np.delete(day1, nans)
-                day4 = np.delete(day4, nans)
-                corr = stats.spearmanr(day1[1:], day4[1:])
-
-                BehaveTraining_grp.append(behavetrainstr)
-                TrainingGroup_grp.append(attntrained)
-                Bootstrap_grp.append(bootstrap)
-                RDM_Score_grp.append(1 - corr[0])
-
-
-    # create dataframe of group results
-    data = {'TrainingGroup': TrainingGroup_grp, 'Bootstrap': Bootstrap_grp, 'RDM_Score': RDM_Score_grp, 'BehaveTraining_grp': BehaveTraining_grp}
+    data = {'TrainingGroup': TrainingGroup_grp, 'permutation_grp': permutation_grp, 'RDM_D1_Score': RDM_D1_Score, 'RDM_D4_Score':RDM_D4_Score, 'RDM_Diff_Score': RDM_Diff_Score}
     df_RDM_grp = pd.DataFrame(data)
 
-    # stats n stuff.
-    df_RDM_grp.groupby('TrainingGroup').mean()
-    stats.ttest_ind(df_RDM_grp.loc[df_RDM_grp.TrainingGroup.isin(["Feature"]), 'RDM_Score'], df_RDM_grp.loc[df_RDM_grp.TrainingGroup.isin(["Sham"]), 'RDM_Score'])
-    stats.ttest_ind(df_RDM_grp.loc[df_RDM_grp.TrainingGroup.isin(["Space"]), 'RDM_Score'], df_RDM_grp.loc[df_RDM_grp.TrainingGroup.isin(["Sham"]), 'RDM_Score'])
-    stats.ttest_ind(df_RDM_grp.loc[df_RDM_grp.TrainingGroup.isin(["Space"]), 'RDM_Score'], df_RDM_grp.loc[df_RDM_grp.TrainingGroup.isin(["Feature"]), 'RDM_Score'])
-
-
     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-
-    # Reaction time Grouped violinplot
-    colors = [settings.yellow, settings.orange, settings.red]
-
-    sns.swarmplot(x="TrainingGroup", y="RDM_Score", hue = BehaveTraining_grp, data=df_RDM_grp, color="0", alpha=0.3, ax=ax, dodge=True)
-    sns.violinplot(x="TrainingGroup", y="RDM_Score", hue = BehaveTraining_grp,data=df_RDM_grp, palette=sns.color_palette(colors), style="ticks",
+    colors = [settings.lightteal, settings.lightteal, settings.lightteal]
+    # sns.swarmplot(x="TrainingGroup", y="RDM_Diff_Score",  data=df_RDM_grp, color="0", alpha=0.3, ax=ax, dodge=True)
+    sns.violinplot(x="TrainingGroup", y="RDM_Diff_Score", data=df_RDM_grp, palette=sns.color_palette(colors), style="ticks",
                    ax=ax, inner="box", alpha=0.6)
+
+    # Plot quantiles
+    sns.swarmplot(x="TrainingGroup", y="RDM_Diff_Score", data=df_RDM_grp.groupby('TrainingGroup').quantile(0.05).reset_index(), color="k", alpha=1, ax=ax, dodge=True)
+    sns.swarmplot(x="TrainingGroup", y="RDM_Diff_Score", data=df_RDM_grp.groupby('TrainingGroup').quantile(0.95).reset_index(), color="k", alpha=1, ax=ax, dodge=True)
+
+    # plot Space Group
+    sns.swarmplot(x="TrainingGroup", y="RDM_Diff_Score", data=df_RDM_grp.loc[df_RDM_grp["permutation_grp"]==num_perms], color="r", alpha=1, ax=ax, dodge=True)
+
+    # plot Feature Group
+    sns.swarmplot(x="TrainingGroup", y="RDM_Diff_Score", data=df_RDM_grp.loc[df_RDM_grp["permutation_grp"] == num_perms+1], color="b", alpha=1, ax=ax, dodge=True)
 
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-
+    ax.set_ylim([-0.21, 0.21])
     ax.set_ylabel('Distance from pre-training')
-
-    titlestring = 'RSA pre to post training distance'
+    titlestring = 'RSA pre to post training distance permute'
     plt.suptitle(titlestring)
     # plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
     # plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
@@ -940,6 +1016,16 @@ def collate_RSA_bybehave(settings):
         else:
             df_training = pd.concat([df_training, df_trainingtmp], axis=0)
 
+    # Stats
+    from statsmodels.formula.api import ols
+    from statsmodels.stats.anova import anova_lm
+    datuse = df_training.loc[df_training["TrainingGroup"].isin(["Space", "Feature"]),]
+    formula = 'RDM_Score_effect ~ C(TrainingGroup) + C(Cuetype) + C(TrainingGroup):C(Cuetype)'
+    model = ols(formula, datuse).fit()
+    aov_table = anova_lm(model, typ=2)
+    print(aov_table)
+    aov_table['F']['C(TrainingGroup):C(Cuetype)']
+
     # Plot RSA training effect
     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
     colors = [settings.lightteal, settings.darkteal]
@@ -971,3 +1057,5 @@ def collate_RSA_bybehave(settings):
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
+
+
