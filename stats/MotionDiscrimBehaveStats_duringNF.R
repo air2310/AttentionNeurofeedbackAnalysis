@@ -49,11 +49,10 @@ ttestBF(x=behavedata_train[behavedata_train['AttentionTrained']=="Space","Sensit
 ttestBF(x=behavedata_train[behavedata_train['AttentionTrained']=="Feature","Sensitivity_TrEfct"])
 ttestBF(x=behavedata_train[behavedata_train['AttentionTrained']=="Sham","Sensitivity_TrEfct"])
 
-
 # ttestBF(x=behavedata_train[behavedata_train['AttentionTrained']=="Space","RT_TrEfct"])
 # Bayes factor analysis
 # --------------
-#   [1] Alt., r=0.707 : 215.4644 ±0%
+#   [1] Alt., r=0.707 : 5.5316 ±0%
 # 
 # Against denominator:
 #   Null, mu = 0 
@@ -63,7 +62,7 @@ ttestBF(x=behavedata_train[behavedata_train['AttentionTrained']=="Sham","Sensiti
 # > ttestBF(x=behavedata_train[behavedata_train['AttentionTrained']=="Feature","RT_TrEfct"])
 # Bayes factor analysis
 # --------------
-#   [1] Alt., r=0.707 : 3.488154 ±0%
+#   [1] Alt., r=0.707 : 37.59842 ±0%
 # 
 # Against denominator:
 #   Null, mu = 0 
@@ -73,7 +72,7 @@ ttestBF(x=behavedata_train[behavedata_train['AttentionTrained']=="Sham","Sensiti
 # > ttestBF(x=behavedata_train[behavedata_train['AttentionTrained']=="Sham","RT_TrEfct"])
 # Bayes factor analysis
 # --------------
-#   [1] Alt., r=0.707 : 0.258749 ±0%
+#   [1] Alt., r=0.707 : 0.2400097 ±0.02%
 # 
 # Against denominator:
 #   Null, mu = 0 
@@ -84,7 +83,7 @@ ttestBF(x=behavedata_train[behavedata_train['AttentionTrained']=="Sham","Sensiti
 #   > ttestBF(x=behavedata_train[behavedata_train['AttentionTrained']=="Space","Sensitivity_TrEfct"])
 # Bayes factor analysis
 # --------------
-#   [1] Alt., r=0.707 : 3.516298 ±0%
+#   [1] Alt., r=0.707 : 2.272924 ±0%
 # 
 # Against denominator:
 #   Null, mu = 0 
@@ -94,7 +93,7 @@ ttestBF(x=behavedata_train[behavedata_train['AttentionTrained']=="Sham","Sensiti
 # > ttestBF(x=behavedata_train[behavedata_train['AttentionTrained']=="Feature","Sensitivity_TrEfct"])
 # Bayes factor analysis
 # --------------
-#   [1] Alt., r=0.707 : 0.4731049 ±0%
+#   [1] Alt., r=0.707 : 0.885704 ±0%
 # 
 # Against denominator:
 #   Null, mu = 0 
@@ -104,13 +103,12 @@ ttestBF(x=behavedata_train[behavedata_train['AttentionTrained']=="Sham","Sensiti
 # > ttestBF(x=behavedata_train[behavedata_train['AttentionTrained']=="Sham","Sensitivity_TrEfct"])
 # Bayes factor analysis
 # --------------
-#   [1] Alt., r=0.707 : 0.5999819 ±0%
+#   [1] Alt., r=0.707 : 0.3891922 ±0.01%
 # 
 # Against denominator:
 #   Null, mu = 0 
 # ---
 #   Bayes factor type: BFoneSample, JZS
-
 
 
 

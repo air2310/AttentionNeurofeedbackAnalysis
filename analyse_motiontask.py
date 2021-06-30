@@ -748,7 +748,7 @@ def collate_behaviour_prepost_compare(settings):
     cutoffS, cutoffC = 0, 25#12
     allexcluded = list()
     for cuetype, cuetypestr in enumerate(settings.string_attntype):
-
+        cuetypestr = "Space"
         tmp1 = df_behaveresults['Attention Type'].isin([cuetypestr]) & df_behaveresults['Testday'].isin(["Day 1"])
         # tmp = np.logical_or(df_behaveresults[tmp1]['Sensitivity'] < cutoffS, df_behaveresults[tmp1]['correct'] < cutoffC)
 
@@ -759,9 +759,9 @@ def collate_behaviour_prepost_compare(settings):
         print(toexclude)
         allexcluded.extend(toexclude)
         if cuetype == 0:
-            df_behaveresults_cleanA = df_behaveresults[~df_behaveresults['subID'].isin(toexclude) & df_behaveresults['Attention Type'].isin([cuetypestr])]
+            df_behaveresults_cleanA = df_behaveresults[~df_behaveresults['subID'].isin(toexclude) & df_behaveresults['Attention Type'].isin(["Space"])]
         else:
-            df_behaveresults_cleanB = df_behaveresults[~df_behaveresults['subID'].isin(toexclude) & df_behaveresults['Attention Type'].isin([cuetypestr])]
+            df_behaveresults_cleanB = df_behaveresults[~df_behaveresults['subID'].isin(toexclude) & df_behaveresults['Attention Type'].isin(["Feature"])]
 
     df_behaveresults_clean = pd.concat([df_behaveresults_cleanA, df_behaveresults_cleanB])
 
@@ -1165,7 +1165,10 @@ def collate_behaviour_duringNF_compare(settings):
     # toexclude = np.unique(exclude)
 
     # toexlude = np.array([6,  14,  18,  19,  23,  29,  37,  38,  39,  41,  43,  52,  76, 82,  83,  85,  89,  90,  95, 104, 107, 110])
-    df_behaveresults_clean = df_behaveresults[~df_behaveresults['subID'].isin([6, 12, 14, 18, 19, 23, 28, 29, 37, 38, 39, 41, 43, 44, 52, 64, 76, 78, 82, 83, 85, 86, 88, 89, 90, 95, 100, 104, 107, 110])]
+    df_behaveresults_clean = df_behaveresults[~df_behaveresults['subID'].isin([  3,   4,   6,   7,  10,  12,  14,  18,  19,  23,  24,  27,  28,
+        29,  37,  38,  39,  40,  41,  43,  44,  51,  52,  58,  64,  74,
+        76,  78,  79,  81,  82,  83,  85,  86,  88,  89,  90,  95, 100,
+       102, 104, 107, 110])]
 
 
     # # list excluded participants
