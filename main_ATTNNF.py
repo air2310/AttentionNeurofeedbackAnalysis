@@ -20,6 +20,7 @@ import RSA as RSA
 
 # TODO: During NF stats. -NF flicker
 # TODO: Get working on Neurodesk
+# TODO: Get working on neurodesk again. 
 # TODO: Statistical tests for wavelets (time in each state)
 # TODO: individual trial independance of spatial and feature based-attention neurofeedback - how correlated are they really?
 
