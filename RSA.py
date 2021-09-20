@@ -399,10 +399,14 @@ def collate_RSA(settings):
     sns.violinplot(x="TrainingGroup", y="RDM_Score", data=df_RDM_grp, palette=sns.color_palette(colors), style="ticks",
                    ax=ax, inner="box", alpha=0.6)
 
+    sns.lineplot(x="TrainingGroup", y="RDM_Score", data=df_RDM_grp, markers=True, dashes=False, color="k", err_style="bars", ci=68, ax=ax)
+
+
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
     ax.set_ylabel('Distance from pre-training')
+    ax.set_ylim([0.1, 0.4])
 
     titlestring = 'RSA pre to post training distance'
     plt.suptitle(titlestring)
@@ -620,7 +624,7 @@ def collate_RSA_bybehavepermute(settings):
     ## Step 3 - Define permuted groups
     num_subs_all = int(len(highperformers_feat))
     num_subs = int(round(num_subs_all/3))
-    num_perms = 1000
+    num_perms = 10000
 
     sample_sp = list()
     for PERM in np.arange(num_perms):
@@ -852,6 +856,24 @@ def collate_RSA_bybehavepermute(settings):
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
 
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+    colors = [settings.lightteal, settings.lightteal, settings.lightteal]
+    # sns.swarmplot(y="tstat", data=df_RDM_interact, color="0", alpha=0.3, ax=ax, dodge=True)
+    sns.histplot( data=df_RDM_interact.tstat, palette=sns.color_palette(colors),
+                   ax=ax, stat="probability", binwidth = 2)
+
+    plt.axvline(df_RDM_interact["tstat"].quantile(0.025), 0,1, color='r')
+    plt.axvline(df_RDM_interact["tstat"].quantile(0.975), 0, 1, color='r')
+    plt.axvline(df_RDM_interact.loc[df_RDM_interact["Permutation"]==num_perms, 'tstat'][num_perms], 0, 1, color='k')
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    # ax.set_ylim([-0.21, 0.21])
+
+    titlestring = 'RSA T-stat permutation 75 hist'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
 
 
     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
@@ -867,7 +889,7 @@ def collate_RSA_bybehavepermute(settings):
     # plot Space Group
     sns.swarmplot(y="tstat", data=df_RDM_interact.loc[df_RDM_interact["Permutation"]==num_perms], color="r", alpha=1, ax=ax, dodge=True)
 
-    sum(df_RDM_interact["tstat"] > df_RDM_interact.loc[df_RDM_interact["Permutation"] == num_perms, "tstat"][num_perms]) / num_perms
+    sum(df_RDM_interact["tstat"] > df_RDM_interact.loc[df_RDM_interact["Permutation"] == num_perms, "tstat"][num_perms]) / num_perms #t = 25.289176256738326, p = 0.009
 
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -1170,14 +1192,18 @@ def collate_RSA_bybehave(settings):
     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
     colors = [settings.lightteal, settings.darkteal]
     df_trainingplot = df_training.loc[df_training['TrainingGroup'].isin(["Space", "Feature"])]
-    sns.violinplot(x="TrainingGroup", y="RDM_Score_effect", hue='Cuetype', data=df_trainingplot, palette=sns.color_palette(colors), style="ticks",
+    sns.swarmplot(x="Cuetype", y="RDM_Score_effect", hue='TrainingGroup', data=df_trainingplot,color="0", alpha=0.3, ax=ax, dodge = True)
+    sns.violinplot(x="Cuetype", y="RDM_Score_effect", hue='TrainingGroup', data=df_trainingplot, palette=sns.color_palette(colors), style="ticks",
                    ax=ax, inner="box", alpha=0.6)
+
+    sns.lineplot(x="Cuetype", y="RDM_Score_effect", hue='TrainingGroup', data=df_trainingplot, markers=True, dashes=False, color="k", err_style="bars", ci=68, ax=ax)
+    # sns.lineplot(x="TrainingGroup", y="RDM_Score_effect", hue='Cuetype', data=df_trainingplot, markers=True, dashes=False, color="k", err_style="bars", ci=68, ax=ax)
 
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.axhline(0, color='k', linestyle='--')
     ax.set_ylabel('Distance from high performing participants (post - pre)')
-    ax.set_ylim([-0.25, 0.25])
+    ax.set_ylim([-0.2, 0.2])
     titlestring = 'RSA training distance training effect Neurofeedback participants'
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')

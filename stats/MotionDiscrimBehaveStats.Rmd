@@ -69,6 +69,8 @@ behavedata_train$RT_TrEfct = tmp_d4$RT - tmp_d1$RT
 behavedata_train$RT_STD_TrEfct = tmp_d4$RT_STD - tmp_d1$RT_STD
 behavedata_train$IE_TrEfct = tmp_d4$InverseEfficiency - tmp_d1$InverseEfficiency
 
+levels(behavedata_train$AttentionTrained) 
+
 ```
 
 ## Define Functions
@@ -129,7 +131,26 @@ Runstats_NFvsSham <- function(behavedata, taskstring, measure) {
 
   return(dat)
 }
-  
+
+
+Runstats_TRAINING <- function(behavedata, taskstring, measure) {
+  # get data for measure and task
+  datuse = behavedata[behavedata$Attention.Type %in% taskstring,]
+  datuse["measure"] = datuse[measure]
+
+  # get data for conditions of interest
+ 
+  # get Marginals
+  dat = datuse%>% group_by(AttentionTrained, Testday)
+
+  # run stats
+  cat("ANOVA\n\n")
+  bf = DisplayANOVAResults2X2(measure ~ AttentionTrained * Testday + subID , data=datuse, maineffectstringA = "Neurofeedback Group:",         maineffectstringB = "Test Day:")
+
+
+  return(dat)
+}
+
 # followuptests <- function(formula, dataA, dataB) {
 #   bf = ttestBF(formula = formula, data = dataA)
 #   cat('\n\nNeurofeedback Group Pre Vs. Post\n\n')
@@ -274,39 +295,168 @@ followuptests3 <-function(behavedata, formula1, formula2){
 For sensitivity alone, we see a significant interaction between NF training type and cuetype, so we'll split our analyses for this measure, but not the others. 
 ```{r}
 datuse_train = behavedata_train
-DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Type + subID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
+DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ AttentionTrained * Attention.Type + subID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
 
+
+# get Marginals
+dat = behavedata_train %>% group_by(AttentionTrained, Attention.Type)
+cat("Marginals\n\n\n")
+dat %>% summarise(M=mean(Sensitivity_TrEfct), SD=sd(Sensitivity_TrEfct))
+
+dat = behavedata_train %>% group_by(NFTraining, Attention.Type)
+cat("Marginals\n\n\n")
+dat %>% summarise(M=mean(Sensitivity_TrEfct), SD=sd(Sensitivity_TrEfct))
+
+
+# Check specificity
+behavedata_train_spft = behavedata_train[behavedata_train["AttentionTrained"]=="Space" | behavedata_train["AttentionTrained"]=="Feature", ]
+
+behavedata_train_spft$AttentionTrained = factor(behavedata_train_spft$AttentionTrained)
+behavedata_train_spft$congruency = behavedata_train_spft$AttentionTrained == behavedata_train_spft$Attention.Type  
+behavedata_train_spft$congruency = factor(behavedata_train_spft$congruency)
+levels(behavedata_train_spft$congruency) = c("trained", "untrained")
+
+dat = behavedata_train_spft %>% group_by(AttentionTrained)
+dat %>% summarise(M=mean(Sensitivity_TrEfct), SD=sd(Sensitivity_TrEfct))
+
+dat = behavedata_train_spft %>% group_by(Attention.Type)
+dat %>% summarise(M=mean(Sensitivity_TrEfct), SD=sd(Sensitivity_TrEfct))
+
+tmp1 = behavedata_train_spft[behavedata_train_spft$congruency == "trained", "Sensitivity_TrEfct"] - behavedata_train_spft[behavedata_train_spft$congruency == "untrained", "Sensitivity_TrEfct"]
+ttestBF(x = tmp1)
+anovaBF(formula = Sensitivity_TrEfct ~ congruency + subID, data = behavedata_train_spft, whichRandom="subID" )
+
+bf = anovaBF(formula = Sensitivity_TrEfct ~ AttentionTrained * Attention.Type + subID, data = behavedata_train_spft, whichRandom="subID", whichModels="all")
+# plot(bf)
+
+bfInteraction = bf[7]/bf[4] # is the full model better than just strait main effects?
+bf_main_A = bf[7]/bf[5] # is the full model better than the main effect A knock out?
+bf_main_B = bf[7]/bf[6] # is the full model better than the main effect B knock out?
+  
+# Followup tests
 followuptests2(behavedata_train, "Sensitivity_TrEfct")
 
 ```
 
 ###  Reaction Time (s)
 ```{r}
-DisplayANOVAResults2X2(formula = RT_TrEfct ~ NFTraining * Attention.Type + subID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
+DisplayANOVAResults2X2(formula = RT_TrEfct ~ AttentionTrained * Attention.Type + subID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
 
+dat = behavedata_train %>% group_by(AttentionTrained)
+cat("Marginals\n\n\n")
+dat %>% summarise(M=mean(RT_TrEfct), SD=sd(RT_TrEfct))
+
+# Check specificity
+
+dat = behavedata_train_spft %>% group_by(AttentionTrained)
+dat %>% summarise(M=mean(RT_TrEfct), SD=sd(RT_TrEfct))
+
+dat = behavedata_train_spft %>% group_by(Attention.Type)
+dat %>% summarise(M=mean(RT_TrEfct), SD=sd(RT_TrEfct))
+
+tmp1 = behavedata_train_spft[behavedata_train_spft$congruency == "trained", "RT_TrEfct"] - behavedata_train_spft[behavedata_train_spft$congruency == "untrained", "RT_TrEfct"]
+print(ttestBF(x = tmp1))
+# anovaBF(formula = Sensitivity_TrEfct ~ congruency + subID, data = behavedata_train_spft, whichRandom="subID" )
+
+bf = anovaBF(formula = RT_TrEfct ~ AttentionTrained * Attention.Type + subID, data = behavedata_train_spft, whichRandom="subID", whichModels="all")
+# plot(bf)
+
+print(bf[7]/bf[4]) # is the full model better than just strait main effects?
+print(bf[7]/bf[5]) # is the full model better than the main effect A knock out?
+print(bf[7]/bf[6]) # is the full model better than the main effect B knock out?
+
+# Followuptests
 followuptests2(behavedata_train,  "RT_TrEfct")
 
 ```
 
-### Correct (%)
+### RT STD
 ```{r}
-DisplayANOVAResults2X2(formula = correct_TrEfct ~ NFTraining * Attention.Type + subID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
+DisplayANOVAResults2X2(formula = RT_STD_TrEfct ~ NFTraining * Attention.Type + subID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
 
-followuptests2(behavedata_train, "correct_TrEfct")
+
+# Check specificity
+
+dat = behavedata_train_spft %>% group_by(AttentionTrained)
+dat %>% summarise(M=mean(RT_TrEfct), SD=sd(Sensitivity_TrEfct))
+
+dat = behavedata_train_spft %>% group_by(Attention.Type)
+dat %>% summarise(M=mean(RT_TrEfct), SD=sd(Sensitivity_TrEfct))
+
+tmp1 = behavedata_train_spft[behavedata_train_spft$congruency == "trained", "RT_STD_TrEfct"] - behavedata_train_spft[behavedata_train_spft$congruency == "untrained", "RT_STD_TrEfct"]
+print(ttestBF(x = tmp1))
+# anovaBF(formula = Sensitivity_TrEfct ~ congruency + subID, data = behavedata_train_spft, whichRandom="subID" )
+
+bf = anovaBF(formula = RT_STD_TrEfct ~ AttentionTrained * Attention.Type + subID, data = behavedata_train_spft, whichRandom="subID", whichModels="all")
+# plot(bf)
+
+print(bf[7]/bf[4]) # is the full model better than just strait main effects?
+print(bf[7]/bf[5]) # is the full model better than the main effect A knock out?
+print(bf[7]/bf[6]) # is the full model better than the main effect B knock out?
+
+# Follow-up tests
+followuptests2(behavedata_train, "RT_STD_TrEfct")
 
 ```
 
 ###  Criterion
 ```{r}
-DisplayANOVAResults2X2(formula = Criterion_TrEfct ~ NFTraining * Attention.Type + subID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
+DisplayANOVAResults2X2(formula = Criterion_TrEfct ~ AttentionTrained * Attention.Type + subID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
 
+
+# Check specificity
+
+dat = behavedata_train_spft %>% group_by(AttentionTrained)
+dat %>% summarise(M=mean(Criterion_TrEfct), SD=sd(Criterion_TrEfct))
+
+dat = behavedata_train_spft %>% group_by(Attention.Type)
+dat %>% summarise(M=mean(Criterion_TrEfct), SD=sd(Criterion_TrEfct))
+
+tmp1 = behavedata_train_spft[behavedata_train_spft$congruency == "trained", "Criterion_TrEfct"] - behavedata_train_spft[behavedata_train_spft$congruency == "untrained", "Criterion_TrEfct"]
+print(ttestBF(x = tmp1))
+# anovaBF(formula = Sensitivity_TrEfct ~ congruency + subID, data = behavedata_train_spft, whichRandom="subID" )
+
+bf = anovaBF(formula = Criterion_TrEfct ~ AttentionTrained * Attention.Type + subID, data = behavedata_train_spft, whichRandom="subID", whichModels="all")
+# plot(bf)
+
+print(bf[7]/bf[4]) # is the full model better than just strait main effects?
+print(bf[7]/bf[5]) # is the full model better than the main effect A knock out?
+print(bf[7]/bf[6]) # is the full model better than the main effect B knock out?
+
+# Follow-up tests
 followuptests2(behavedata_train, "Criterion_TrEfct")
 
 ```
 
 ### Inverse Efficiency 
 ```{r}
-DisplayANOVAResults2X2(formula = IE_TrEfct ~ NFTraining * Attention.Type + subID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
+DisplayANOVAResults2X2(formula = IE_TrEfct ~ NFTraining * AttentionTrained + subID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
+
+
+dat = behavedata_train %>% group_by(AttentionTrained)
+cat("Marginals\n\n\n")
+dat$IE_TrEfct = dat$IE_TrEfct*1000
+dat %>% summarise(M=mean(IE_TrEfct), SD=sd(IE_TrEfct))
+
+# Check specificity
+
+dat = behavedata_train_spft %>% group_by(AttentionTrained)
+dat %>% summarise(M=mean(IE_TrEfct), SD=sd(IE_TrEfct))
+
+dat = behavedata_train_spft %>% group_by(Attention.Type)
+
+dat %>% summarise(M=mean(IE_TrEfct), SD=sd(IE_TrEfct))
+
+tmp1 = behavedata_train_spft[behavedata_train_spft$congruency == "trained", "IE_TrEfct"] - behavedata_train_spft[behavedata_train_spft$congruency == "untrained", "IE_TrEfct"]
+print(ttestBF(x = tmp1))
+# anovaBF(formula = Sensitivity_TrEfct ~ congruency + subID, data = behavedata_train_spft, whichRandom="subID" )
+
+bf = anovaBF(formula = IE_TrEfct ~ AttentionTrained * Attention.Type + subID, data = behavedata_train_spft, whichRandom="subID", whichModels="all")
+# plot(bf)
+
+print(bf[7]/bf[4]) # is the full model better than just strait main effects?
+print(bf[7]/bf[5]) # is the full model better than the main effect A knock out?
+print(bf[7]/bf[6]) # is the full model better than the main effect B knock out?
 
 followuptests2(behavedata_train, "IE_TrEfct")
 
@@ -324,6 +474,7 @@ plot(image, axes=FALSE)
 
 # Run Stats
 dat = Runstats_NFvsSham(behavedata, taskstring = 'Space', measure='Sensitivity')
+Runstats_TRAINING(behavedata, taskstring = 'Space', measure='Sensitivity')
 
 # Marginals
 cat("Marginals\n\n\n")
@@ -339,7 +490,7 @@ plot(image, axes=FALSE)
 
 # Run Stats
 dat = Runstats_NFvsSham(behavedata, taskstring = 'Feature', measure='Sensitivity')
-
+Runstats_TRAINING(behavedata, taskstring = 'Feature', measure='Sensitivity')
 # Marginals
 cat("Marginals\n\n\n")
 dat %>% summarise(M=mean(measure), SD=sd(measure))
@@ -359,7 +510,9 @@ plot(image, axes=FALSE)
 
 # Run Stats
 dat = Runstats_NFvsSham(behavedata, taskstring = c("Space", "Feature"), measure='RT')
-
+Runstats_TRAINING(behavedata, taskstring = c("Space", "Feature"), measure='RT')
+Runstats_TRAINING(behavedata, taskstring = "Space", measure='RT')
+Runstats_TRAINING(behavedata, taskstring = "Feature", measure='RT')
 # Marginals
 cat("Marginals\n\n\n")
 dat %>% summarise(M=mean(measure), SD=sd(measure))
@@ -378,6 +531,7 @@ plot(image, axes=FALSE)
 
 # Run Stats
 dat = Runstats_NFvsSham(behavedata, taskstring = c("Space", "Feature"), measure='correct')
+Runstats_TRAINING(behavedata, taskstring = c("Space", "Feature"), measure='correct')
 
 # Marginals
 cat("Marginals\n\n\n")
@@ -397,12 +551,15 @@ plot(image, axes=FALSE)
 
 # Run Stats
 dat = Runstats_NFvsSham(behavedata, taskstring = c("Space", "Feature"), measure='Criterion')
+Runstats_TRAINING(behavedata, taskstring = c("Space", "Feature"), measure='Criterion')
+Runstats_TRAINING(behavedata, taskstring = "Space", measure='Criterion')
+Runstats_TRAINING(behavedata, taskstring = "Feature", measure='Criterion')
 
 # Marginals
 cat("Marginals\n\n\n")
 dat %>% summarise(M=mean(measure), SD=sd(measure))
 
-followuptests3(behavedata, Criterion_TrEfct ~ NFTraining, Sensitivity_TrEfct ~ AttentionTrained)
+followuptests3(behavedata, Criterion_TrEfct ~ NFTraining, Criterion_TrEfct ~ AttentionTrained)
 
 ```
 
@@ -416,12 +573,15 @@ plot(image, axes=FALSE)
 
 # Run Stats
 dat = Runstats_NFvsSham(behavedata, taskstring = c("Space", "Feature"), measure='InverseEfficiency')
+Runstats_TRAINING(behavedata, taskstring = c("Space", "Feature"), measure='InverseEfficiency')
+Runstats_TRAINING(behavedata, taskstring = "Space", measure='InverseEfficiency')
+Runstats_TRAINING(behavedata, taskstring = "Feature", measure='InverseEfficiency')
 
 # Marginals
 cat("Marginals\n\n\n")
 dat %>% summarise(M=mean(measure), SD=sd(measure))
 
-followuptests3(behavedata, IE_TrEfct ~ NFTraining, Sensitivity_TrEfct ~ AttentionTrained)
+followuptests3(behavedata, IE_TrEfct ~ NFTraining, IE_TrEfct ~ AttentionTrained)
 
 ```
 

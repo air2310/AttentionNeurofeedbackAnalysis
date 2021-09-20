@@ -194,6 +194,18 @@ def run(settings, sub_val):
     plt.vlines(144, 2.4, 3.4)
     plt.vlines(216, 2.4, 3.4)
 
+
+    plt.figure()
+    plt.vlines(144, 0, 6)
+    plt.plot(feedback[50, :, 2], color='r') #50
+    plt.ylim([0, 6])
+
+
+
+
+
+
+
     np.savez(bids.direct_results / Path(bids.substring + "NeurofeedbackSummaries"),
              feedback_proportion=feedback_proportion,
              runlength=runlength,

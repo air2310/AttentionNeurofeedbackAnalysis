@@ -411,7 +411,9 @@ behavedata_train$correct_TrEfct = tmp_d4$correct - tmp_d1$correct
 
 behavedata_train$RT_TrEfct = tmp_d4$RT - tmp_d1$RT
 behavedata_train$RT_STD_TrEfct = tmp_d4$RT_STD - tmp_d1$RT_STD
-behavedata_train$IE_TrEfct = tmp_d4$InverseEfficiency - tmp_d1$InverseEfficiency</code></pre>
+behavedata_train$IE_TrEfct = tmp_d4$InverseEfficiency - tmp_d1$InverseEfficiency
+
+levels(behavedata_train$AttentionTrained) </code></pre>
 </div>
 <div id="define-functions" class="section level2">
 <h2>Define Functions</h2>
@@ -425,16 +427,16 @@ behavedata_train$IE_TrEfct = tmp_d4$InverseEfficiency - tmp_d1$InverseEfficiency
 <h3>Sensitivity (d’)</h3>
 <p>For sensitivity alone, we see a significant interaction between NF training type and cuetype, so we’ll split our analyses for this measure, but not the others.</p>
 <pre class="r"><code>datuse_train = behavedata_train
-DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Type + subID , data=datuse_train, maineffectstringA = &quot;Neurofeedback Group:&quot;, maineffectstringB = &quot;Cue Type:&quot;)</code></pre>
+DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ AttentionTrained * Attention.Type + subID , data=datuse_train, maineffectstringA = &quot;Neurofeedback Group:&quot;, maineffectstringB = &quot;Cue Type:&quot;)</code></pre>
 <pre><code>## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + subID                                          : 3016.496 ±0.94%
-## [2] NFTraining + subID                                              : 1.57766  ±1.1%
-## [3] Attention.Type:NFTraining + subID                               : 4064.075 ±0.96%
-## [4] Attention.Type + NFTraining + subID                             : 7528.952 ±27.36%
-## [5] Attention.Type + Attention.Type:NFTraining + subID              : 141226.9 ±1.84%
-## [6] NFTraining + Attention.Type:NFTraining + subID                  : 7411.989 ±1.22%
-## [7] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 274355.8 ±3.76%
+## [1] AttentionTrained + subID                                                    : 0.591983 ±0.69%
+## [2] Attention.Type + subID                                                      : 3072.17  ±1.59%
+## [3] AttentionTrained:Attention.Type + subID                                     : 14.70413 ±0.81%
+## [4] AttentionTrained + Attention.Type + subID                                   : 2229.716 ±2.71%
+## [5] AttentionTrained + AttentionTrained:Attention.Type + subID                  : 9.611663 ±1.11%
+## [6] Attention.Type + AttentionTrained:Attention.Type + subID                    : 40341.44 ±4.37%
+## [7] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 30060.93 ±3.37%
 ## 
 ## Against denominator:
 ##   Sensitivity_TrEfct ~ subID 
@@ -447,10 +449,10 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 36.44011 ±27.62%
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 13.48196 ±4.32%
 ## 
 ## Against denominator:
-##   Sensitivity_TrEfct ~ Attention.Type + NFTraining + subID 
+##   Sensitivity_TrEfct ~ AttentionTrained + Attention.Type + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS
 ## 
@@ -460,10 +462,10 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 1.94266 ±4.18%
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 3127.547 ±3.54%
 ## 
 ## Against denominator:
-##   Sensitivity_TrEfct ~ Attention.Type + Attention.Type:NFTraining + subID 
+##   Sensitivity_TrEfct ~ AttentionTrained + AttentionTrained:Attention.Type + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS
 ## 
@@ -473,27 +475,105 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 37.01514 ±3.95%
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 0.7451625 ±5.52%
 ## 
 ## Against denominator:
-##   Sensitivity_TrEfct ~ NFTraining + Attention.Type:NFTraining + subID 
+##   Sensitivity_TrEfct ~ Attention.Type + AttentionTrained:Attention.Type + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS</code></pre>
 <pre><code>## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + subID                                          : 3016.496 ±0.94%
-## [2] NFTraining + subID                                              : 1.57766  ±1.1%
-## [3] Attention.Type:NFTraining + subID                               : 4064.075 ±0.96%
-## [4] Attention.Type + NFTraining + subID                             : 7528.952 ±27.36%
-## [5] Attention.Type + Attention.Type:NFTraining + subID              : 141226.9 ±1.84%
-## [6] NFTraining + Attention.Type:NFTraining + subID                  : 7411.989 ±1.22%
-## [7] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 274355.8 ±3.76%
+## [1] AttentionTrained + subID                                                    : 0.591983 ±0.69%
+## [2] Attention.Type + subID                                                      : 3072.17  ±1.59%
+## [3] AttentionTrained:Attention.Type + subID                                     : 14.70413 ±0.81%
+## [4] AttentionTrained + Attention.Type + subID                                   : 2229.716 ±2.71%
+## [5] AttentionTrained + AttentionTrained:Attention.Type + subID                  : 9.611663 ±1.11%
+## [6] Attention.Type + AttentionTrained:Attention.Type + subID                    : 40341.44 ±4.37%
+## [7] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 30060.93 ±3.37%
 ## 
 ## Against denominator:
 ##   Sensitivity_TrEfct ~ subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS</code></pre>
-<pre class="r"><code>followuptests2(behavedata_train, &quot;Sensitivity_TrEfct&quot;)</code></pre>
+<pre class="r"><code># get Marginals
+dat = behavedata_train %&gt;% group_by(AttentionTrained, Attention.Type)
+cat(&quot;Marginals\n\n\n&quot;)</code></pre>
+<pre><code>## Marginals</code></pre>
+<pre class="r"><code>dat %&gt;% summarise(M=mean(Sensitivity_TrEfct), SD=sd(Sensitivity_TrEfct))</code></pre>
+<pre><code>## `summarise()` has grouped output by &#39;AttentionTrained&#39;. You can override using the `.groups` argument.</code></pre>
+<pre><code>## # A tibble: 6 x 4
+## # Groups:   AttentionTrained [3]
+##   AttentionTrained Attention.Type     M    SD
+##   &lt;fct&gt;            &lt;fct&gt;          &lt;dbl&gt; &lt;dbl&gt;
+## 1 Feature          Feature        0.126 0.250
+## 2 Feature          Space          0.621 0.505
+## 3 Sham             Feature        0.175 0.330
+## 4 Sham             Space          0.166 0.498
+## 5 Space            Feature        0.207 0.397
+## 6 Space            Space          0.604 0.598</code></pre>
+<pre class="r"><code>dat = behavedata_train %&gt;% group_by(NFTraining, Attention.Type)
+cat(&quot;Marginals\n\n\n&quot;)</code></pre>
+<pre><code>## Marginals</code></pre>
+<pre class="r"><code>dat %&gt;% summarise(M=mean(Sensitivity_TrEfct), SD=sd(Sensitivity_TrEfct))</code></pre>
+<pre><code>## `summarise()` has grouped output by &#39;NFTraining&#39;. You can override using the `.groups` argument.</code></pre>
+<pre><code>## # A tibble: 4 x 4
+## # Groups:   NFTraining [2]
+##   NFTraining    Attention.Type     M    SD
+##   &lt;fct&gt;         &lt;fct&gt;          &lt;dbl&gt; &lt;dbl&gt;
+## 1 Neurofeedback Feature        0.161 0.320
+## 2 Neurofeedback Space          0.613 0.541
+## 3 Sham          Feature        0.175 0.330
+## 4 Sham          Space          0.166 0.498</code></pre>
+<pre class="r"><code># Check specificity
+behavedata_train_spft = behavedata_train[behavedata_train[&quot;AttentionTrained&quot;]==&quot;Space&quot; | behavedata_train[&quot;AttentionTrained&quot;]==&quot;Feature&quot;, ]
+
+behavedata_train_spft$AttentionTrained = factor(behavedata_train_spft$AttentionTrained)
+behavedata_train_spft$congruency = behavedata_train_spft$AttentionTrained == behavedata_train_spft$Attention.Type  
+behavedata_train_spft$congruency = factor(behavedata_train_spft$congruency)
+levels(behavedata_train_spft$congruency) = c(&quot;trained&quot;, &quot;untrained&quot;)
+
+dat = behavedata_train_spft %&gt;% group_by(AttentionTrained)
+dat %&gt;% summarise(M=mean(Sensitivity_TrEfct), SD=sd(Sensitivity_TrEfct))</code></pre>
+<pre><code>## # A tibble: 2 x 3
+##   AttentionTrained     M    SD
+##   &lt;fct&gt;            &lt;dbl&gt; &lt;dbl&gt;
+## 1 Feature          0.373 0.467
+## 2 Space            0.405 0.539</code></pre>
+<pre class="r"><code>dat = behavedata_train_spft %&gt;% group_by(Attention.Type)
+dat %&gt;% summarise(M=mean(Sensitivity_TrEfct), SD=sd(Sensitivity_TrEfct))</code></pre>
+<pre><code>## # A tibble: 2 x 3
+##   Attention.Type     M    SD
+##   &lt;fct&gt;          &lt;dbl&gt; &lt;dbl&gt;
+## 1 Feature        0.161 0.320
+## 2 Space          0.613 0.541</code></pre>
+<pre class="r"><code>tmp1 = behavedata_train_spft[behavedata_train_spft$congruency == &quot;trained&quot;, &quot;Sensitivity_TrEfct&quot;] - behavedata_train_spft[behavedata_train_spft$congruency == &quot;untrained&quot;, &quot;Sensitivity_TrEfct&quot;]
+ttestBF(x = tmp1)</code></pre>
+<pre><code>## Bayes factor analysis
+## --------------
+## [1] Alt., r=0.707 : 0.3832886 ±0%
+## 
+## Against denominator:
+##   Null, mu = 0 
+## ---
+## Bayes factor type: BFoneSample, JZS</code></pre>
+<pre class="r"><code>anovaBF(formula = Sensitivity_TrEfct ~ congruency + subID, data = behavedata_train_spft, whichRandom=&quot;subID&quot; )</code></pre>
+<pre><code>## Bayes factor analysis
+## --------------
+## [1] congruency + subID : 0.4099081 ±3.91%
+## 
+## Against denominator:
+##   Sensitivity_TrEfct ~ subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code>bf = anovaBF(formula = Sensitivity_TrEfct ~ AttentionTrained * Attention.Type + subID, data = behavedata_train_spft, whichRandom=&quot;subID&quot;, whichModels=&quot;all&quot;)
+# plot(bf)
+
+bfInteraction = bf[7]/bf[4] # is the full model better than just strait main effects?
+bf_main_A = bf[7]/bf[5] # is the full model better than the main effect A knock out?
+bf_main_B = bf[7]/bf[6] # is the full model better than the main effect B knock out?
+  
+# Followup tests
+followuptests2(behavedata_train, &quot;Sensitivity_TrEfct&quot;)</code></pre>
 <pre><code>## 
 ## Space Cue 
 ## 
@@ -622,16 +702,16 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 </div>
 <div id="reaction-time-s" class="section level3">
 <h3>Reaction Time (s)</h3>
-<pre class="r"><code>DisplayANOVAResults2X2(formula = RT_TrEfct ~ NFTraining * Attention.Type + subID , data=datuse_train, maineffectstringA = &quot;Neurofeedback Group:&quot;, maineffectstringB = &quot;Cue Type:&quot;)</code></pre>
+<pre class="r"><code>DisplayANOVAResults2X2(formula = RT_TrEfct ~ AttentionTrained * Attention.Type + subID , data=datuse_train, maineffectstringA = &quot;Neurofeedback Group:&quot;, maineffectstringB = &quot;Cue Type:&quot;)</code></pre>
 <pre><code>## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + subID                                          : 0.560629   ±6.84%
-## [2] NFTraining + subID                                              : 0.5717935  ±2.01%
-## [3] Attention.Type:NFTraining + subID                               : 0.2484638  ±1.07%
-## [4] Attention.Type + NFTraining + subID                             : 0.3065216  ±2.11%
-## [5] Attention.Type + Attention.Type:NFTraining + subID              : 0.1516933  ±2.93%
-## [6] NFTraining + Attention.Type:NFTraining + subID                  : 0.1497948  ±1.83%
-## [7] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.09259816 ±3.01%
+## [1] AttentionTrained + subID                                                    : 2.02564   ±1.64%
+## [2] Attention.Type + subID                                                      : 0.5698383 ±12.26%
+## [3] AttentionTrained:Attention.Type + subID                                     : 0.1377972 ±0.73%
+## [4] AttentionTrained + Attention.Type + subID                                   : 1.025757  ±2.51%
+## [5] AttentionTrained + AttentionTrained:Attention.Type + subID                  : 0.2781681 ±3.08%
+## [6] Attention.Type + AttentionTrained:Attention.Type + subID                    : 0.1492329 ±45.93%
+## [7] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 0.1560501 ±2.6%
 ## 
 ## Against denominator:
 ##   RT_TrEfct ~ subID 
@@ -644,10 +724,10 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.3020934 ±3.67%
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 0.1521316 ±3.61%
 ## 
 ## Against denominator:
-##   RT_TrEfct ~ Attention.Type + NFTraining + subID 
+##   RT_TrEfct ~ AttentionTrained + Attention.Type + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS
 ## 
@@ -657,10 +737,10 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.61043 ±4.2%
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 0.560992 ±4.03%
 ## 
 ## Against denominator:
-##   RT_TrEfct ~ Attention.Type + Attention.Type:NFTraining + subID 
+##   RT_TrEfct ~ AttentionTrained + AttentionTrained:Attention.Type + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS
 ## 
@@ -670,27 +750,86 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.6181668 ±3.52%
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 1.045681 ±46.01%
 ## 
 ## Against denominator:
-##   RT_TrEfct ~ NFTraining + Attention.Type:NFTraining + subID 
+##   RT_TrEfct ~ Attention.Type + AttentionTrained:Attention.Type + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS</code></pre>
 <pre><code>## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + subID                                          : 0.560629   ±6.84%
-## [2] NFTraining + subID                                              : 0.5717935  ±2.01%
-## [3] Attention.Type:NFTraining + subID                               : 0.2484638  ±1.07%
-## [4] Attention.Type + NFTraining + subID                             : 0.3065216  ±2.11%
-## [5] Attention.Type + Attention.Type:NFTraining + subID              : 0.1516933  ±2.93%
-## [6] NFTraining + Attention.Type:NFTraining + subID                  : 0.1497948  ±1.83%
-## [7] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.09259816 ±3.01%
+## [1] AttentionTrained + subID                                                    : 2.02564   ±1.64%
+## [2] Attention.Type + subID                                                      : 0.5698383 ±12.26%
+## [3] AttentionTrained:Attention.Type + subID                                     : 0.1377972 ±0.73%
+## [4] AttentionTrained + Attention.Type + subID                                   : 1.025757  ±2.51%
+## [5] AttentionTrained + AttentionTrained:Attention.Type + subID                  : 0.2781681 ±3.08%
+## [6] Attention.Type + AttentionTrained:Attention.Type + subID                    : 0.1492329 ±45.93%
+## [7] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 0.1560501 ±2.6%
 ## 
 ## Against denominator:
 ##   RT_TrEfct ~ subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS</code></pre>
-<pre class="r"><code>followuptests2(behavedata_train,  &quot;RT_TrEfct&quot;)</code></pre>
+<pre class="r"><code># Check specificity
+
+dat = behavedata_train_spft %&gt;% group_by(AttentionTrained)
+dat %&gt;% summarise(M=mean(RT_TrEfct), SD=sd(Sensitivity_TrEfct))</code></pre>
+<pre><code>## # A tibble: 2 x 3
+##   AttentionTrained       M    SD
+##   &lt;fct&gt;              &lt;dbl&gt; &lt;dbl&gt;
+## 1 Feature          -0.0299 0.467
+## 2 Space            -0.0652 0.539</code></pre>
+<pre class="r"><code>dat = behavedata_train_spft %&gt;% group_by(Attention.Type)
+dat %&gt;% summarise(M=mean(RT_TrEfct), SD=sd(Sensitivity_TrEfct))</code></pre>
+<pre><code>## # A tibble: 2 x 3
+##   Attention.Type       M    SD
+##   &lt;fct&gt;            &lt;dbl&gt; &lt;dbl&gt;
+## 1 Feature        -0.0420 0.320
+## 2 Space          -0.0486 0.541</code></pre>
+<pre class="r"><code>tmp1 = behavedata_train_spft[behavedata_train_spft$congruency == &quot;trained&quot;, &quot;RT_TrEfct&quot;] - behavedata_train_spft[behavedata_train_spft$congruency == &quot;untrained&quot;, &quot;RT_TrEfct&quot;]
+print(ttestBF(x = tmp1))</code></pre>
+<pre><code>## Bayes factor analysis
+## --------------
+## [1] Alt., r=0.707 : 0.1621434 ±0%
+## 
+## Against denominator:
+##   Null, mu = 0 
+## ---
+## Bayes factor type: BFoneSample, JZS</code></pre>
+<pre class="r"><code># anovaBF(formula = Sensitivity_TrEfct ~ congruency + subID, data = behavedata_train_spft, whichRandom=&quot;subID&quot; )
+
+bf = anovaBF(formula = RT_TrEfct ~ AttentionTrained * Attention.Type + subID, data = behavedata_train_spft, whichRandom=&quot;subID&quot;, whichModels=&quot;all&quot;)
+# plot(bf)
+
+print(bf[7]/bf[4]) # is the full model better than just strait main effects?</code></pre>
+<pre><code>## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 0.3139611 ±3.55%
+## 
+## Against denominator:
+##   RT_TrEfct ~ AttentionTrained + Attention.Type + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code>print(bf[7]/bf[5]) # is the full model better than the main effect A knock out?</code></pre>
+<pre><code>## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 0.3331812 ±4.04%
+## 
+## Against denominator:
+##   RT_TrEfct ~ AttentionTrained + AttentionTrained:Attention.Type + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code>print(bf[7]/bf[6]) # is the full model better than the main effect B knock out?</code></pre>
+<pre><code>## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 3.094847 ±7.52%
+## 
+## Against denominator:
+##   RT_TrEfct ~ Attention.Type + AttentionTrained:Attention.Type + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code># Followuptests
+followuptests2(behavedata_train,  &quot;RT_TrEfct&quot;)</code></pre>
 <pre><code>## 
 ## Space Cue 
 ## 
@@ -817,21 +956,21 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## ---
 ## Bayes factor type: BFoneSample, JZS</code></pre>
 </div>
-<div id="correct" class="section level3">
-<h3>Correct (%)</h3>
-<pre class="r"><code>DisplayANOVAResults2X2(formula = correct_TrEfct ~ NFTraining * Attention.Type + subID , data=datuse_train, maineffectstringA = &quot;Neurofeedback Group:&quot;, maineffectstringB = &quot;Cue Type:&quot;)</code></pre>
+<div id="rt-std" class="section level3">
+<h3>RT STD</h3>
+<pre class="r"><code>DisplayANOVAResults2X2(formula = RT_STD_TrEfct ~ NFTraining * Attention.Type + subID , data=datuse_train, maineffectstringA = &quot;Neurofeedback Group:&quot;, maineffectstringB = &quot;Cue Type:&quot;)</code></pre>
 <pre><code>## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + subID                                          : 0.1941986 ±0.83%
-## [2] NFTraining + subID                                              : 1.219591  ±1.74%
-## [3] Attention.Type:NFTraining + subID                               : 1.336278  ±1%
-## [4] Attention.Type + NFTraining + subID                             : 0.2437764 ±3.38%
-## [5] Attention.Type + Attention.Type:NFTraining + subID              : 0.2934674 ±4.05%
-## [6] NFTraining + Attention.Type:NFTraining + subID                  : 1.657248  ±3.44%
-## [7] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.4595275 ±17.97%
+## [1] Attention.Type + subID                                          : 0.1914392  ±2.08%
+## [2] NFTraining + subID                                              : 0.4621466  ±1.76%
+## [3] Attention.Type:NFTraining + subID                               : 0.2524807  ±2.16%
+## [4] Attention.Type + NFTraining + subID                             : 0.08702766 ±2.2%
+## [5] Attention.Type + Attention.Type:NFTraining + subID              : 0.05084515 ±1.61%
+## [6] NFTraining + Attention.Type:NFTraining + subID                  : 0.120864   ±5.6%
+## [7] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.02292634 ±2.07%
 ## 
 ## Against denominator:
-##   correct_TrEfct ~ subID 
+##   RT_STD_TrEfct ~ subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS
 ## 
@@ -841,10 +980,10 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 1.885037 ±18.28%
+## [1] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.2634374 ±3.02%
 ## 
 ## Against denominator:
-##   correct_TrEfct ~ Attention.Type + NFTraining + subID 
+##   RT_STD_TrEfct ~ Attention.Type + NFTraining + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS
 ## 
@@ -854,10 +993,10 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 1.565855 ±18.42%
+## [1] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.4509052 ±2.62%
 ## 
 ## Against denominator:
-##   correct_TrEfct ~ Attention.Type + Attention.Type:NFTraining + subID 
+##   RT_STD_TrEfct ~ Attention.Type + Attention.Type:NFTraining + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS
 ## 
@@ -867,33 +1006,92 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.2772835 ±18.29%
+## [1] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.1896872 ±5.97%
 ## 
 ## Against denominator:
-##   correct_TrEfct ~ NFTraining + Attention.Type:NFTraining + subID 
+##   RT_STD_TrEfct ~ NFTraining + Attention.Type:NFTraining + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS</code></pre>
 <pre><code>## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + subID                                          : 0.1941986 ±0.83%
-## [2] NFTraining + subID                                              : 1.219591  ±1.74%
-## [3] Attention.Type:NFTraining + subID                               : 1.336278  ±1%
-## [4] Attention.Type + NFTraining + subID                             : 0.2437764 ±3.38%
-## [5] Attention.Type + Attention.Type:NFTraining + subID              : 0.2934674 ±4.05%
-## [6] NFTraining + Attention.Type:NFTraining + subID                  : 1.657248  ±3.44%
-## [7] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.4595275 ±17.97%
+## [1] Attention.Type + subID                                          : 0.1914392  ±2.08%
+## [2] NFTraining + subID                                              : 0.4621466  ±1.76%
+## [3] Attention.Type:NFTraining + subID                               : 0.2524807  ±2.16%
+## [4] Attention.Type + NFTraining + subID                             : 0.08702766 ±2.2%
+## [5] Attention.Type + Attention.Type:NFTraining + subID              : 0.05084515 ±1.61%
+## [6] NFTraining + Attention.Type:NFTraining + subID                  : 0.120864   ±5.6%
+## [7] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.02292634 ±2.07%
 ## 
 ## Against denominator:
-##   correct_TrEfct ~ subID 
+##   RT_STD_TrEfct ~ subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS</code></pre>
-<pre class="r"><code>followuptests2(behavedata_train, &quot;correct_TrEfct&quot;)</code></pre>
+<pre class="r"><code># Check specificity
+
+dat = behavedata_train_spft %&gt;% group_by(AttentionTrained)
+dat %&gt;% summarise(M=mean(RT_TrEfct), SD=sd(Sensitivity_TrEfct))</code></pre>
+<pre><code>## # A tibble: 2 x 3
+##   AttentionTrained       M    SD
+##   &lt;fct&gt;              &lt;dbl&gt; &lt;dbl&gt;
+## 1 Feature          -0.0299 0.467
+## 2 Space            -0.0652 0.539</code></pre>
+<pre class="r"><code>dat = behavedata_train_spft %&gt;% group_by(Attention.Type)
+dat %&gt;% summarise(M=mean(RT_TrEfct), SD=sd(Sensitivity_TrEfct))</code></pre>
+<pre><code>## # A tibble: 2 x 3
+##   Attention.Type       M    SD
+##   &lt;fct&gt;            &lt;dbl&gt; &lt;dbl&gt;
+## 1 Feature        -0.0420 0.320
+## 2 Space          -0.0486 0.541</code></pre>
+<pre class="r"><code>tmp1 = behavedata_train_spft[behavedata_train_spft$congruency == &quot;trained&quot;, &quot;RT_STD_TrEfct&quot;] - behavedata_train_spft[behavedata_train_spft$congruency == &quot;untrained&quot;, &quot;RT_STD_TrEfct&quot;]
+print(ttestBF(x = tmp1))</code></pre>
+<pre><code>## Bayes factor analysis
+## --------------
+## [1] Alt., r=0.707 : 0.1600362 ±0%
+## 
+## Against denominator:
+##   Null, mu = 0 
+## ---
+## Bayes factor type: BFoneSample, JZS</code></pre>
+<pre class="r"><code># anovaBF(formula = Sensitivity_TrEfct ~ congruency + subID, data = behavedata_train_spft, whichRandom=&quot;subID&quot; )
+
+bf = anovaBF(formula = RT_STD_TrEfct ~ AttentionTrained * Attention.Type + subID, data = behavedata_train_spft, whichRandom=&quot;subID&quot;, whichModels=&quot;all&quot;)
+# plot(bf)
+
+print(bf[7]/bf[4]) # is the full model better than just strait main effects?</code></pre>
+<pre><code>## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 0.2878293 ±3.27%
+## 
+## Against denominator:
+##   RT_STD_TrEfct ~ AttentionTrained + Attention.Type + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code>print(bf[7]/bf[5]) # is the full model better than the main effect A knock out?</code></pre>
+<pre><code>## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 0.2137467 ±2.45%
+## 
+## Against denominator:
+##   RT_STD_TrEfct ~ AttentionTrained + AttentionTrained:Attention.Type + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code>print(bf[7]/bf[6]) # is the full model better than the main effect B knock out?</code></pre>
+<pre><code>## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 0.3280071 ±2.26%
+## 
+## Against denominator:
+##   RT_STD_TrEfct ~ Attention.Type + AttentionTrained:Attention.Type + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code># Follow-up tests
+followuptests2(behavedata_train, &quot;RT_STD_TrEfct&quot;)</code></pre>
 <pre><code>## 
 ## Space Cue 
 ## 
 ## NFBayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 15278677 ±0%
+## [1] Alt., r=0.707 : 0.2152244 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu = 0 
@@ -903,7 +1101,7 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## ShamBayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 2.918159 ±0%
+## [1] Alt., r=0.707 : 0.9567484 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu = 0 
@@ -913,7 +1111,7 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## SpaceBayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 5163.369 ±0%
+## [1] Alt., r=0.707 : 0.2374446 ±0.02%
 ## 
 ## Against denominator:
 ##   Null, mu = 0 
@@ -923,7 +1121,7 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## FeatBayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 507.9015 ±0%
+## [1] Alt., r=0.707 : 0.2930024 ±0.03%
 ## 
 ## Against denominator:
 ##   Null, mu = 0 
@@ -935,7 +1133,7 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## NFBayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 59685.96 ±0%
+## [1] Alt., r=0.707 : 0.2379102 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu = 0 
@@ -945,7 +1143,7 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## ShamBayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 6.851897 ±0%
+## [1] Alt., r=0.707 : 1.083546 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu = 0 
@@ -955,7 +1153,7 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## SpaceBayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 161.3094 ±0%
+## [1] Alt., r=0.707 : 0.2463695 ±0.02%
 ## 
 ## Against denominator:
 ##   Null, mu = 0 
@@ -965,7 +1163,7 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## FeatBayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 71.90853 ±0%
+## [1] Alt., r=0.707 : 0.3046375 ±0.03%
 ## 
 ## Against denominator:
 ##   Null, mu = 0 
@@ -977,7 +1175,7 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## NFBayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 6.909595e+12 ±0%
+## [1] Alt., r=0.707 : 0.2362747 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu = 0 
@@ -987,7 +1185,7 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## ShamBayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 87.42267 ±0%
+## [1] Alt., r=0.707 : 3.951597 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu = 0 
@@ -997,7 +1195,7 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## SpaceBayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 4285964 ±0%
+## [1] Alt., r=0.707 : 0.1853318 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu = 0 
@@ -1007,7 +1205,7 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## FeatBayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 250769.3 ±0%
+## [1] Alt., r=0.707 : 0.3272303 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu = 0 
@@ -1016,16 +1214,16 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 </div>
 <div id="criterion" class="section level3">
 <h3>Criterion</h3>
-<pre class="r"><code>DisplayANOVAResults2X2(formula = Criterion_TrEfct ~ NFTraining * Attention.Type + subID , data=datuse_train, maineffectstringA = &quot;Neurofeedback Group:&quot;, maineffectstringB = &quot;Cue Type:&quot;)</code></pre>
+<pre class="r"><code>DisplayANOVAResults2X2(formula = Criterion_TrEfct ~ AttentionTrained * Attention.Type + subID , data=datuse_train, maineffectstringA = &quot;Neurofeedback Group:&quot;, maineffectstringB = &quot;Cue Type:&quot;)</code></pre>
 <pre><code>## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + subID                                          : 457.2422  ±0.97%
-## [2] NFTraining + subID                                              : 0.4512282 ±0.65%
-## [3] Attention.Type:NFTraining + subID                               : 3.546831  ±1.83%
-## [4] Attention.Type + NFTraining + subID                             : 225.1149  ±1.26%
-## [5] Attention.Type + Attention.Type:NFTraining + subID              : 212.5919  ±2.88%
-## [6] NFTraining + Attention.Type:NFTraining + subID                  : 1.61005   ±1.13%
-## [7] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 104.599   ±2.15%
+## [1] AttentionTrained + subID                                                    : 0.6338121 ±0.99%
+## [2] Attention.Type + subID                                                      : 476.5619  ±4.05%
+## [3] AttentionTrained:Attention.Type + subID                                     : 0.2409783 ±1.19%
+## [4] AttentionTrained + Attention.Type + subID                                   : 313.1852  ±2.3%
+## [5] AttentionTrained + AttentionTrained:Attention.Type + subID                  : 0.1491008 ±1.52%
+## [6] Attention.Type + AttentionTrained:Attention.Type + subID                    : 87.54415  ±2.13%
+## [7] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 61.71306  ±4.64%
 ## 
 ## Against denominator:
 ##   Criterion_TrEfct ~ subID 
@@ -1038,10 +1236,10 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.4646472 ±2.49%
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 0.1970497 ±5.18%
 ## 
 ## Against denominator:
-##   Criterion_TrEfct ~ Attention.Type + NFTraining + subID 
+##   Criterion_TrEfct ~ AttentionTrained + Attention.Type + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS
 ## 
@@ -1051,10 +1249,10 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.4920178 ±3.59%
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 413.9016 ±4.89%
 ## 
 ## Against denominator:
-##   Criterion_TrEfct ~ Attention.Type + Attention.Type:NFTraining + subID 
+##   Criterion_TrEfct ~ AttentionTrained + AttentionTrained:Attention.Type + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS
 ## 
@@ -1064,27 +1262,86 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 64.96627 ±2.43%
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 0.7049364 ±5.11%
 ## 
 ## Against denominator:
-##   Criterion_TrEfct ~ NFTraining + Attention.Type:NFTraining + subID 
+##   Criterion_TrEfct ~ Attention.Type + AttentionTrained:Attention.Type + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS</code></pre>
 <pre><code>## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + subID                                          : 457.2422  ±0.97%
-## [2] NFTraining + subID                                              : 0.4512282 ±0.65%
-## [3] Attention.Type:NFTraining + subID                               : 3.546831  ±1.83%
-## [4] Attention.Type + NFTraining + subID                             : 225.1149  ±1.26%
-## [5] Attention.Type + Attention.Type:NFTraining + subID              : 212.5919  ±2.88%
-## [6] NFTraining + Attention.Type:NFTraining + subID                  : 1.61005   ±1.13%
-## [7] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 104.599   ±2.15%
+## [1] AttentionTrained + subID                                                    : 0.6338121 ±0.99%
+## [2] Attention.Type + subID                                                      : 476.5619  ±4.05%
+## [3] AttentionTrained:Attention.Type + subID                                     : 0.2409783 ±1.19%
+## [4] AttentionTrained + Attention.Type + subID                                   : 313.1852  ±2.3%
+## [5] AttentionTrained + AttentionTrained:Attention.Type + subID                  : 0.1491008 ±1.52%
+## [6] Attention.Type + AttentionTrained:Attention.Type + subID                    : 87.54415  ±2.13%
+## [7] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 61.71306  ±4.64%
 ## 
 ## Against denominator:
 ##   Criterion_TrEfct ~ subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS</code></pre>
-<pre class="r"><code>followuptests2(behavedata_train, &quot;Criterion_TrEfct&quot;)</code></pre>
+<pre class="r"><code># Check specificity
+
+dat = behavedata_train_spft %&gt;% group_by(AttentionTrained)
+dat %&gt;% summarise(M=mean(RT_TrEfct), SD=sd(Sensitivity_TrEfct))</code></pre>
+<pre><code>## # A tibble: 2 x 3
+##   AttentionTrained       M    SD
+##   &lt;fct&gt;              &lt;dbl&gt; &lt;dbl&gt;
+## 1 Feature          -0.0299 0.467
+## 2 Space            -0.0652 0.539</code></pre>
+<pre class="r"><code>dat = behavedata_train_spft %&gt;% group_by(Attention.Type)
+dat %&gt;% summarise(M=mean(RT_TrEfct), SD=sd(Sensitivity_TrEfct))</code></pre>
+<pre><code>## # A tibble: 2 x 3
+##   Attention.Type       M    SD
+##   &lt;fct&gt;            &lt;dbl&gt; &lt;dbl&gt;
+## 1 Feature        -0.0420 0.320
+## 2 Space          -0.0486 0.541</code></pre>
+<pre class="r"><code>tmp1 = behavedata_train_spft[behavedata_train_spft$congruency == &quot;trained&quot;, &quot;Criterion_TrEfct&quot;] - behavedata_train_spft[behavedata_train_spft$congruency == &quot;untrained&quot;, &quot;Criterion_TrEfct&quot;]
+print(ttestBF(x = tmp1))</code></pre>
+<pre><code>## Bayes factor analysis
+## --------------
+## [1] Alt., r=0.707 : 0.1693567 ±0%
+## 
+## Against denominator:
+##   Null, mu = 0 
+## ---
+## Bayes factor type: BFoneSample, JZS</code></pre>
+<pre class="r"><code># anovaBF(formula = Sensitivity_TrEfct ~ congruency + subID, data = behavedata_train_spft, whichRandom=&quot;subID&quot; )
+
+bf = anovaBF(formula = Criterion_TrEfct ~ AttentionTrained * Attention.Type + subID, data = behavedata_train_spft, whichRandom=&quot;subID&quot;, whichModels=&quot;all&quot;)
+# plot(bf)
+
+print(bf[7]/bf[4]) # is the full model better than just strait main effects?</code></pre>
+<pre><code>## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 0.317843 ±2.64%
+## 
+## Against denominator:
+##   Criterion_TrEfct ~ AttentionTrained + Attention.Type + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code>print(bf[7]/bf[5]) # is the full model better than the main effect A knock out?</code></pre>
+<pre><code>## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 209.444 ±2.48%
+## 
+## Against denominator:
+##   Criterion_TrEfct ~ AttentionTrained + AttentionTrained:Attention.Type + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code>print(bf[7]/bf[6]) # is the full model better than the main effect B knock out?</code></pre>
+<pre><code>## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 1.156604 ±2.89%
+## 
+## Against denominator:
+##   Criterion_TrEfct ~ Attention.Type + AttentionTrained:Attention.Type + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code># Follow-up tests
+followuptests2(behavedata_train, &quot;Criterion_TrEfct&quot;)</code></pre>
 <pre><code>## 
 ## Space Cue 
 ## 
@@ -1213,16 +1470,16 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 </div>
 <div id="inverse-efficiency" class="section level3">
 <h3>Inverse Efficiency</h3>
-<pre class="r"><code>DisplayANOVAResults2X2(formula = IE_TrEfct ~ NFTraining * Attention.Type + subID , data=datuse_train, maineffectstringA = &quot;Neurofeedback Group:&quot;, maineffectstringB = &quot;Cue Type:&quot;)</code></pre>
+<pre class="r"><code>DisplayANOVAResults2X2(formula = IE_TrEfct ~ NFTraining * AttentionTrained + subID , data=datuse_train, maineffectstringA = &quot;Neurofeedback Group:&quot;, maineffectstringB = &quot;Cue Type:&quot;)</code></pre>
 <pre><code>## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + subID                                          : 0.2439757  ±2.15%
-## [2] NFTraining + subID                                              : 1.238981   ±2.83%
-## [3] Attention.Type:NFTraining + subID                               : 0.2568697  ±1.68%
-## [4] Attention.Type + NFTraining + subID                             : 0.3038276  ±4.2%
-## [5] Attention.Type + Attention.Type:NFTraining + subID              : 0.07618092 ±4.17%
-## [6] NFTraining + Attention.Type:NFTraining + subID                  : 0.3128518  ±2.22%
-## [7] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.09735952 ±2.88%
+## [1] AttentionTrained + subID                                            : 1.621126  ±2.97%
+## [2] NFTraining + subID                                                  : 1.222439  ±1.66%
+## [3] AttentionTrained:NFTraining + subID                                 : 1.22087   ±2.1%
+## [4] AttentionTrained + NFTraining + subID                               : 1.183067  ±1.52%
+## [5] AttentionTrained + AttentionTrained:NFTraining + subID              : 1.22341   ±1.5%
+## [6] NFTraining + AttentionTrained:NFTraining + subID                    : 1.340007  ±2.28%
+## [7] AttentionTrained + NFTraining + AttentionTrained:NFTraining + subID : 0.9466406 ±3.83%
 ## 
 ## Against denominator:
 ##   IE_TrEfct ~ subID 
@@ -1235,10 +1492,10 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.3204433 ±5.09%
+## [1] AttentionTrained + NFTraining + AttentionTrained:NFTraining + subID : 0.8001583 ±4.12%
 ## 
 ## Against denominator:
-##   IE_TrEfct ~ Attention.Type + NFTraining + subID 
+##   IE_TrEfct ~ AttentionTrained + NFTraining + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS
 ## 
@@ -1248,10 +1505,10 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 1.278004 ±5.07%
+## [1] AttentionTrained + NFTraining + AttentionTrained:NFTraining + subID : 0.7737719 ±4.11%
 ## 
 ## Against denominator:
-##   IE_TrEfct ~ Attention.Type + Attention.Type:NFTraining + subID 
+##   IE_TrEfct ~ AttentionTrained + AttentionTrained:NFTraining + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS
 ## 
@@ -1261,24 +1518,82 @@ DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ NFTraining * Attention.Typ
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.3112001 ±3.64%
+## [1] AttentionTrained + NFTraining + AttentionTrained:NFTraining + subID : 0.7064446 ±4.45%
 ## 
 ## Against denominator:
-##   IE_TrEfct ~ NFTraining + Attention.Type:NFTraining + subID 
+##   IE_TrEfct ~ NFTraining + AttentionTrained:NFTraining + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS</code></pre>
 <pre><code>## Bayes factor analysis
 ## --------------
-## [1] Attention.Type + subID                                          : 0.2439757  ±2.15%
-## [2] NFTraining + subID                                              : 1.238981   ±2.83%
-## [3] Attention.Type:NFTraining + subID                               : 0.2568697  ±1.68%
-## [4] Attention.Type + NFTraining + subID                             : 0.3038276  ±4.2%
-## [5] Attention.Type + Attention.Type:NFTraining + subID              : 0.07618092 ±4.17%
-## [6] NFTraining + Attention.Type:NFTraining + subID                  : 0.3128518  ±2.22%
-## [7] Attention.Type + NFTraining + Attention.Type:NFTraining + subID : 0.09735952 ±2.88%
+## [1] AttentionTrained + subID                                            : 1.621126  ±2.97%
+## [2] NFTraining + subID                                                  : 1.222439  ±1.66%
+## [3] AttentionTrained:NFTraining + subID                                 : 1.22087   ±2.1%
+## [4] AttentionTrained + NFTraining + subID                               : 1.183067  ±1.52%
+## [5] AttentionTrained + AttentionTrained:NFTraining + subID              : 1.22341   ±1.5%
+## [6] NFTraining + AttentionTrained:NFTraining + subID                    : 1.340007  ±2.28%
+## [7] AttentionTrained + NFTraining + AttentionTrained:NFTraining + subID : 0.9466406 ±3.83%
 ## 
 ## Against denominator:
 ##   IE_TrEfct ~ subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code># Check specificity
+
+dat = behavedata_train_spft %&gt;% group_by(AttentionTrained)
+dat %&gt;% summarise(M=mean(RT_TrEfct), SD=sd(Sensitivity_TrEfct))</code></pre>
+<pre><code>## # A tibble: 2 x 3
+##   AttentionTrained       M    SD
+##   &lt;fct&gt;              &lt;dbl&gt; &lt;dbl&gt;
+## 1 Feature          -0.0299 0.467
+## 2 Space            -0.0652 0.539</code></pre>
+<pre class="r"><code>dat = behavedata_train_spft %&gt;% group_by(Attention.Type)
+dat %&gt;% summarise(M=mean(RT_TrEfct), SD=sd(Sensitivity_TrEfct))</code></pre>
+<pre><code>## # A tibble: 2 x 3
+##   Attention.Type       M    SD
+##   &lt;fct&gt;            &lt;dbl&gt; &lt;dbl&gt;
+## 1 Feature        -0.0420 0.320
+## 2 Space          -0.0486 0.541</code></pre>
+<pre class="r"><code>tmp1 = behavedata_train_spft[behavedata_train_spft$congruency == &quot;trained&quot;, &quot;IE_TrEfct&quot;] - behavedata_train_spft[behavedata_train_spft$congruency == &quot;untrained&quot;, &quot;IE_TrEfct&quot;]
+print(ttestBF(x = tmp1))</code></pre>
+<pre><code>## Bayes factor analysis
+## --------------
+## [1] Alt., r=0.707 : 0.2611968 ±0%
+## 
+## Against denominator:
+##   Null, mu = 0 
+## ---
+## Bayes factor type: BFoneSample, JZS</code></pre>
+<pre class="r"><code># anovaBF(formula = Sensitivity_TrEfct ~ congruency + subID, data = behavedata_train_spft, whichRandom=&quot;subID&quot; )
+
+bf = anovaBF(formula = IE_TrEfct ~ AttentionTrained * Attention.Type + subID, data = behavedata_train_spft, whichRandom=&quot;subID&quot;, whichModels=&quot;all&quot;)
+# plot(bf)
+
+print(bf[7]/bf[4]) # is the full model better than just strait main effects?</code></pre>
+<pre><code>## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 0.7894993 ±4.37%
+## 
+## Against denominator:
+##   IE_TrEfct ~ AttentionTrained + Attention.Type + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code>print(bf[7]/bf[5]) # is the full model better than the main effect A knock out?</code></pre>
+<pre><code>## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 0.2377917 ±2.23%
+## 
+## Against denominator:
+##   IE_TrEfct ~ AttentionTrained + AttentionTrained:Attention.Type + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code>print(bf[7]/bf[6]) # is the full model better than the main effect B knock out?</code></pre>
+<pre><code>## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Attention.Type + AttentionTrained:Attention.Type + subID : 1.25917 ±2.68%
+## 
+## Against denominator:
+##   IE_TrEfct ~ Attention.Type + AttentionTrained:Attention.Type + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS</code></pre>
 <pre class="r"><code>followuptests2(behavedata_train, &quot;IE_TrEfct&quot;)</code></pre>
@@ -1426,13 +1741,13 @@ dat = Runstats_NFvsSham(behavedata, taskstring = &#39;Space&#39;, measure=&#39;S
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + subID                                   : 2810602   ±1.21%
-## [2] NFTraining + subID                                : 0.6436661 ±0.74%
-## [3] Testday:NFTraining + subID                        : 2037.626  ±1.52%
-## [4] Testday + NFTraining + subID                      : 2088067   ±3.82%
-## [5] Testday + Testday:NFTraining + subID              : 43251645  ±1.76%
-## [6] NFTraining + Testday:NFTraining + subID           : 1352.425  ±1.88%
-## [7] Testday + NFTraining + Testday:NFTraining + subID : 31609731  ±3.73%
+## [1] Testday + subID                                   : 2776022   ±2.41%
+## [2] NFTraining + subID                                : 0.6463439 ±0.77%
+## [3] Testday:NFTraining + subID                        : 1988.755  ±0.83%
+## [4] Testday + NFTraining + subID                      : 2025215   ±2.41%
+## [5] Testday + Testday:NFTraining + subID              : 42540835  ±1.92%
+## [6] NFTraining + Testday:NFTraining + subID           : 1405.926  ±1.5%
+## [7] Testday + NFTraining + Testday:NFTraining + subID : 30532166  ±1.58%
 ## 
 ## Against denominator:
 ##   measure ~ subID 
@@ -1445,7 +1760,7 @@ dat = Runstats_NFvsSham(behavedata, taskstring = &#39;Space&#39;, measure=&#39;S
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 15.13827 ±5.34%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 15.07601 ±2.89%
 ## 
 ## Against denominator:
 ##   measure ~ Testday + NFTraining + subID 
@@ -1458,7 +1773,7 @@ dat = Runstats_NFvsSham(behavedata, taskstring = &#39;Space&#39;, measure=&#39;S
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.730833 ±4.12%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.7177143 ±2.49%
 ## 
 ## Against denominator:
 ##   measure ~ Testday + Testday:NFTraining + subID 
@@ -1471,7 +1786,7 @@ dat = Runstats_NFvsSham(behavedata, taskstring = &#39;Space&#39;, measure=&#39;S
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 23372.64 ±4.18%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 21716.77 ±2.18%
 ## 
 ## Against denominator:
 ##   measure ~ NFTraining + Testday:NFTraining + subID 
@@ -1482,12 +1797,85 @@ dat = Runstats_NFvsSham(behavedata, taskstring = &#39;Space&#39;, measure=&#39;S
 ## 
 ##  Interaction value resampled to reduce errorBayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 15.63963 ±1.53%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 15.27451 ±1.17%
 ## 
 ## Against denominator:
 ##   measure ~ Testday + NFTraining + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code>Runstats_TRAINING(behavedata, taskstring = &#39;Space&#39;, measure=&#39;Sensitivity&#39;)</code></pre>
+<pre><code>## ANOVA
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + subID                                      : 0.3724527 ±1.09%
+## [2] Testday + subID                                               : 2769656   ±1.05%
+## [3] AttentionTrained:Testday + subID                              : 2.571965  ±0.71%
+## [4] AttentionTrained + Testday + subID                            : 1287503   ±1.09%
+## [5] AttentionTrained + AttentionTrained:Testday + subID           : 1.010899  ±1.59%
+## [6] Testday + AttentionTrained:Testday + subID                    : 10646420  ±1.41%
+## [7] AttentionTrained + Testday + AttentionTrained:Testday + subID : 5214212   ±1.37%
+## 
+## Against denominator:
+##   measure ~ subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+## Interaction:
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 4.049864 ±1.75%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Neurofeedback Group: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 5157996 ±2.1%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Test Day: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 0.4897621 ±1.97%
+## 
+## Against denominator:
+##   measure ~ Testday + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre><code>## # A tibble: 130 x 14
+## # Groups:   AttentionTrained, Testday [6]
+##    subID subIDval AttentionTrained Attention.Type Testday  Sensitivity Criterion
+##    &lt;fct&gt;    &lt;int&gt; &lt;fct&gt;            &lt;fct&gt;          &lt;fct&gt;          &lt;dbl&gt;     &lt;dbl&gt;
+##  1 0           10 Space            Space          pre-tra~        1.11    -1.08 
+##  2 0           10 Space            Space          post-tr~        2.45    -0.616
+##  3 1           11 Space            Space          pre-tra~        1.57    -1.20 
+##  4 1           11 Space            Space          post-tr~        2.64    -1.20 
+##  5 2           19 Space            Space          pre-tra~        1.50    -0.889
+##  6 2           19 Space            Space          post-tr~        1.84    -0.691
+##  7 5           29 Space            Space          pre-tra~        1.57    -1.10 
+##  8 5           29 Space            Space          post-tr~        2.56    -0.649
+##  9 8           45 Space            Space          pre-tra~        2.47    -0.936
+## 10 8           45 Space            Space          post-tr~        3.71    -0.515
+## # ... with 120 more rows, and 7 more variables: correct &lt;dbl&gt;,
+## #   LikelihoodRatio &lt;dbl&gt;, RT &lt;dbl&gt;, RT_STD &lt;dbl&gt;, InverseEfficiency &lt;dbl&gt;,
+## #   NFTraining &lt;fct&gt;, measure &lt;dbl&gt;</code></pre>
 <pre class="r"><code># Marginals
 cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 <pre><code>## Marginals</code></pre>
@@ -1515,13 +1903,13 @@ dat = Runstats_NFvsSham(behavedata, taskstring = &#39;Feature&#39;, measure=&#39
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + subID                                   : 201.8538  ±1.65%
-## [2] NFTraining + subID                                : 0.7113663 ±3.62%
-## [3] Testday:NFTraining + subID                        : 0.5844706 ±1.02%
-## [4] Testday + NFTraining + subID                      : 141.7138  ±1.77%
-## [5] Testday + Testday:NFTraining + subID              : 55.33533  ±5.38%
-## [6] NFTraining + Testday:NFTraining + subID           : 0.4016741 ±1.85%
-## [7] Testday + NFTraining + Testday:NFTraining + subID : 37.84763  ±2.86%
+## [1] Testday + subID                                   : 198.5744  ±1.17%
+## [2] NFTraining + subID                                : 0.6849526 ±0.9%
+## [3] Testday:NFTraining + subID                        : 0.5777415 ±0.98%
+## [4] Testday + NFTraining + subID                      : 140.9846  ±2%
+## [5] Testday + Testday:NFTraining + subID              : 52.43363  ±1.43%
+## [6] NFTraining + Testday:NFTraining + subID           : 0.4174239 ±4.95%
+## [7] Testday + NFTraining + Testday:NFTraining + subID : 40.89941  ±2.92%
 ## 
 ## Against denominator:
 ##   measure ~ subID 
@@ -1534,7 +1922,7 @@ dat = Runstats_NFvsSham(behavedata, taskstring = &#39;Feature&#39;, measure=&#39
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.2670709 ±3.36%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.2900985 ±3.54%
 ## 
 ## Against denominator:
 ##   measure ~ Testday + NFTraining + subID 
@@ -1547,7 +1935,7 @@ dat = Runstats_NFvsSham(behavedata, taskstring = &#39;Feature&#39;, measure=&#39
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.6839687 ±6.09%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.7800226 ±3.25%
 ## 
 ## Against denominator:
 ##   measure ~ Testday + Testday:NFTraining + subID 
@@ -1560,7 +1948,7 @@ dat = Runstats_NFvsSham(behavedata, taskstring = &#39;Feature&#39;, measure=&#39
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 94.22471 ±3.41%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 97.98053 ±5.74%
 ## 
 ## Against denominator:
 ##   measure ~ NFTraining + Testday:NFTraining + subID 
@@ -1571,12 +1959,85 @@ dat = Runstats_NFvsSham(behavedata, taskstring = &#39;Feature&#39;, measure=&#39
 ## 
 ##  Interaction value resampled to reduce errorBayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.2720296 ±1.12%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.2743537 ±1.96%
 ## 
 ## Against denominator:
 ##   measure ~ Testday + NFTraining + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code>Runstats_TRAINING(behavedata, taskstring = &#39;Feature&#39;, measure=&#39;Sensitivity&#39;)</code></pre>
+<pre><code>## ANOVA
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + subID                                      : 0.6019166  ±1.02%
+## [2] Testday + subID                                               : 198.2279   ±1.84%
+## [3] AttentionTrained:Testday + subID                              : 0.1349876  ±0.76%
+## [4] AttentionTrained + Testday + subID                            : 131.5527   ±2.42%
+## [5] AttentionTrained + AttentionTrained:Testday + subID           : 0.08347544 ±1.8%
+## [6] Testday + AttentionTrained:Testday + subID                    : 31.94547   ±1.04%
+## [7] AttentionTrained + Testday + AttentionTrained:Testday + subID : 21.96461   ±3.24%
+## 
+## Against denominator:
+##   measure ~ subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+## Interaction:
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 0.1669644 ±4.04%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Neurofeedback Group: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 263.1266 ±3.7%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Test Day: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 0.6875657 ±3.4%
+## 
+## Against denominator:
+##   measure ~ Testday + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre><code>## # A tibble: 130 x 14
+## # Groups:   AttentionTrained, Testday [6]
+##    subID subIDval AttentionTrained Attention.Type Testday  Sensitivity Criterion
+##    &lt;fct&gt;    &lt;int&gt; &lt;fct&gt;            &lt;fct&gt;          &lt;fct&gt;          &lt;dbl&gt;     &lt;dbl&gt;
+##  1 0           10 Space            Feature        pre-tra~       0.477   -1.00  
+##  2 0           10 Space            Feature        post-tr~       1.06    -0.231 
+##  3 1           11 Space            Feature        pre-tra~       0.532   -0.678 
+##  4 1           11 Space            Feature        post-tr~       0.972   -0.556 
+##  5 2           19 Space            Feature        pre-tra~       0.342   -0.845 
+##  6 2           19 Space            Feature        post-tr~       0.398   -0.112 
+##  7 5           29 Space            Feature        pre-tra~       1.24    -1.15  
+##  8 5           29 Space            Feature        post-tr~       1.35     0.0656
+##  9 8           45 Space            Feature        pre-tra~       0.680   -0.270 
+## 10 8           45 Space            Feature        post-tr~       0.969    0.402 
+## # ... with 120 more rows, and 7 more variables: correct &lt;dbl&gt;,
+## #   LikelihoodRatio &lt;dbl&gt;, RT &lt;dbl&gt;, RT_STD &lt;dbl&gt;, InverseEfficiency &lt;dbl&gt;,
+## #   NFTraining &lt;fct&gt;, measure &lt;dbl&gt;</code></pre>
 <pre class="r"><code># Marginals
 cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 <pre><code>## Marginals</code></pre>
@@ -1762,13 +2223,13 @@ dat = Runstats_NFvsSham(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feat
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + subID                                   : 6.125111e+13 ±0.71%
-## [2] NFTraining + subID                                : 0.418764     ±1.31%
-## [3] Testday:NFTraining + subID                        : 2664.329     ±0.94%
-## [4] Testday + NFTraining + subID                      : 2.934113e+13 ±3.13%
-## [5] Testday + Testday:NFTraining + subID              : 4.547352e+13 ±1.35%
-## [6] NFTraining + Testday:NFTraining + subID           : 1206.153     ±2.78%
-## [7] Testday + NFTraining + Testday:NFTraining + subID : 2.25785e+13  ±3.65%
+## [1] Testday + subID                                   : 6.250067e+13 ±1.37%
+## [2] NFTraining + subID                                : 0.4111875    ±1.33%
+## [3] Testday:NFTraining + subID                        : 2705.506     ±1.98%
+## [4] Testday + NFTraining + subID                      : 2.955706e+13 ±3.16%
+## [5] Testday + Testday:NFTraining + subID              : 4.659023e+13 ±1.65%
+## [6] NFTraining + Testday:NFTraining + subID           : 1159.017     ±2.87%
+## [7] Testday + NFTraining + Testday:NFTraining + subID : 2.298913e+13 ±3.52%
 ## 
 ## Against denominator:
 ##   measure ~ subID 
@@ -1781,7 +2242,7 @@ dat = Runstats_NFvsSham(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feat
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.7695171 ±4.81%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.7777881 ±4.73%
 ## 
 ## Against denominator:
 ##   measure ~ Testday + NFTraining + subID 
@@ -1794,7 +2255,7 @@ dat = Runstats_NFvsSham(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feat
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.4965197 ±3.89%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.4934324 ±3.89%
 ## 
 ## Against denominator:
 ##   measure ~ Testday + Testday:NFTraining + subID 
@@ -1807,12 +2268,231 @@ dat = Runstats_NFvsSham(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feat
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 18719434895 ±4.59%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 19835022248 ±4.54%
 ## 
 ## Against denominator:
 ##   measure ~ NFTraining + Testday:NFTraining + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code>Runstats_TRAINING(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feature&quot;), measure=&#39;RT&#39;)</code></pre>
+<pre><code>## ANOVA
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + subID                                      : 0.2810333    ±2.91%
+## [2] Testday + subID                                               : 6.258148e+13 ±1.02%
+## [3] AttentionTrained:Testday + subID                              : 2.39386      ±0.64%
+## [4] AttentionTrained + Testday + subID                            : 2.258439e+13 ±3.42%
+## [5] AttentionTrained + AttentionTrained:Testday + subID           : 0.7133675    ±3.71%
+## [6] Testday + AttentionTrained:Testday + subID                    : 1.885319e+15 ±1.23%
+## [7] AttentionTrained + Testday + AttentionTrained:Testday + subID : 6.636513e+14 ±4.36%
+## 
+## Against denominator:
+##   measure ~ subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+## Interaction:
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 29.3854 ±5.54%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Neurofeedback Group: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 9.303077e+14 ±5.72%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Test Day: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 0.3520101 ±4.53%
+## 
+## Against denominator:
+##   measure ~ Testday + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre><code>## # A tibble: 260 x 14
+## # Groups:   AttentionTrained, Testday [6]
+##    subID subIDval AttentionTrained Attention.Type Testday  Sensitivity Criterion
+##    &lt;fct&gt;    &lt;int&gt; &lt;fct&gt;            &lt;fct&gt;          &lt;fct&gt;          &lt;dbl&gt;     &lt;dbl&gt;
+##  1 0           10 Space            Space          pre-tra~        1.11    -1.08 
+##  2 0           10 Space            Space          post-tr~        2.45    -0.616
+##  3 1           11 Space            Space          pre-tra~        1.57    -1.20 
+##  4 1           11 Space            Space          post-tr~        2.64    -1.20 
+##  5 2           19 Space            Space          pre-tra~        1.50    -0.889
+##  6 2           19 Space            Space          post-tr~        1.84    -0.691
+##  7 5           29 Space            Space          pre-tra~        1.57    -1.10 
+##  8 5           29 Space            Space          post-tr~        2.56    -0.649
+##  9 8           45 Space            Space          pre-tra~        2.47    -0.936
+## 10 8           45 Space            Space          post-tr~        3.71    -0.515
+## # ... with 250 more rows, and 7 more variables: correct &lt;dbl&gt;,
+## #   LikelihoodRatio &lt;dbl&gt;, RT &lt;dbl&gt;, RT_STD &lt;dbl&gt;, InverseEfficiency &lt;dbl&gt;,
+## #   NFTraining &lt;fct&gt;, measure &lt;dbl&gt;</code></pre>
+<pre class="r"><code>Runstats_TRAINING(behavedata, taskstring = &quot;Space&quot;, measure=&#39;RT&#39;)</code></pre>
+<pre><code>## ANOVA
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + subID                                      : 0.1991364  ±0.85%
+## [2] Testday + subID                                               : 114562     ±0.77%
+## [3] AttentionTrained:Testday + subID                              : 0.3197138  ±0.71%
+## [4] AttentionTrained + Testday + subID                            : 29739.87   ±2.73%
+## [5] AttentionTrained + AttentionTrained:Testday + subID           : 0.08153967 ±19.74%
+## [6] Testday + AttentionTrained:Testday + subID                    : 103746.2   ±1.71%
+## [7] AttentionTrained + Testday + AttentionTrained:Testday + subID : 27044.24   ±3.62%
+## 
+## Against denominator:
+##   measure ~ subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+## Interaction:
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 0.9093596 ±4.53%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Neurofeedback Group: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 331669.7 ±20.07%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Test Day: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 0.2606769 ±4.01%
+## 
+## Against denominator:
+##   measure ~ Testday + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre><code>## # A tibble: 130 x 14
+## # Groups:   AttentionTrained, Testday [6]
+##    subID subIDval AttentionTrained Attention.Type Testday  Sensitivity Criterion
+##    &lt;fct&gt;    &lt;int&gt; &lt;fct&gt;            &lt;fct&gt;          &lt;fct&gt;          &lt;dbl&gt;     &lt;dbl&gt;
+##  1 0           10 Space            Space          pre-tra~        1.11    -1.08 
+##  2 0           10 Space            Space          post-tr~        2.45    -0.616
+##  3 1           11 Space            Space          pre-tra~        1.57    -1.20 
+##  4 1           11 Space            Space          post-tr~        2.64    -1.20 
+##  5 2           19 Space            Space          pre-tra~        1.50    -0.889
+##  6 2           19 Space            Space          post-tr~        1.84    -0.691
+##  7 5           29 Space            Space          pre-tra~        1.57    -1.10 
+##  8 5           29 Space            Space          post-tr~        2.56    -0.649
+##  9 8           45 Space            Space          pre-tra~        2.47    -0.936
+## 10 8           45 Space            Space          post-tr~        3.71    -0.515
+## # ... with 120 more rows, and 7 more variables: correct &lt;dbl&gt;,
+## #   LikelihoodRatio &lt;dbl&gt;, RT &lt;dbl&gt;, RT_STD &lt;dbl&gt;, InverseEfficiency &lt;dbl&gt;,
+## #   NFTraining &lt;fct&gt;, measure &lt;dbl&gt;</code></pre>
+<pre class="r"><code>Runstats_TRAINING(behavedata, taskstring = &quot;Feature&quot;, measure=&#39;RT&#39;)</code></pre>
+<pre><code>## ANOVA
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + subID                                      : 0.3067093 ±0.61%
+## [2] Testday + subID                                               : 13339.61  ±1.13%
+## [3] AttentionTrained:Testday + subID                              : 0.5117241 ±0.66%
+## [4] AttentionTrained + Testday + subID                            : 4859.12   ±2.01%
+## [5] AttentionTrained + AttentionTrained:Testday + subID           : 0.1658912 ±0.96%
+## [6] Testday + AttentionTrained:Testday + subID                    : 16580.01  ±1.71%
+## [7] AttentionTrained + Testday + AttentionTrained:Testday + subID : 6109.409  ±3.41%
+## 
+## Against denominator:
+##   measure ~ subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+## Interaction:
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 1.257308 ±3.96%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Neurofeedback Group: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 36827.82 ±3.54%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Test Day: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 0.3684804 ±3.81%
+## 
+## Against denominator:
+##   measure ~ Testday + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre><code>## # A tibble: 130 x 14
+## # Groups:   AttentionTrained, Testday [6]
+##    subID subIDval AttentionTrained Attention.Type Testday  Sensitivity Criterion
+##    &lt;fct&gt;    &lt;int&gt; &lt;fct&gt;            &lt;fct&gt;          &lt;fct&gt;          &lt;dbl&gt;     &lt;dbl&gt;
+##  1 0           10 Space            Feature        pre-tra~       0.477   -1.00  
+##  2 0           10 Space            Feature        post-tr~       1.06    -0.231 
+##  3 1           11 Space            Feature        pre-tra~       0.532   -0.678 
+##  4 1           11 Space            Feature        post-tr~       0.972   -0.556 
+##  5 2           19 Space            Feature        pre-tra~       0.342   -0.845 
+##  6 2           19 Space            Feature        post-tr~       0.398   -0.112 
+##  7 5           29 Space            Feature        pre-tra~       1.24    -1.15  
+##  8 5           29 Space            Feature        post-tr~       1.35     0.0656
+##  9 8           45 Space            Feature        pre-tra~       0.680   -0.270 
+## 10 8           45 Space            Feature        post-tr~       0.969    0.402 
+## # ... with 120 more rows, and 7 more variables: correct &lt;dbl&gt;,
+## #   LikelihoodRatio &lt;dbl&gt;, RT &lt;dbl&gt;, RT_STD &lt;dbl&gt;, InverseEfficiency &lt;dbl&gt;,
+## #   NFTraining &lt;fct&gt;, measure &lt;dbl&gt;</code></pre>
 <pre class="r"><code># Marginals
 cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 <pre><code>## Marginals</code></pre>
@@ -1983,7 +2663,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## ---
 ## Bayes factor type: BFindepSample, JZS</code></pre>
 </div>
-<div id="correct-1" class="section level4">
+<div id="correct" class="section level4">
 <h4>Correct (%)</h4>
 <pre class="r"><code># visualise result:
 image = load.image(paste(direct.resultsRoot, &quot;Motion Task correct by Day pre Vs. post NF Space task.png&quot;, sep = &quot;&quot;))
@@ -1998,13 +2678,13 @@ dat = Runstats_NFvsSham(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feat
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + subID                                   : 2.873301e+17 ±1.52%
-## [2] NFTraining + subID                                : 0.338261     ±0.6%
-## [3] Testday:NFTraining + subID                        : 199840.8     ±0.87%
-## [4] Testday + NFTraining + subID                      : 1.089419e+17 ±3.16%
-## [5] Testday + Testday:NFTraining + subID              : 9.980177e+17 ±1.42%
-## [6] NFTraining + Testday:NFTraining + subID           : 71128.59     ±1.81%
-## [7] Testday + NFTraining + Testday:NFTraining + subID : 4.059343e+17 ±3.4%
+## [1] Testday + subID                                   : 2.868498e+17 ±1.28%
+## [2] NFTraining + subID                                : 0.3390297    ±0.6%
+## [3] Testday:NFTraining + subID                        : 201435.3     ±2.26%
+## [4] Testday + NFTraining + subID                      : 1.117519e+17 ±3.11%
+## [5] Testday + Testday:NFTraining + subID              : 1.052429e+18 ±4.49%
+## [6] NFTraining + Testday:NFTraining + subID           : 73504.1      ±4.06%
+## [7] Testday + NFTraining + Testday:NFTraining + subID : 4.161713e+17 ±3.46%
 ## 
 ## Against denominator:
 ##   measure ~ subID 
@@ -2017,7 +2697,7 @@ dat = Runstats_NFvsSham(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feat
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 3.726152 ±4.64%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 3.724065 ±4.65%
 ## 
 ## Against denominator:
 ##   measure ~ Testday + NFTraining + subID 
@@ -2030,7 +2710,7 @@ dat = Runstats_NFvsSham(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feat
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.4067406 ±3.68%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.395439 ±5.67%
 ## 
 ## Against denominator:
 ##   measure ~ Testday + Testday:NFTraining + subID 
@@ -2043,12 +2723,85 @@ dat = Runstats_NFvsSham(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feat
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 5.707048e+12 ±3.85%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 5.661878e+12 ±5.34%
 ## 
 ## Against denominator:
 ##   measure ~ NFTraining + Testday:NFTraining + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code>Runstats_TRAINING(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feature&quot;), measure=&#39;correct&#39;)</code></pre>
+<pre><code>## ANOVA
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + subID                                      : 0.8183069    ±1.38%
+## [2] Testday + subID                                               : 2.837699e+17 ±0.8%
+## [3] AttentionTrained:Testday + subID                              : 2.068847     ±0.65%
+## [4] AttentionTrained + Testday + subID                            : 2.733067e+17 ±3.49%
+## [5] AttentionTrained + AttentionTrained:Testday + subID           : 1.736509     ±1.38%
+## [6] Testday + AttentionTrained:Testday + subID                    : 1.610848e+18 ±1.38%
+## [7] AttentionTrained + Testday + AttentionTrained:Testday + subID : 1.670358e+18 ±7.98%
+## 
+## Against denominator:
+##   measure ~ subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+## Interaction:
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 6.111659 ±8.71%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Neurofeedback Group: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 9.619057e+17 ±8.1%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Test Day: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 1.036943 ±8.1%
+## 
+## Against denominator:
+##   measure ~ Testday + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre><code>## # A tibble: 260 x 14
+## # Groups:   AttentionTrained, Testday [6]
+##    subID subIDval AttentionTrained Attention.Type Testday  Sensitivity Criterion
+##    &lt;fct&gt;    &lt;int&gt; &lt;fct&gt;            &lt;fct&gt;          &lt;fct&gt;          &lt;dbl&gt;     &lt;dbl&gt;
+##  1 0           10 Space            Space          pre-tra~        1.11    -1.08 
+##  2 0           10 Space            Space          post-tr~        2.45    -0.616
+##  3 1           11 Space            Space          pre-tra~        1.57    -1.20 
+##  4 1           11 Space            Space          post-tr~        2.64    -1.20 
+##  5 2           19 Space            Space          pre-tra~        1.50    -0.889
+##  6 2           19 Space            Space          post-tr~        1.84    -0.691
+##  7 5           29 Space            Space          pre-tra~        1.57    -1.10 
+##  8 5           29 Space            Space          post-tr~        2.56    -0.649
+##  9 8           45 Space            Space          pre-tra~        2.47    -0.936
+## 10 8           45 Space            Space          post-tr~        3.71    -0.515
+## # ... with 250 more rows, and 7 more variables: correct &lt;dbl&gt;,
+## #   LikelihoodRatio &lt;dbl&gt;, RT &lt;dbl&gt;, RT_STD &lt;dbl&gt;, InverseEfficiency &lt;dbl&gt;,
+## #   NFTraining &lt;fct&gt;, measure &lt;dbl&gt;</code></pre>
 <pre class="r"><code># Marginals
 cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 <pre><code>## Marginals</code></pre>
@@ -2234,13 +2987,13 @@ dat = Runstats_NFvsSham(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feat
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + subID                                   : 331.1663  ±1.39%
-## [2] NFTraining + subID                                : 0.7289775 ±2.94%
-## [3] Testday:NFTraining + subID                        : 1.995956  ±0.78%
-## [4] Testday + NFTraining + subID                      : 237.7046  ±1.87%
-## [5] Testday + Testday:NFTraining + subID              : 89.89704  ±2.7%
-## [6] NFTraining + Testday:NFTraining + subID           : 1.456789  ±3.6%
-## [7] Testday + NFTraining + Testday:NFTraining + subID : 63.1585   ±2.58%
+## [1] Testday + subID                                   : 329.7341  ±1.34%
+## [2] NFTraining + subID                                : 0.7142989 ±2.51%
+## [3] Testday:NFTraining + subID                        : 2.08179   ±2.26%
+## [4] Testday + NFTraining + subID                      : 241.2511  ±1.52%
+## [5] Testday + Testday:NFTraining + subID              : 88.90538  ±1.65%
+## [6] NFTraining + Testday:NFTraining + subID           : 1.455594  ±1.53%
+## [7] Testday + NFTraining + Testday:NFTraining + subID : 68.53312  ±5.23%
 ## 
 ## Against denominator:
 ##   measure ~ subID 
@@ -2253,7 +3006,7 @@ dat = Runstats_NFvsSham(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feat
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.2657016 ±3.18%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.2840738 ±5.45%
 ## 
 ## Against denominator:
 ##   measure ~ Testday + NFTraining + subID 
@@ -2266,7 +3019,7 @@ dat = Runstats_NFvsSham(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feat
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.7025648 ±3.73%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.7708546 ±5.48%
 ## 
 ## Against denominator:
 ##   measure ~ Testday + Testday:NFTraining + subID 
@@ -2279,12 +3032,231 @@ dat = Runstats_NFvsSham(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feat
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 43.35459 ±4.43%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 47.08259 ±5.45%
 ## 
 ## Against denominator:
 ##   measure ~ NFTraining + Testday:NFTraining + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code>Runstats_TRAINING(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feature&quot;), measure=&#39;Criterion&#39;)</code></pre>
+<pre><code>## ANOVA
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + subID                                      : 4.644822  ±0.73%
+## [2] Testday + subID                                               : 326.9477  ±0.83%
+## [3] AttentionTrained:Testday + subID                              : 0.1533966 ±0.68%
+## [4] AttentionTrained + Testday + subID                            : 1666.251  ±2.85%
+## [5] AttentionTrained + AttentionTrained:Testday + subID           : 0.7220063 ±1.01%
+## [6] Testday + AttentionTrained:Testday + subID                    : 61.50047  ±3.41%
+## [7] AttentionTrained + Testday + AttentionTrained:Testday + subID : 305.3819  ±2.84%
+## 
+## Against denominator:
+##   measure ~ subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+## Interaction:
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 0.1832749 ±4.02%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Neurofeedback Group: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 422.963 ±3.02%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Test Day: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 4.965522 ±4.44%
+## 
+## Against denominator:
+##   measure ~ Testday + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre><code>## # A tibble: 260 x 14
+## # Groups:   AttentionTrained, Testday [6]
+##    subID subIDval AttentionTrained Attention.Type Testday  Sensitivity Criterion
+##    &lt;fct&gt;    &lt;int&gt; &lt;fct&gt;            &lt;fct&gt;          &lt;fct&gt;          &lt;dbl&gt;     &lt;dbl&gt;
+##  1 0           10 Space            Space          pre-tra~        1.11    -1.08 
+##  2 0           10 Space            Space          post-tr~        2.45    -0.616
+##  3 1           11 Space            Space          pre-tra~        1.57    -1.20 
+##  4 1           11 Space            Space          post-tr~        2.64    -1.20 
+##  5 2           19 Space            Space          pre-tra~        1.50    -0.889
+##  6 2           19 Space            Space          post-tr~        1.84    -0.691
+##  7 5           29 Space            Space          pre-tra~        1.57    -1.10 
+##  8 5           29 Space            Space          post-tr~        2.56    -0.649
+##  9 8           45 Space            Space          pre-tra~        2.47    -0.936
+## 10 8           45 Space            Space          post-tr~        3.71    -0.515
+## # ... with 250 more rows, and 7 more variables: correct &lt;dbl&gt;,
+## #   LikelihoodRatio &lt;dbl&gt;, RT &lt;dbl&gt;, RT_STD &lt;dbl&gt;, InverseEfficiency &lt;dbl&gt;,
+## #   NFTraining &lt;fct&gt;, measure &lt;dbl&gt;</code></pre>
+<pre class="r"><code>Runstats_TRAINING(behavedata, taskstring = &quot;Space&quot;, measure=&#39;Criterion&#39;)</code></pre>
+<pre><code>## ANOVA
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + subID                                      : 6.65989  ±1.79%
+## [2] Testday + subID                                               : 13.22429 ±0.81%
+## [3] AttentionTrained:Testday + subID                              : 0.27051  ±0.91%
+## [4] AttentionTrained + Testday + subID                            : 86.84973 ±1.85%
+## [5] AttentionTrained + AttentionTrained:Testday + subID           : 1.756084 ±1.9%
+## [6] Testday + AttentionTrained:Testday + subID                    : 5.271375 ±1.37%
+## [7] AttentionTrained + Testday + AttentionTrained:Testday + subID : 36.28409 ±3.71%
+## 
+## Against denominator:
+##   measure ~ subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+## Interaction:
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 0.4177801 ±4.14%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Neurofeedback Group: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 20.66193 ±4.17%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Test Day: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 6.883231 ±3.95%
+## 
+## Against denominator:
+##   measure ~ Testday + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre><code>## # A tibble: 130 x 14
+## # Groups:   AttentionTrained, Testday [6]
+##    subID subIDval AttentionTrained Attention.Type Testday  Sensitivity Criterion
+##    &lt;fct&gt;    &lt;int&gt; &lt;fct&gt;            &lt;fct&gt;          &lt;fct&gt;          &lt;dbl&gt;     &lt;dbl&gt;
+##  1 0           10 Space            Space          pre-tra~        1.11    -1.08 
+##  2 0           10 Space            Space          post-tr~        2.45    -0.616
+##  3 1           11 Space            Space          pre-tra~        1.57    -1.20 
+##  4 1           11 Space            Space          post-tr~        2.64    -1.20 
+##  5 2           19 Space            Space          pre-tra~        1.50    -0.889
+##  6 2           19 Space            Space          post-tr~        1.84    -0.691
+##  7 5           29 Space            Space          pre-tra~        1.57    -1.10 
+##  8 5           29 Space            Space          post-tr~        2.56    -0.649
+##  9 8           45 Space            Space          pre-tra~        2.47    -0.936
+## 10 8           45 Space            Space          post-tr~        3.71    -0.515
+## # ... with 120 more rows, and 7 more variables: correct &lt;dbl&gt;,
+## #   LikelihoodRatio &lt;dbl&gt;, RT &lt;dbl&gt;, RT_STD &lt;dbl&gt;, InverseEfficiency &lt;dbl&gt;,
+## #   NFTraining &lt;fct&gt;, measure &lt;dbl&gt;</code></pre>
+<pre class="r"><code>Runstats_TRAINING(behavedata, taskstring = &quot;Feature&quot;, measure=&#39;Criterion&#39;)</code></pre>
+<pre><code>## ANOVA
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + subID                                      : 2.567923  ±0.69%
+## [2] Testday + subID                                               : 160538.4  ±1.33%
+## [3] AttentionTrained:Testday + subID                              : 0.2888759 ±1.32%
+## [4] AttentionTrained + Testday + subID                            : 463389.3  ±4.46%
+## [5] AttentionTrained + AttentionTrained:Testday + subID           : 0.7333462 ±1.5%
+## [6] Testday + AttentionTrained:Testday + subID                    : 65948.59  ±1.23%
+## [7] AttentionTrained + Testday + AttentionTrained:Testday + subID : 181153.3  ±1.42%
+## 
+## Against denominator:
+##   measure ~ subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+## Interaction:
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 0.3909312 ±4.68%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Neurofeedback Group: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 247022.9 ±2.07%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Test Day: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 2.746887 ±1.88%
+## 
+## Against denominator:
+##   measure ~ Testday + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre><code>## # A tibble: 130 x 14
+## # Groups:   AttentionTrained, Testday [6]
+##    subID subIDval AttentionTrained Attention.Type Testday  Sensitivity Criterion
+##    &lt;fct&gt;    &lt;int&gt; &lt;fct&gt;            &lt;fct&gt;          &lt;fct&gt;          &lt;dbl&gt;     &lt;dbl&gt;
+##  1 0           10 Space            Feature        pre-tra~       0.477   -1.00  
+##  2 0           10 Space            Feature        post-tr~       1.06    -0.231 
+##  3 1           11 Space            Feature        pre-tra~       0.532   -0.678 
+##  4 1           11 Space            Feature        post-tr~       0.972   -0.556 
+##  5 2           19 Space            Feature        pre-tra~       0.342   -0.845 
+##  6 2           19 Space            Feature        post-tr~       0.398   -0.112 
+##  7 5           29 Space            Feature        pre-tra~       1.24    -1.15  
+##  8 5           29 Space            Feature        post-tr~       1.35     0.0656
+##  9 8           45 Space            Feature        pre-tra~       0.680   -0.270 
+## 10 8           45 Space            Feature        post-tr~       0.969    0.402 
+## # ... with 120 more rows, and 7 more variables: correct &lt;dbl&gt;,
+## #   LikelihoodRatio &lt;dbl&gt;, RT &lt;dbl&gt;, RT_STD &lt;dbl&gt;, InverseEfficiency &lt;dbl&gt;,
+## #   NFTraining &lt;fct&gt;, measure &lt;dbl&gt;</code></pre>
 <pre class="r"><code># Marginals
 cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 <pre><code>## Marginals</code></pre>
@@ -2298,7 +3270,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## 2 Neurofeedback post-training -0.624 0.477
 ## 3 Sham          pre-training  -0.926 0.356
 ## 4 Sham          post-training -0.794 0.450</code></pre>
-<pre class="r"><code>followuptests3(behavedata, Criterion_TrEfct ~ NFTraining, Sensitivity_TrEfct ~ AttentionTrained)</code></pre>
+<pre class="r"><code>followuptests3(behavedata, Criterion_TrEfct ~ NFTraining, Criterion_TrEfct ~ AttentionTrained)</code></pre>
 <pre><code>## 
 ## Space Cue Training Effects 
 ## 
@@ -2316,7 +3288,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## Space V Sham 
 ## Bayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 3.217771 ±0%
+## [1] Alt., r=0.707 : 0.6998298 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu1-mu2 = 0 
@@ -2327,7 +3299,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## Feature V Sham 
 ## Bayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 9.291836 ±0%
+## [1] Alt., r=0.707 : 0.3105888 ±0.02%
 ## 
 ## Against denominator:
 ##   Null, mu1-mu2 = 0 
@@ -2338,7 +3310,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## Feature V Space 
 ## Bayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 0.2955897 ±0.02%
+## [1] Alt., r=0.707 : 0.8781276 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu1-mu2 = 0 
@@ -2371,7 +3343,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## Space V Sham 
 ## Bayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 0.3216053 ±0%
+## [1] Alt., r=0.707 : 0.8314964 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu1-mu2 = 0 
@@ -2382,7 +3354,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## Feature V Sham 
 ## Bayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 0.3391917 ±0.02%
+## [1] Alt., r=0.707 : 0.3309573 ±0.02%
 ## 
 ## Against denominator:
 ##   Null, mu1-mu2 = 0 
@@ -2393,7 +3365,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## Feature V Space 
 ## Bayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 0.3949388 ±0.02%
+## [1] Alt., r=0.707 : 0.6601946 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu1-mu2 = 0 
@@ -2426,7 +3398,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## Space V Sham 
 ## Bayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 1.686157 ±0%
+## [1] Alt., r=0.707 : 1.50455 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu1-mu2 = 0 
@@ -2437,7 +3409,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## Feature V Sham 
 ## Bayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 1.596213 ±0%
+## [1] Alt., r=0.707 : 0.2256349 ±0.03%
 ## 
 ## Against denominator:
 ##   Null, mu1-mu2 = 0 
@@ -2448,7 +3420,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## Feature V Space 
 ## Bayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 0.229641 ±0.03%
+## [1] Alt., r=0.707 : 1.478878 ±0.01%
 ## 
 ## Against denominator:
 ##   Null, mu1-mu2 = 0 
@@ -2470,13 +3442,13 @@ dat = Runstats_NFvsSham(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feat
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + subID                                   : 1022448028 ±4.53%
-## [2] NFTraining + subID                                : 0.3148481  ±0.51%
-## [3] Testday:NFTraining + subID                        : 6421.341   ±2.14%
-## [4] Testday + NFTraining + subID                      : 380520182  ±8.7%
-## [5] Testday + Testday:NFTraining + subID              : 3182278873 ±3.21%
-## [6] NFTraining + Testday:NFTraining + subID           : 2125.002   ±2.17%
-## [7] Testday + NFTraining + Testday:NFTraining + subID : 1062756205 ±1.94%
+## [1] Testday + subID                                   : 996033692  ±1.04%
+## [2] NFTraining + subID                                : 0.3178964  ±0.71%
+## [3] Testday:NFTraining + subID                        : 6191.528   ±1.22%
+## [4] Testday + NFTraining + subID                      : 352541673  ±2.98%
+## [5] Testday + Testday:NFTraining + subID              : 3169651694 ±4.38%
+## [6] NFTraining + Testday:NFTraining + subID           : 2445.364   ±16.54%
+## [7] Testday + NFTraining + Testday:NFTraining + subID : 1091024356 ±2.97%
 ## 
 ## Against denominator:
 ##   measure ~ subID 
@@ -2489,7 +3461,7 @@ dat = Runstats_NFvsSham(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feat
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 2.792904 ±8.91%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 3.094739 ±4.2%
 ## 
 ## Against denominator:
 ##   measure ~ Testday + NFTraining + subID 
@@ -2502,7 +3474,7 @@ dat = Runstats_NFvsSham(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feat
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.3339607 ±3.76%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 0.3442095 ±5.29%
 ## 
 ## Against denominator:
 ##   measure ~ Testday + Testday:NFTraining + subID 
@@ -2515,12 +3487,231 @@ dat = Runstats_NFvsSham(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feat
 ## 
 ## Bayes factor analysis
 ## --------------
-## [1] Testday + NFTraining + Testday:NFTraining + subID : 500120.1 ±2.91%
+## [1] Testday + NFTraining + Testday:NFTraining + subID : 446160.3 ±16.8%
 ## 
 ## Against denominator:
 ##   measure ~ NFTraining + Testday:NFTraining + subID 
 ## ---
 ## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre class="r"><code>Runstats_TRAINING(behavedata, taskstring = c(&quot;Space&quot;, &quot;Feature&quot;), measure=&#39;InverseEfficiency&#39;)</code></pre>
+<pre><code>## ANOVA
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + subID                                      : 0.6480449  ±0.82%
+## [2] Testday + subID                                               : 976632510  ±1.07%
+## [3] AttentionTrained:Testday + subID                              : 3.312744   ±0.73%
+## [4] AttentionTrained + Testday + subID                            : 685110670  ±1.23%
+## [5] AttentionTrained + AttentionTrained:Testday + subID           : 2.184919   ±1.64%
+## [6] Testday + AttentionTrained:Testday + subID                    : 6990334121 ±1.56%
+## [7] AttentionTrained + Testday + AttentionTrained:Testday + subID : 5763553983 ±12.14%
+## 
+## Against denominator:
+##   measure ~ subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+## Interaction:
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 8.412588 ±12.2%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Neurofeedback Group: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 2637880421 ±12.25%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Test Day: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 0.8245034 ±12.24%
+## 
+## Against denominator:
+##   measure ~ Testday + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre><code>## # A tibble: 260 x 14
+## # Groups:   AttentionTrained, Testday [6]
+##    subID subIDval AttentionTrained Attention.Type Testday  Sensitivity Criterion
+##    &lt;fct&gt;    &lt;int&gt; &lt;fct&gt;            &lt;fct&gt;          &lt;fct&gt;          &lt;dbl&gt;     &lt;dbl&gt;
+##  1 0           10 Space            Space          pre-tra~        1.11    -1.08 
+##  2 0           10 Space            Space          post-tr~        2.45    -0.616
+##  3 1           11 Space            Space          pre-tra~        1.57    -1.20 
+##  4 1           11 Space            Space          post-tr~        2.64    -1.20 
+##  5 2           19 Space            Space          pre-tra~        1.50    -0.889
+##  6 2           19 Space            Space          post-tr~        1.84    -0.691
+##  7 5           29 Space            Space          pre-tra~        1.57    -1.10 
+##  8 5           29 Space            Space          post-tr~        2.56    -0.649
+##  9 8           45 Space            Space          pre-tra~        2.47    -0.936
+## 10 8           45 Space            Space          post-tr~        3.71    -0.515
+## # ... with 250 more rows, and 7 more variables: correct &lt;dbl&gt;,
+## #   LikelihoodRatio &lt;dbl&gt;, RT &lt;dbl&gt;, RT_STD &lt;dbl&gt;, InverseEfficiency &lt;dbl&gt;,
+## #   NFTraining &lt;fct&gt;, measure &lt;dbl&gt;</code></pre>
+<pre class="r"><code>Runstats_TRAINING(behavedata, taskstring = &quot;Space&quot;, measure=&#39;InverseEfficiency&#39;)</code></pre>
+<pre><code>## ANOVA
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + subID                                      : 0.229869  ±1.21%
+## [2] Testday + subID                                               : 32699.5   ±1.67%
+## [3] AttentionTrained:Testday + subID                              : 0.9857206 ±0.71%
+## [4] AttentionTrained + Testday + subID                            : 10119.33  ±10.9%
+## [5] AttentionTrained + AttentionTrained:Testday + subID           : 0.236059  ±1.13%
+## [6] Testday + AttentionTrained:Testday + subID                    : 43996.31  ±6.14%
+## [7] AttentionTrained + Testday + AttentionTrained:Testday + subID : 11890.15  ±1.74%
+## 
+## Against denominator:
+##   measure ~ subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+## Interaction:
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 1.174994 ±11.04%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Neurofeedback Group: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 50369.43 ±2.07%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Test Day: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 0.2702535 ±6.38%
+## 
+## Against denominator:
+##   measure ~ Testday + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre><code>## # A tibble: 130 x 14
+## # Groups:   AttentionTrained, Testday [6]
+##    subID subIDval AttentionTrained Attention.Type Testday  Sensitivity Criterion
+##    &lt;fct&gt;    &lt;int&gt; &lt;fct&gt;            &lt;fct&gt;          &lt;fct&gt;          &lt;dbl&gt;     &lt;dbl&gt;
+##  1 0           10 Space            Space          pre-tra~        1.11    -1.08 
+##  2 0           10 Space            Space          post-tr~        2.45    -0.616
+##  3 1           11 Space            Space          pre-tra~        1.57    -1.20 
+##  4 1           11 Space            Space          post-tr~        2.64    -1.20 
+##  5 2           19 Space            Space          pre-tra~        1.50    -0.889
+##  6 2           19 Space            Space          post-tr~        1.84    -0.691
+##  7 5           29 Space            Space          pre-tra~        1.57    -1.10 
+##  8 5           29 Space            Space          post-tr~        2.56    -0.649
+##  9 8           45 Space            Space          pre-tra~        2.47    -0.936
+## 10 8           45 Space            Space          post-tr~        3.71    -0.515
+## # ... with 120 more rows, and 7 more variables: correct &lt;dbl&gt;,
+## #   LikelihoodRatio &lt;dbl&gt;, RT &lt;dbl&gt;, RT_STD &lt;dbl&gt;, InverseEfficiency &lt;dbl&gt;,
+## #   NFTraining &lt;fct&gt;, measure &lt;dbl&gt;</code></pre>
+<pre class="r"><code>Runstats_TRAINING(behavedata, taskstring = &quot;Feature&quot;, measure=&#39;InverseEfficiency&#39;)</code></pre>
+<pre><code>## ANOVA
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + subID                                      : 1.344342  ±0.97%
+## [2] Testday + subID                                               : 1015.329  ±1.29%
+## [3] AttentionTrained:Testday + subID                              : 0.4982521 ±1.74%
+## [4] AttentionTrained + Testday + subID                            : 1479.816  ±1.15%
+## [5] AttentionTrained + AttentionTrained:Testday + subID           : 0.6503381 ±0.96%
+## [6] Testday + AttentionTrained:Testday + subID                    : 974.6096  ±3.66%
+## [7] AttentionTrained + Testday + AttentionTrained:Testday + subID : 1405.976  ±2.2%
+## 
+## Against denominator:
+##   measure ~ subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+## Interaction:
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 0.9501016 ±2.48%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Neurofeedback Group: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 2161.915 ±2.4%
+## 
+## Against denominator:
+##   measure ~ AttentionTrained + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS
+## 
+## 
+## 
+##  Test Day: 
+## 
+## Bayes factor analysis
+## --------------
+## [1] AttentionTrained + Testday + AttentionTrained:Testday + subID : 1.442604 ±4.27%
+## 
+## Against denominator:
+##   measure ~ Testday + AttentionTrained:Testday + subID 
+## ---
+## Bayes factor type: BFlinearModel, JZS</code></pre>
+<pre><code>## # A tibble: 130 x 14
+## # Groups:   AttentionTrained, Testday [6]
+##    subID subIDval AttentionTrained Attention.Type Testday  Sensitivity Criterion
+##    &lt;fct&gt;    &lt;int&gt; &lt;fct&gt;            &lt;fct&gt;          &lt;fct&gt;          &lt;dbl&gt;     &lt;dbl&gt;
+##  1 0           10 Space            Feature        pre-tra~       0.477   -1.00  
+##  2 0           10 Space            Feature        post-tr~       1.06    -0.231 
+##  3 1           11 Space            Feature        pre-tra~       0.532   -0.678 
+##  4 1           11 Space            Feature        post-tr~       0.972   -0.556 
+##  5 2           19 Space            Feature        pre-tra~       0.342   -0.845 
+##  6 2           19 Space            Feature        post-tr~       0.398   -0.112 
+##  7 5           29 Space            Feature        pre-tra~       1.24    -1.15  
+##  8 5           29 Space            Feature        post-tr~       1.35     0.0656
+##  9 8           45 Space            Feature        pre-tra~       0.680   -0.270 
+## 10 8           45 Space            Feature        post-tr~       0.969    0.402 
+## # ... with 120 more rows, and 7 more variables: correct &lt;dbl&gt;,
+## #   LikelihoodRatio &lt;dbl&gt;, RT &lt;dbl&gt;, RT_STD &lt;dbl&gt;, InverseEfficiency &lt;dbl&gt;,
+## #   NFTraining &lt;fct&gt;, measure &lt;dbl&gt;</code></pre>
 <pre class="r"><code># Marginals
 cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 <pre><code>## Marginals</code></pre>
@@ -2534,7 +3725,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## 2 Neurofeedback post-training  1.57 0.748
 ## 3 Sham          pre-training   2.13 0.874
 ## 4 Sham          post-training  1.86 1.12</code></pre>
-<pre class="r"><code>followuptests3(behavedata, IE_TrEfct ~ NFTraining, Sensitivity_TrEfct ~ AttentionTrained)</code></pre>
+<pre class="r"><code>followuptests3(behavedata, IE_TrEfct ~ NFTraining, IE_TrEfct ~ AttentionTrained)</code></pre>
 <pre><code>## 
 ## Space Cue Training Effects 
 ## 
@@ -2552,7 +3743,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## Space V Sham 
 ## Bayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 3.217771 ±0%
+## [1] Alt., r=0.707 : 2.742368 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu1-mu2 = 0 
@@ -2563,7 +3754,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## Feature V Sham 
 ## Bayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 9.291836 ±0%
+## [1] Alt., r=0.707 : 0.7756198 ±0.02%
 ## 
 ## Against denominator:
 ##   Null, mu1-mu2 = 0 
@@ -2574,7 +3765,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## Feature V Space 
 ## Bayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 0.2955897 ±0.02%
+## [1] Alt., r=0.707 : 0.499343 ±0.02%
 ## 
 ## Against denominator:
 ##   Null, mu1-mu2 = 0 
@@ -2607,7 +3798,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## Space V Sham 
 ## Bayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 0.3216053 ±0%
+## [1] Alt., r=0.707 : 1.203159 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu1-mu2 = 0 
@@ -2618,7 +3809,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## Feature V Sham 
 ## Bayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 0.3391917 ±0.02%
+## [1] Alt., r=0.707 : 0.3080164 ±0.02%
 ## 
 ## Against denominator:
 ##   Null, mu1-mu2 = 0 
@@ -2629,7 +3820,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## Feature V Space 
 ## Bayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 0.3949388 ±0.02%
+## [1] Alt., r=0.707 : 1.471828 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu1-mu2 = 0 
@@ -2662,7 +3853,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## Space V Sham 
 ## Bayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 1.686157 ±0%
+## [1] Alt., r=0.707 : 8.190362 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu1-mu2 = 0 
@@ -2673,7 +3864,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## Feature V Sham 
 ## Bayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 1.596213 ±0%
+## [1] Alt., r=0.707 : 0.4428194 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu1-mu2 = 0 
@@ -2684,7 +3875,7 @@ cat(&quot;Marginals\n\n\n&quot;)</code></pre>
 ## Feature V Space 
 ## Bayes factor analysis
 ## --------------
-## [1] Alt., r=0.707 : 0.229641 ±0.03%
+## [1] Alt., r=0.707 : 2.300425 ±0%
 ## 
 ## Against denominator:
 ##   Null, mu1-mu2 = 0 

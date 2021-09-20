@@ -189,7 +189,7 @@ def collate_visualsearchtask(settings):
             mean_acc_all[:, :, sub_count] = results['meanacc']
             mean_rt_all[:, :, sub_count] = results['meanrt']
 
-            substring_short = np.concatenate((substring_short, ['sub' + str(sub_count + attntrained * 37)]))
+            substring_short = np.concatenate((substring_short, [int(sub_count + attntrained * 37)]))
 
         # store results for attention condition
         tmp = np.concatenate((substring_short, substring_short))
@@ -240,12 +240,12 @@ def collate_visualsearchtask(settings):
         meanrt_compare = np.concatenate((meanrt_compare, tmp))
 
     # create the data frames for accuracy and reaction time data
-    data = {'SubID': substring, 'Testday': daystrings, 'Attention Trained': attnstrings, 'Set Size': setsizestrings,
+    data = {'SubID': substring.astype(int), 'Testday': daystrings, 'Attention Trained': attnstrings, 'Set Size': setsizestrings,
             'Accuracy (%)': accuracy_compare, 'Reaction Time (s)': rt_compare}
     df_acc = pd.DataFrame(data)
-    df_acc.to_csv(bids.direct_results_group_compare / Path("VISSEARCH_behaveresults_ALL.csv"), index=False)
 
-    data = {'SubID': substring, 'Testday': daystrings, 'Attention Trained': attnstrings, 'Set Size': setsizestrings,
+
+    data = {'SubID': substring.astype(int), 'Testday': daystrings, 'Attention Trained': attnstrings, 'Set Size': setsizestrings,
             'Reaction Time (s)': rt_compare}
     df_rt = pd.DataFrame(data)
 
@@ -254,6 +254,22 @@ def collate_visualsearchtask(settings):
 
     # correct for tiny data
     df_rt = df_rt[df_rt["Reaction Time (s)"] > 0.01]
+
+    # df_rt = df_rt [~df_rt ['SubID'].isin([3, 4, 6, 7, 10, 12, 14, 18, 19, 23, 24, 27, 28,
+    #                                                   29, 37, 38, 39, 40, 41, 43, 44, 51, 52, 58, 64, 74,
+    #                                                   76, 78, 79, 81, 82, 83, 85, 86, 88, 89, 90, 95, 100,
+    #                                                   102, 104, 107, 110])]
+    #
+    # df_acc = df_acc [~df_acc ['SubID'].isin([3, 4, 6, 7, 10, 12, 14, 18, 19, 23, 24, 27, 28,
+    #                                                   29, 37, 38, 39, 40, 41, 43, 44, 51, 52, 58, 64, 74,
+    #                                                   76, 78, 79, 81, 82, 83, 85, 86, 88, 89, 90, 95, 100,
+    #                                                   102, 104, 107, 110])]
+    df_acc.to_csv(bids.direct_results_group_compare / Path("VISSEARCH_behaveresults_ALL.csv"), index=False)
+
+
+    print(len(df_rt[df_rt['Attention Trained'] == 'Feature'].SubID.unique()))
+    print(len(df_rt[df_rt['Attention Trained'] == 'Space'].SubID.unique()))
+    print(len(df_rt[df_rt['Attention Trained'] == 'Sham'].SubID.unique()))
 
     # plot results
     fig, (ax1) = plt.subplots(1, 3, figsize=(12, 6))
@@ -284,9 +300,15 @@ def collate_visualsearchtask(settings):
 
     # Plot average over set sizes
     # create the data frames for accuracy and reaction time data
-    data = {'SubID': meansubstring, 'Testday': meandaystrings, 'Attention Trained': meanattnstrings,
+    data = {'SubID': meansubstring.astype(int), 'Testday': meandaystrings, 'Attention Trained': meanattnstrings,
             'Accuracy (%)': meanaccuracy_compare, 'Reaction Time (s)': meanrt_compare}
     df_acc_SSmean = pd.DataFrame(data)
+
+    # df_acc_SSmean = df_acc_SSmean[~df_acc_SSmean['SubID'].isin([3, 4, 6, 7, 10, 12, 14, 18, 19, 23, 24, 27, 28,
+    #                                        29, 37, 38, 39, 40, 41, 43, 44, 51, 52, 58, 64, 74,
+    #                                        76, 78, 79, 81, 82, 83, 85, 86, 88, 89, 90, 95, 100,
+    #                                        102, 104, 107, 110])]
+
 
     # df_acc_SSmean.loc[df_acc_SSmean['Accuracy (%)']<60,:]
 
@@ -339,7 +361,7 @@ def collate_visualsearchtask(settings):
 
     # Plot accuracy and reaction time training effects
     colors = [settings.yellow, settings.orange, settings.red]
-    fig, ax = plt.subplots(2, 1, figsize=(6, 15))
+    fig, ax = plt.subplots(1, 2, figsize=(15, 6))
 
     measurestrings = ["∆Accuracy (%)", "∆Reaction Time (s)"]
     for i in np.arange(2):
@@ -347,15 +369,57 @@ def collate_visualsearchtask(settings):
         sns.violinplot(x="Attention Trained", y=measurestrings[i], data=df_behtraineffects, palette=sns.color_palette(colors), style="ticks",
                        ax=ax[i], inner="box", alpha=0.6)
 
+        sns.lineplot(x="Attention Trained", y=measurestrings[i], data=df_behtraineffects, markers=True, dashes=False, color="k", err_style="bars", ci=68, ax=ax[i])
+
         ax[i].spines['top'].set_visible(False)
         ax[i].spines['right'].set_visible(False)
 
         ax[i].set_title(measurestrings[i])
 
+    ax[1].set_ylim([-0.5, 0.2])
     titlestring = "Visual Search task training effects"
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
 
+
+    df_behtraineffects.loc[df_behtraineffects["Attention Trained"] == "Space", "∆Reaction Time (s)"].mean()
+    df_behtraineffects.loc[df_behtraineffects["Attention Trained"] == "Feature", "∆Reaction Time (s)"].mean()
+    df_behtraineffects.loc[df_behtraineffects["Attention Trained"] == "Sham", "∆Reaction Time (s)"].mean()
+
+
+    # Calculate group RT Training effects w/ setsize
+    idx_d1 = df_rt["Testday"] == "pre-training"
+    idx_d4 = df_rt["Testday"] == "post-training"
+
+    tmpd4 = df_rt[idx_d4].reset_index()
+    tmpd1 = df_rt[idx_d1].reset_index()
+
+    df_behtraineffects = tmpd4[["SubID", "Attention Trained", "Set Size"]].copy()
+
+    df_behtraineffects["∆Reaction Time (s)"] = tmpd4['Reaction Time (s)'] - tmpd1['Reaction Time (s)']
+    # df_rt[df_rt["Set Size"].isin([setsize])]
+
+
+    # Plot accuracy and reaction time training effects
+    colors = [settings.yellow, settings.orange, settings.red]
+    fig, ax = plt.subplots(1, 3, figsize=(15, 6))
+
+    for i, setsize in enumerate(settings.string_setsize):
+        sns.swarmplot(x="Attention Trained", y="∆Reaction Time (s)", data=df_behtraineffects[df_behtraineffects["Set Size"].isin([setsize])], color="0", alpha=0.3, ax=ax[i])
+        sns.violinplot(x="Attention Trained", y="∆Reaction Time (s)", data=df_behtraineffects[df_behtraineffects["Set Size"].isin([setsize])], palette=sns.color_palette(colors), style="ticks",
+                       ax=ax[i], inner="box", alpha=0.6)
+
+        ax[i].spines['top'].set_visible(False)
+        ax[i].spines['right'].set_visible(False)
+
+        ax[i].set_title(setsize )
+        ax[i].set_ylim([-0.6, 0.2])
+
+    titlestring = "Visual Search task training effects by setsize"
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
 # save out
     # df_rt_SSmean.to_pickle(bids.direct_results_group / Path("group_visualsearch.pkl"))
 

@@ -23,7 +23,7 @@ library(imager)
 
 # load data
 SSVEPdata = read.csv("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Results/CompareSpaceFeat/group/motiondiscrim_SelectivityResults_ALL.csv")
-SSVEPdata$SSVEP = SSVEPdata$Selectivity..Î.ÂµV.
+SSVEPdata$SSVEP_sel = SSVEPdata$Selectivity..Î.ÂµV.
 
 #### step 1 - visualise the data 
 # coplot(SSVEP ~ Attention.Trained |  Testday, data = SSVEPdata, panel = panel.smooth,
@@ -56,8 +56,9 @@ tmp_d1 = SSVEPdata[idx_d1,]
 tmp_d4 = SSVEPdata[idx_d4,]
 
 SSVEPdata_train = tmp_d1
-SSVEPdata_train$SSVEP_TrEfct = tmp_d4$SSVEP - tmp_d1$SSVEP
-
+SSVEPdata_train$SSVEP_attd_TrEfct = tmp_d4$SSVEPs_attd - tmp_d1$SSVEPs_attd
+SSVEPdata_train$SSVEP_unattd_TrEfct = tmp_d4$SSVEPs_unattd - tmp_d1$SSVEPs_unattd
+SSVEPdata_train$SSVEP_select_TrEfct = tmp_d4$SSVEP_sel - tmp_d1$SSVEP_sel
 ```
 
 ## Define Functions
@@ -114,52 +115,107 @@ Runstats_NFvsSham <- function(data, taskstring, measure) {
   bf = DisplayANOVAResults2X2(measure ~ NFTraining * Testday + SubID , data=datuse, maineffectstringA = "Neurofeedback Group:",         maineffectstringB = "Test Day:")
 
   # Run followup stats
-  cat("\n\nFollowup Tests")
-  followuptests(measure ~  Testday, dataA = datuse_NF, dataB = datuse_sham)
+  # cat("\n\nFollowup Tests")
+  # followuptests(measure ~  Testday, dataA = datuse_NF, dataB = datuse_sham)
 
   return(dat)
 }
   
 
+Runstats_TRAINING <- function(behavedata, taskstring, measure) {
+  # get data for measure and task
+  datuse = behavedata[behavedata$Attention.Type %in% taskstring,]
+  datuse["measure"] = datuse[measure]
+
+  # get data for conditions of interest
+ 
+  # get Marginals
+  dat = datuse%>% group_by(Attention.Trained, Testday)
+
+  # run stats
+  cat("ANOVA\n\n")
+  bf = DisplayANOVAResults2X2(measure ~ Attention.Trained * Testday + SubID , data=datuse, maineffectstringA ="Neurofeedback Group:",         maineffectstringB = "Test Day:")
+
+
+  return(dat)
+}
+
 ```
 
 ```{r, include=FALSE}
 
-followuptests2 <-function(data, formula){
-  
+followuptests2 <-function(behavedata_train, measure){
+
   cat('\nSpace Cue \n')
-  datuse = data[data['Attention.Type']=="Space",]
+  datuse = behavedata_train[behavedata_train['Attention.Type']=="Space", ]
   cat('\nNF')
-  print(ttestBF(formula = formula, data = datuse[datuse['NFTraining']=="Neurofeedback",]))
+  print(ttestBF(x = datuse[datuse['NFTraining']=="Neurofeedback", measure]))
   cat('\nSham')
-  print(ttestBF(formula = formula, data = datuse[datuse['NFTraining']=="Sham",]))
+  print(ttestBF(x = datuse[datuse['NFTraining']=="Sham", measure]))
   cat('\nSpace')
-  print(ttestBF(formula = formula, data = datuse[datuse['Attention.Trained']=="Space",]))
+  print(ttestBF(x = datuse[datuse['Attention.Trained']=="Space", measure]))
   cat('\nFeat')
-  print(ttestBF(formula = formula, data = datuse[datuse['Attention.Trained']=="Feature",]))
+  print(ttestBF(x = datuse[datuse['Attention.Trained']=="Feature", measure]))
+  
   
   cat('\nFeat Cue \n')
-  datuse = data[data['Attention.Type']=="Feature",]
+  datuse = behavedata_train[behavedata_train['Attention.Type']=="Feature",]
   cat('\nNF')
-  print(ttestBF(formula = formula, data = datuse[datuse['NFTraining']=="Neurofeedback",]))
+  print(ttestBF(x = datuse[datuse['NFTraining']=="Neurofeedback", measure]))
   cat('\nSham')
-  print(ttestBF(formula = formula, data = datuse[datuse['NFTraining']=="Sham",]))
+  print(ttestBF(x = datuse[datuse['NFTraining']=="Sham", measure]))
   cat('\nSpace')
-  print(ttestBF(formula = formula, data = datuse[datuse['Attention.Trained']=="Space",]))
+  print(ttestBF(x = datuse[datuse['Attention.Trained']=="Space", measure]))
   cat('\nFeat')
-  print(ttestBF(formula = formula, data = datuse[datuse['Attention.Trained']=="Feature",]))
+  print(ttestBF(x = datuse[datuse['Attention.Trained']=="Feature", measure]))
   
   cat('\nOverall \n')
-  datuse = data
+  datuse = behavedata_train
   cat('\nNF')
-  print(ttestBF(formula = formula, data = datuse[datuse['NFTraining']=="Neurofeedback",]))
+  print(ttestBF(x = datuse[datuse['NFTraining']=="Neurofeedback", measure]))
   cat('\nSham')
-  print(ttestBF(formula = formula, data = datuse[datuse['NFTraining']=="Sham",]))
+  print(ttestBF(x = datuse[datuse['NFTraining']=="Sham", measure]))
   cat('\nSpace')
-  print(ttestBF(formula = formula, data = datuse[datuse['Attention.Trained']=="Space",]))
+  print(ttestBF(x = datuse[datuse['Attention.Trained']=="Space", measure]))
   cat('\nFeat')
-  print(ttestBF(formula = formula, data = datuse[datuse['Attention.Trained']=="Feature",]))
+  print(ttestBF(x = datuse[datuse['Attention.Trained']=="Feature", measure]))
 }
+
+# followuptests2 <-function(data, formula){
+#   
+#   cat('\nSpace Cue \n')
+#   datuse = data[data['Attention.Type']=="Space",]
+#   cat('\nNF')
+#   print(ttestBF(formula = formula, data = datuse[datuse['NFTraining']=="Neurofeedback",]))
+#   cat('\nSham')
+#   print(ttestBF(formula = formula, data = datuse[datuse['NFTraining']=="Sham",]))
+#   cat('\nSpace')
+#   print(ttestBF(formula = formula, data = datuse[datuse['Attention.Trained']=="Space",]))
+#   cat('\nFeat')
+#   print(ttestBF(formula = formula, data = datuse[datuse['Attention.Trained']=="Feature",]))
+#   
+#   cat('\nFeat Cue \n')
+#   datuse = data[data['Attention.Type']=="Feature",]
+#   cat('\nNF')
+#   print(ttestBF(formula = formula, data = datuse[datuse['NFTraining']=="Neurofeedback",]))
+#   cat('\nSham')
+#   print(ttestBF(formula = formula, data = datuse[datuse['NFTraining']=="Sham",]))
+#   cat('\nSpace')
+#   print(ttestBF(formula = formula, data = datuse[datuse['Attention.Trained']=="Space",]))
+#   cat('\nFeat')
+#   print(ttestBF(formula = formula, data = datuse[datuse['Attention.Trained']=="Feature",]))
+#   
+#   cat('\nOverall \n')
+#   datuse = data
+#   cat('\nNF')
+#   print(ttestBF(formula = formula, data = datuse[datuse['NFTraining']=="Neurofeedback",]))
+#   cat('\nSham')
+#   print(ttestBF(formula = formula, data = datuse[datuse['NFTraining']=="Sham",]))
+#   cat('\nSpace')
+#   print(ttestBF(formula = formula, data = datuse[datuse['Attention.Trained']=="Space",]))
+#   cat('\nFeat')
+#   print(ttestBF(formula = formula, data = datuse[datuse['Attention.Trained']=="Feature",]))
+# }
 
 followuptests3 <-function(data_train, formula1, formula2){
   
@@ -241,8 +297,123 @@ followuptests3 <-function(data_train, formula1, formula2){
 ### SSVEP Selectivity
 ```{r}
 datuse_train = SSVEPdata_train
-DisplayANOVAResults2X2(formula = SSVEP_TrEfct ~ NFTraining * Attention.Type + SubID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
+DisplayANOVAResults2X2(formula = SSVEP_select_TrEfct ~ Attention.Trained * Attention.Type + SubID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
 
+
+# get Marginals
+dat = SSVEPdata_train %>% group_by(Attention.Trained, Attention.Type)
+cat("Marginals\n\n\n")
+dat %>% summarise(M=mean(SSVEP_select_TrEfct), SD=sd(SSVEP_select_TrEfct))
+
+dat = SSVEPdata_train %>% group_by(NFTraining, Attention.Type)
+cat("Marginals\n\n\n")
+dat %>% summarise(M=mean(SSVEP_select_TrEfct), SD=sd(SSVEP_select_TrEfct))
+
+
+# Check specificity
+SSVEPdata_train_spft = SSVEPdata_train[SSVEPdata_train["Attention.Trained"]=="Space" | SSVEPdata_train["Attention.Trained"]=="Feature", ]
+
+SSVEPdata_train_spft$Attention.Trained = factor(SSVEPdata_train_spft$Attention.Trained)
+SSVEPdata_train_spft$congruency = SSVEPdata_train_spft$Attention.Trained == SSVEPdata_train_spft$Attention.Type  
+SSVEPdata_train_spft$congruency = factor(SSVEPdata_train_spft$congruency)
+levels(SSVEPdata_train_spft$congruency) = c("trained", "untrained")
+
+dat = SSVEPdata_train_spft %>% group_by(Attention.Trained)
+dat %>% summarise(M=mean(SSVEP_select_TrEfct), SD=sd(SSVEP_select_TrEfct))
+
+dat = SSVEPdata_train_spft %>% group_by(Attention.Type)
+dat %>% summarise(M=mean(SSVEP_select_TrEfct), SD=sd(SSVEP_select_TrEfct))
+
+anovaBF(formula = SSVEP_select_TrEfct ~ congruency + SubID, data = SSVEPdata_train_spft, whichRandom="SubID" )
+
+bf = anovaBF(formula = SSVEP_select_TrEfct ~ Attention.Trained * Attention.Type + SubID, data = SSVEPdata_train_spft, whichRandom="SubID", whichModels="all")
+# plot(bf)
+
+bfInteraction = bf[7]/bf[4] # is the full model better than just strait main effects?
+bf_main_A = bf[7]/bf[5] # is the full model better than the main effect A knock out?
+bf_main_B = bf[7]/bf[6] # is the full model better than the main effect B knock out?
+  
+# Followup tests
+followuptests2(SSVEPdata_train, "SSVEP_select_TrEfct")
+
+```
+
+### SSVEP attended
+
+```{r}
+
+DisplayANOVAResults2X2(formula = SSVEP_attd_TrEfct ~ Attention.Trained * Attention.Type + SubID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
+
+
+# get Marginals
+dat = SSVEPdata_train %>% group_by(Attention.Trained, Attention.Type)
+cat("Marginals\n\n\n")
+dat %>% summarise(M=mean(SSVEP_attd_TrEfct), SD=sd(SSVEP_attd_TrEfct))
+
+dat = SSVEPdata_train %>% group_by(NFTraining, Attention.Type)
+cat("Marginals\n\n\n")
+dat %>% summarise(M=mean(SSVEP_attd_TrEfct), SD=sd(SSVEP_attd_TrEfct))
+
+
+# Check specificity
+
+dat = SSVEPdata_train_spft %>% group_by(Attention.Trained)
+dat %>% summarise(M=mean(SSVEP_attd_TrEfct), SD=sd(SSVEP_attd_TrEfct))
+
+dat = SSVEPdata_train_spft %>% group_by(Attention.Type)
+dat %>% summarise(M=mean(SSVEP_attd_TrEfct), SD=sd(SSVEP_attd_TrEfct))
+
+anovaBF(formula = SSVEP_attd_TrEfct ~ congruency + SubID, data = SSVEPdata_train_spft, whichRandom="SubID" )
+
+bf = anovaBF(formula = SSVEP_attd_TrEfct ~ Attention.Trained * Attention.Type + SubID, data = SSVEPdata_train_spft, whichRandom="SubID", whichModels="all")
+# plot(bf)
+
+bfInteraction = bf[7]/bf[4] # is the full model better than just strait main effects?
+bf_main_A = bf[7]/bf[5] # is the full model better than the main effect A knock out?
+bf_main_B = bf[7]/bf[6] # is the full model better than the main effect B knock out?
+  
+# Followup tests
+followuptests2(SSVEPdata_train, "SSVEP_attd_TrEfct")
+
+```
+
+
+### SSVEP un attended
+
+```{r}
+
+DisplayANOVAResults2X2(formula = SSVEP_unattd_TrEfct ~ Attention.Trained * Attention.Type + SubID , data=datuse_train, maineffectstringA = "Neurofeedback Group:", maineffectstringB = "Cue Type:")
+
+
+# get Marginals
+dat = SSVEPdata_train %>% group_by(Attention.Trained, Attention.Type)
+cat("Marginals\n\n\n")
+dat %>% summarise(M=mean(SSVEP_unattd_TrEfct), SD=sd(SSVEP_unattd_TrEfct))
+
+dat = SSVEPdata_train %>% group_by(NFTraining, Attention.Type)
+cat("Marginals\n\n\n")
+dat %>% summarise(M=mean(SSVEP_unattd_TrEfct), SD=sd(SSVEP_unattd_TrEfct))
+
+
+# Check specificity
+
+dat = SSVEPdata_train_spft %>% group_by(Attention.Trained)
+dat %>% summarise(M=mean(SSVEP_unattd_TrEfct), SD=sd(SSVEP_unattd_TrEfct))
+
+dat = SSVEPdata_train_spft %>% group_by(Attention.Type)
+dat %>% summarise(M=mean(SSVEP_unattd_TrEfct), SD=sd(SSVEP_unattd_TrEfct))
+
+anovaBF(formula = SSVEP_unattd_TrEfct ~ congruency + SubID, data = SSVEPdata_train_spft, whichRandom="SubID" )
+
+bf = anovaBF(formula = SSVEP_unattd_TrEfct ~ Attention.Trained * Attention.Type + SubID, data = SSVEPdata_train_spft, whichRandom="SubID", whichModels="all")
+# plot(bf)
+
+bfInteraction = bf[7]/bf[4] # is the full model better than just strait main effects?
+bf_main_A = bf[7]/bf[5] # is the full model better than the main effect A knock out?
+bf_main_B = bf[7]/bf[6] # is the full model better than the main effect B knock out?
+  
+# Followup tests
+followuptests2(SSVEPdata_train, "SSVEP_unattd_TrEfct")
 
 ```
 
@@ -253,18 +424,87 @@ DisplayANOVAResults2X2(formula = SSVEP_TrEfct ~ NFTraining * Attention.Type + Su
 for the space task, there was a training effect for the neurofeedback group but not the sham group
 ```{r}
 # visualise result:
-image = load.image(paste(direct.resultsRoot, "Motion Task SSVEP Selectivity training effect by attention.png", sep = ""))
-plot(image, axes=FALSE)
+# image = load.image(paste(direct.resultsRoot, "Motion Task SSVEP Selectivity training effect by attention.png", sep = ""))
+# plot(image, axes=FALSE)
 
 # Run Stats
-dat = Runstats_NFvsSham(SSVEPdata, taskstring = c('Space', 'Feature'), measure='SSVEPs')
+# dat = Runstats_NFvsSham(SSVEPdata, taskstring = c('Space', 'Feature'), measure='SSVEP_sel')
 
+Runstats_TRAINING(SSVEPdata, taskstring = c('Space', 'Feature'), measure='SSVEP_sel')
 # Marginals
-cat("Marginals\n\n\n")
-dat %>% summarise(M=mean(measure), SD=sd(measure))
+# cat("Marginals\n\n\n")
+# dat %>% summarise(M=mean(measure), SD=sd(measure))
 
 
-followuptests3(SSVEPdata_train, SSVEP_TrEfct ~ NFTraining, SSVEP_TrEfct ~ Attention.Trained)
+followuptests3(SSVEPdata_train, SSVEP_select_TrEfct ~ NFTraining, SSVEP_select_TrEfct ~ Attention.Trained)
 
 ```
 
+
+#### SSVEP attd
+for the space task, there was a training effect for the neurofeedback group but not the sham group
+```{r}
+
+# Run Stats
+Runstats_TRAINING(SSVEPdata, taskstring = c('Space', 'Feature'), measure='SSVEPs_attd')
+# Marginals
+# cat("Marginals\n\n\n")
+# dat %>% summarise(M=mean(measure), SD=sd(measure))
+
+
+followuptests3(SSVEPdata_train, SSVEP_attd_TrEfct ~ NFTraining, SSVEP_attd_TrEfct ~ Attention.Trained)
+
+```
+
+
+#### SSVEP unattd
+for the space task, there was a training effect for the neurofeedback group but not the sham group
+```{r}
+
+# Run Stats
+Runstats_TRAINING(SSVEPdata, taskstring = c('Space', 'Feature'), measure='SSVEPs_unattd')
+# Marginals
+# cat("Marginals\n\n\n")
+# dat %>% summarise(M=mean(measure), SD=sd(measure))
+
+
+followuptests3(SSVEPdata_train, SSVEP_unattd_TrEfct ~ NFTraining, SSVEP_unattd_TrEfct ~ Attention.Trained)
+
+```
+
+
+#### attended unattended difference
+
+```{r}
+cat("space training - space cue\n\n\n")
+tmpdat = SSVEPdata[SSVEPdata$Attention.Trained %in% c("Space") & SSVEPdata$Attention.Type %in% c("Space"),]
+ttestBF(x = tmpdat$SSVEPs_attd - tmpdat$SSVEPs_unattd)
+
+cat("feat training - space cue\n\n\n")
+tmpdat = SSVEPdata[SSVEPdata$Attention.Trained %in% c("Feature") & SSVEPdata$Attention.Type %in% c("Space"),]
+ttestBF(x = tmpdat$SSVEPs_attd - tmpdat$SSVEPs_unattd)
+
+cat("sham training - space cue\n\n\n")
+tmpdat = SSVEPdata[SSVEPdata$Attention.Trained %in% c("Sham") & SSVEPdata$Attention.Type %in% c("Space"),]
+ttestBF(x = tmpdat$SSVEPs_attd - tmpdat$SSVEPs_unattd)
+
+cat("space training - feat cue\n\n\n")
+tmpdat = SSVEPdata[SSVEPdata$Attention.Trained %in% c("Space") & SSVEPdata$Attention.Type %in% c("Feature"),]
+ttestBF(x = tmpdat$SSVEPs_attd - tmpdat$SSVEPs_unattd)
+
+cat("feat training - feat cue\n\n\n")
+tmpdat = SSVEPdata[SSVEPdata$Attention.Trained %in% c("Feature") & SSVEPdata$Attention.Type %in% c("Feature"),]
+ttestBF(x = tmpdat$SSVEPs_attd - tmpdat$SSVEPs_unattd)
+
+cat("sham training - feat cue\n\n\n")
+tmpdat = SSVEPdata[SSVEPdata$Attention.Trained %in% c("Sham") & SSVEPdata$Attention.Type %in% c("Feature"),]
+ttestBF(x = tmpdat$SSVEPs_attd - tmpdat$SSVEPs_unattd)
+
+
+# Run Stats
+dat = SSVEPdata %>% group_by(Attention.Trained, Attention.Type)
+cat("Marginals\n\n\n")
+dat %>% summarise(M_attd=mean(SSVEPs_attd), SD_attd=sd(SSVEPs_attd), M_unattd=mean(SSVEPs_unattd), SD_unattd=sd(SSVEPs_unattd))
+
+
+```

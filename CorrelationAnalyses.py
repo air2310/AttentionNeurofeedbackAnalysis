@@ -599,9 +599,37 @@ def classification_acc_correlations(settings):
     # plt.suptitle(titlestring)
     # plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
+    # sensitivity space vs feat
+    df_sensitivity['sensitivity_spacecue'] = (df_sensitivity['sensitivity_pre_spacecue'] + df_sensitivity['sensitivity_post_spacecue']) / 2
+    df_sensitivity['sensitivity_featcue'] = (df_sensitivity['sensitivity_pre_featcue'] + df_sensitivity['sensitivity_post_featcue']) / 2
+    fig, axuse = plt.subplots(2, 3, figsize=(12, 10))
 
+    sns.scatterplot(data=df_sensitivity[df_sensitivity['TrainingGroup'] == "Space"], x='sensitivity_spacecue', y='sensitivity_featcue', ax=axuse[0,0], color=settings.darkteal_)
+    sns.scatterplot(data=df_sensitivity[df_sensitivity['TrainingGroup'] == "Feature"], x='sensitivity_spacecue', y='sensitivity_featcue', ax=axuse[0,1], color=settings.lightteal_)
+    sns.scatterplot(data=df_sensitivity[df_sensitivity['TrainingGroup'] == "Sham"], x='sensitivity_spacecue', y='sensitivity_featcue', ax=axuse[0,2], color=settings.yellow_)
 
+    sns.scatterplot(data=df_sensitivity[df_sensitivity['TrainingGroup'] == "Space"], x='sensitivity_train_spacecue', y='sensitivity_train_featcue', ax=axuse[1, 0], color=settings.darkteal_)
+    sns.scatterplot(data=df_sensitivity[df_sensitivity['TrainingGroup'] == "Feature"], x='sensitivity_train_spacecue', y='sensitivity_train_featcue', ax=axuse[1, 1], color=settings.lightteal_)
+    sns.scatterplot(data=df_sensitivity[df_sensitivity['TrainingGroup'] == "Sham"], x='sensitivity_train_spacecue', y='sensitivity_train_featcue', ax=axuse[1, 2], color=settings.yellow_)
+    for i in np.arange(3):
+        axuse[0, i].set_xlim([-1, 4])
+        axuse[0, i].set_ylim([-1, 2])
+        axuse[0, i].spines['top'].set_visible(False)
+        axuse[0, i].spines['right'].set_visible(False)
 
+        axuse[1, i].set_xlim([-1, 2])
+        axuse[1, i].set_ylim([-1.5, 1.5])
+        axuse[1, i].spines['top'].set_visible(False)
+        axuse[1, i].spines['right'].set_visible(False)
+
+        corr = stats.pearsonr(df_sensitivity[df_sensitivity['TrainingGroup'] == settings.string_attntrained[i]]['sensitivity_train_spacecue'], df_sensitivity[df_sensitivity['TrainingGroup'] == settings.string_attntrained[i]]['sensitivity_train_featcue'])
+
+    corr = stats.pearsonr(df_sensitivity['sensitivity_train_featcue'], df_sensitivity['sensitivity_train_spacecue'])
+    print(corr) #0.4686849006858813, 3.125935127100983e-07
+
+    titlestring = 'correlations feat vs space sensitivity'
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
 
 
     # plot classifier accuracy by attention type

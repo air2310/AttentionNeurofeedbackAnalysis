@@ -28,7 +28,7 @@ behavedata_RT = na.omit(behavedata)
 
 ## Test effects of NF
 
-bf = anovaBF(Sensitivity ~ NFTraining * Testday + SubID , data=behavedata, whichRandom="SubID",  whichModels="all")
+bf = anovaBF(Sensitivity ~ Attention.Trained * Testday + SubID , data=behavedata, whichRandom="SubID",  whichModels="all")
 bfInteraction = bf[7]/bf[4] # is the full model better than just strait main effects?
 bf_main_AttnTrain = bf[7]/bf[6] # is the full model better than the attention train knock out?
 bf_main_testday = bf[7]/bf[5] # is the full model better than the attention type knock out?
@@ -41,7 +41,7 @@ bf_main_testday
 plot(bf)
 
 
-bf = anovaBF(Reaction.Time..s. ~ NFTraining * Testday + SubID , data=behavedata, whichRandom="SubID",  whichModels="all")
+bf = anovaBF(Reaction.Time..s. ~ Attention.Trained * Testday + SubID , data=behavedata, whichRandom="SubID",  whichModels="all")
 bfInteraction = bf[7]/bf[4] # is the full model better than just strait main effects?
 bf_main_AttnTrain = bf[7]/bf[5] # is the full model better than the attention train knock out?
 bf_main_testday = bf[7]/bf[6] # is the full model better than the attention type knock out?
@@ -54,8 +54,7 @@ bf_main_testday
 plot(bf)
 
 
-
-bf = anovaBF(LikelihoodRatio ~ NFTraining * Testday + SubID , data=behavedata, whichRandom="SubID",  whichModels="all")
+bf = anovaBF(LikelihoodRatio ~ Attention.Trained * Testday + SubID , data=behavedata, whichRandom="SubID",  whichModels="all")
 bfInteraction = bf[7]/bf[4] # is the full model better than just strait main effects?
 bf_main_AttnTrain = bf[7]/bf[5] # is the full model better than the attention train knock out?
 bf_main_testday = bf[7]/bf[6] # is the full model better than the attention type knock out?

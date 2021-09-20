@@ -744,6 +744,8 @@ def collate_behaviour_prepost_compare(settings):
             df_behaveresults_tmp['subID'] = df_behaveresults_tmp['subID'] + 37*attntrainedcount
             df_behaveresults = df_behaveresults.append(df_behaveresults_tmp[['subID', 'subIDval', 'AttentionTrained', 'Attention Type', 'Testday', 'Sensitivity', 'Criterion', 'correct', 'LikelihoodRatio', 'RT', 'RT_STD', 'InverseEfficiency']])
 
+
+
     # Exclude extremely poor performers.
     cutoffS, cutoffC = 0, 25#12
     allexcluded = list()
@@ -764,6 +766,19 @@ def collate_behaviour_prepost_compare(settings):
             df_behaveresults_cleanB = df_behaveresults[~df_behaveresults['subID'].isin(toexclude) & df_behaveresults['Attention Type'].isin(["Feature"])]
 
     df_behaveresults_clean = pd.concat([df_behaveresults_cleanA, df_behaveresults_cleanB])
+
+    # experts from RSA
+    # df_behaveresults = df_behaveresults.reset_index()
+    # for i in np.arange(len(df_behaveresults.subIDval)):
+    #     df_behaveresults.subIDval[i] = df_behaveresults.AttentionTrained[i] + str(df_behaveresults.subIDval[i] )
+    #
+    # spaceexclude = ['Space45', 'Space46', 'Space52', 'Space54', 'Space60', 'Space64', 'Space97', 'Space99', 'Space128', 'Feature18', 'Feature58', 'Feature72', 'Feature76', 'Feature87', 'Feature89', 'Feature117', 'Feature119', 'Feature120', 'Sham4', 'Sham7', 'Sham19', 'Sham21', 'Sham23', 'Sham25', 'Sham26', 'Sham30', 'Sham35']
+    # featureexclude =['Space29', 'Space52', 'Space54', 'Space60', 'Space64', 'Space99', 'Space107', 'Space125', 'Space128', 'Feature8', 'Feature57', 'Feature58', 'Feature63', 'Feature72', 'Feature87', 'Feature117', 'Feature119', 'Feature120', 'Sham2', 'Sham4', 'Sham18', 'Sham19', 'Sham21', 'Sham23', 'Sham26', 'Sham30', 'Sham35']
+    #
+    # df_behaveresults_cleanA = df_behaveresults_clean[~df_behaveresults_clean['subIDval'].isin(spaceexclude) & df_behaveresults_clean['Attention Type'].isin(["Space"])]
+    # df_behaveresults_cleanB = df_behaveresults_clean[~df_behaveresults_clean['subIDval'].isin(featureexclude) & df_behaveresults_clean['Attention Type'].isin(["Feature"])]
+    # df_behaveresults_clean = pd.concat([df_behaveresults_cleanA, df_behaveresults_cleanB])
+
 
     # # lets run some stats with R - save it out
     df_behaveresults_clean.to_csv(bids.direct_results_group_compare / Path("motiondiscrim_behaveresults_ALL.csv"),index=False)

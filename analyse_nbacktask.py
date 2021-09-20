@@ -160,7 +160,7 @@ def collate_nbacktask(settings):
             mean_fas_all[:, sub_count] = results['falsealarms'] *100
             mean_rt_all[:, sub_count] = results['meanrt']
 
-            substring_short = np.concatenate((substring_short, ['sub' + str(sub_count + attntrained*37)]))
+            substring_short = np.concatenate((substring_short, [sub_count + attntrained*37]))
 
         # store results for attention condition
         tmp = np.concatenate((substring_short, substring_short))
@@ -219,6 +219,13 @@ def collate_nbacktask(settings):
     # clear up really bad performers
     reject = df_acc.loc[df_acc["Sensitivity"]<0,:]
     df_acc = df_acc.loc[~df_acc["SubID"].isin(reject["SubID"]),:]
+    #
+    # df_acc = df_acc[~df_acc['SubID'].isin([3, 4, 6, 7, 10, 12, 14, 18, 19, 23, 24, 27, 28,
+    #                                                   29, 37, 38, 39, 40, 41, 43, 44, 51, 52, 58, 64, 74,
+    #                                                   76, 78, 79, 81, 82, 83, 85, 86, 88, 89, 90, 95, 100,
+    #                                                   102, 104, 107, 110])]
+
+    print(len(df_acc[df_acc['Attention Trained'] == 'Sham'].SubID.unique()))
 
     # plot results
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 15))
@@ -276,20 +283,22 @@ def collate_nbacktask(settings):
 
     # Plot sensitivity training effect
     colors = [settings.yellow, settings.orange, settings.red]
-    fig, ax = plt.subplots(2, 1, figsize=(6, 15))
+    fig, ax = plt.subplots(1, 2, figsize=(15, 6))
 
     measurestrings = ["∆Sensitivity", "∆Reaction Time (s)"]
     for i in np.arange(2):
         sns.swarmplot(x="Attention Trained", y=measurestrings[i], data=df_behtraineffects, color="0", alpha=0.3, ax=ax[i])
         sns.violinplot(x="Attention Trained", y=measurestrings[i], data=df_behtraineffects, palette=sns.color_palette(colors), style="ticks",
                        ax=ax[i], inner="box", alpha=0.6)
+        sns.lineplot(x="Attention Trained", y=measurestrings[i], data=df_behtraineffects, markers=True, dashes=False, color="k", err_style="bars", ci=68, ax=ax[i])
 
         ax[i].spines['top'].set_visible(False)
         ax[i].spines['right'].set_visible(False)
 
         ax[i].set_title(measurestrings[i])
 
+    ax[i].set_ylim([-.4, .2])
     titlestring = "Nback task training effects"
     plt.suptitle(titlestring)
     plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
-
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')

@@ -702,6 +702,66 @@ def plotGroupFFTSpectrum(fftdat_ave, bids, ERPstring, settings, freq):
     fig.suptitle(titlestring)
     plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
 
+    # Plot grand average figure
+    fig, axuse = plt.subplots(1, 1, figsize=(12, 6))
+    meanfft = np.mean(np.mean(np.mean(fftdat_ave, axis=2), axis=2), axis=2)
+    chanmeanfft = np.mean(meanfft, axis=0)
+
+    hz_attn = settings.hz_attn  # ['\B \W'], ['/B /W']
+    axuse.axvline(hz_attn[0, 0], 0, 1, linestyle='--', color='k', alpha=0.2)  # black/Left_diag
+    axuse.annotate("Black-leftdiag", (hz_attn[0, 0], 0.3))
+    axuse.axvline(hz_attn[0, 1], 0, 1, linestyle='--', color='k', alpha=0.2)  # black/Right_diag
+    axuse.annotate("Black-rightdiag", (hz_attn[0, 1], 0.3))
+    axuse.axvline(hz_attn[1, 0], 0, 1, linestyle='--', color='k', alpha=0.2)  # white/Left_diag
+    axuse.annotate("white-leftdiag", (hz_attn[1, 0], 0.3))
+    axuse.axvline(hz_attn[1, 1], 0, 1, linestyle='--', color='k', alpha=0.2)  # white/Right_diag
+    axuse.annotate("white-rightdiag", (hz_attn[1, 1], 0.3))
+
+    axuse.plot(freq, chanmeanfft, '-', color='k', alpha=0.5)  # 'Space/Left_diag'
+
+    axuse.set_xlim(2, 18)
+    if ERPstring == 'Single Trial':
+        axuse.set_ylim(0, 0.8)
+    else:
+        axuse.set_ylim(0, .4)
+    axuse.legend()
+    axuse.set_frame_on(False)
+    axuse.spines['top'].set_visible(False)
+    axuse.spines['right'].set_visible(False)
+
+    titlestring = 'Group Mean ' + ERPstring + ' FFT Spectrum grandmean' + settings.string_attntrained[settings.attntrained]
+    fig.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
+    plt.savefig(bids.direct_results_group / Path(titlestring + '.eps'), format='eps')
+
+    # plot freq tagging
+    SSVEPS_freq = np.empty((9,4))
+    SSVEPS_freq[:, 0] = meanfft[:, np.argmin(np.abs(freq - settings.hz_attn[1, 0]))]
+    SSVEPS_freq[:, 1] = meanfft[:, np.argmin(np.abs(freq - settings.hz_attn[0, 0]))]
+    SSVEPS_freq[:, 2] = meanfft[:, np.argmin(np.abs(freq - settings.hz_attn[0, 1]))]
+    SSVEPS_freq[:, 3] = meanfft[:, np.argmin(np.abs(freq - settings.hz_attn[1, 1]))]
+    Hz_strings = ['4.5', '8.0', '12.0', '14.4']
+
+    import matplotlib
+    my_cmap = plt.get_cmap("Blues")#.reversed()
+    y = np.hstack((SSVEPS_freq[:, 0], SSVEPS_freq[:, 1], SSVEPS_freq[:, 2], SSVEPS_freq[:, 3]))
+    norm = matplotlib.colors.Normalize(vmin=0, vmax=0.5)
+    # rescale = lambda y: (y - np.min(y)) / (np.max(y) - np.min(y))
+
+    fig, axuse = plt.subplots(1, 4, figsize=(12, 4))
+    channels = ['Iz', 'Oz', 'POz', 'O1', 'O2','PO3','PO4','PO7','PO8']
+    for ii in np.arange(4):
+        axuse[ii].bar(channels, SSVEPS_freq[:, ii], color=my_cmap(norm(SSVEPS_freq[:, ii])))
+        axuse[ii].set_title(Hz_strings[ii])
+        axuse[ii].set_ylim([0, 0.5])
+        axuse[ii].spines['top'].set_visible(False)
+        axuse[ii].spines['right'].set_visible(False)
+
+    titlestring = 'SSVEPs across channels ' + ERPstring + " " + settings.string_attntrained[settings.attntrained]
+    fig.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group / Path(titlestring + '.png'), format='png')
+    plt.savefig(bids.direct_results_group / Path(titlestring + '.eps'), format='eps')
+
 
 def plotGroupSSVEPsprepost(SSVEPs_prepost_group, bids, ERPstring, settings):
     import matplotlib.pyplot as plt
