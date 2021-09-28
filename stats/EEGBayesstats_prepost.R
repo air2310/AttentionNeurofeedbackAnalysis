@@ -22,8 +22,8 @@ options.task = 1 # 1 = Motion Detection,
 options.TestTrain = 1 # 1 = test, 2 = train
 
 # analysis options
-n_days = switch (options.TestTrain, 2, 3)
-
+n_days = switch (options.TestTrain, 2, 3) 
+dfzgaer
 # colors
 paletteuse = "BrBG" #"PRGn"
 
