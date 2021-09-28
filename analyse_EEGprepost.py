@@ -61,14 +61,11 @@ def analyseEEGprepost(settings, sub_val):
         # epochs.plot_psd_topomap()
 
         # get data for each  condition
-        epochs_days[0:sum(elem == [] for elem in epochs['Space/Left_diag'].drop_log), :, :, 0, 0, day_count] = epochs[
-            'Space/Left_diag'].get_data()
-        epochs_days[0:sum(elem == [] for elem in epochs['Space/Right_diag'].drop_log), :, :, 0, 1, day_count] = epochs[
-            'Space/Right_diag'].get_data()
-        epochs_days[0:sum(elem == [] for elem in epochs['Feat/Black'].drop_log), :, :, 1, 0, day_count] = epochs[
-            'Feat/Black'].get_data()
-        epochs_days[0:sum(elem == [] for elem in epochs['Feat/White'].drop_log), :, :, 1, 1, day_count] = epochs[
-            'Feat/White'].get_data()
+        
+        epochs_days[0:len(epochs['Space/Left_diag']), :, :, 0, 0, day_count] = epochs['Space/Left_diag'].get_data()
+        epochs_days[0:len(epochs['Space/Right_diag']), :, :, 0, 1, day_count] = epochs['Space/Right_diag'].get_data()
+        epochs_days[0:len(epochs['Feat/Black']), :, :, 1, 0, day_count] = epochs['Feat/Black'].get_data()
+        epochs_days[0:len(epochs['Feat/White']), :, :, 1, 1, day_count] = epochs['Feat/White'].get_data()
 
        # average across trials
     erps_days = np.squeeze(np.nanmean(epochs_days, axis=0))

@@ -25,8 +25,8 @@ class SetupMetaData:
     num_attd_unattd = 2
 
     # Directories
-    direct_dataroot = Path("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Data/")
-    direct_resultsroot = Path("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Results/")
+    direct_dataroot = Path("//home/user/Desktop/neurodesktop-storage/VISATTNNF/Data/")
+    direct_resultsroot = Path("//home/user/Desktop/neurodesktop-storage/VISATTNNF/Results/")
 
 
     # colours
@@ -57,7 +57,7 @@ class SetupMetaData:
             # 34
 
         if (self.attntrained == 1):  # Feature
-            self.subsIDX =        np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 119, 120, 121]))
+            self.subsIDX =        np.array(([ 4]))
             self.subsIDXcollate = np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 119, 120, 121])) #np.array(([1, 2, 4, 8, 9, 18, 21, 23, 41, 47, 57, 58,63, 66, 67,68, 69 ]))
             self.subsIDXall =     np.array(([1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 119, 120, 121]))
             # 37
@@ -419,7 +419,7 @@ def get_eeg_data(bids, day_count, day_val, settings):
     eeg_data_interp.filter(l_freq=1, h_freq=45, h_trans_bandwidth=0.1)
 
     #plot results
-    # eeg_data_interp.plot(remove_dc=False, scalings=dict(eeg=50))
+    eeg_data_interp.plot(remove_dc=False, scalings=dict(eeg=50))
 
     return raw, events, eeg_data_interp
 

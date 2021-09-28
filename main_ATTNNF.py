@@ -27,7 +27,7 @@ import RSA as RSA
 # TODO: look at differences between classifiable and unclassifiable participants.
 
 # setup generic settings
-attntrained = 2  # 0 = Space, 1 = Feature, 2 = Sham
+attntrained = 1  # 0 = Space, 1 = Feature, 2 = Sham
 settings = helper.SetupMetaData(attntrained)
 print("Analysing Data for condition train: " + settings.string_attntrained[settings.attntrained])
 
@@ -40,7 +40,7 @@ analyse_behaviour_prepost = False  # Analyse Behaviour Pre Vs. Post Training
 analyse_behaviour_duringNF = False  # Analyse Behaviour duringTraining
 #
 # analyse_EEG_prepost =True # analyse EEG Pre Vs. Post Training
-analyse_EEG_prepost = False  # analyse EEG Pre Vs. Post Training
+analyse_EEG_prepost = True  # analyse EEG Pre Vs. Post Training
 #
 # analyse_EEG_prepost_motepochs =True # analyse EEG Pre Vs. Post Training (coherent motion) geeg_cohmotepoch
 analyse_EEG_prepost_motepochs = False  # analyse EEG Pre Vs. Post Training
