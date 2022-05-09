@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import helperfunctions_ATTNNF as helper
-
+import CorrelationAnalyses as datacompare
 
 def run(settings, sub_val, test_train):
     #get task specific settings
@@ -744,7 +744,7 @@ def collate_behaviour_prepost_compare(settings):
             df_behaveresults_tmp['subID'] = df_behaveresults_tmp['subID'] + 37*attntrainedcount
             df_behaveresults = df_behaveresults.append(df_behaveresults_tmp[['subID', 'subIDval', 'AttentionTrained', 'Attention Type', 'Testday', 'Sensitivity', 'Criterion', 'correct', 'LikelihoodRatio', 'RT', 'RT_STD', 'InverseEfficiency']])
 
-
+    df_classifier, df_classifier_condensed = datacompare.load_classifierdata(settings)
 
     # Exclude extremely poor performers.
     cutoffS, cutoffC = 0, 25#12
