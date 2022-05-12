@@ -10,6 +10,7 @@ import analyse_EEGduringNF as geegdnf
 import analyse_visualsearchtask as avissearch
 import analyse_nbacktask as anback
 import analyse_motiontask as analyse_motiontask
+import analyse_motiontask_cuemean as analyse_motiontaskcuemean
 import analyseNeurofeedback as analyse_NF
 import analyse_EEGsingletrialwavelets as analyse_sustattn
 import CorrelationAnalyses as analyse_corr
@@ -19,21 +20,23 @@ import RSA as RSA
 #### New Analyses
 
 # TODO: During NF stats. -NF flicker
-
 # TODO: Statistical tests for wavelets (time in each state)
 # TODO: individual trial independance of spatial and feature based-attention neurofeedback - how correlated are they really?
-
 # TODO: look at differences between classifiable and unclassifiable participants.
 
 # setup generic settings
-attntrained = 2  # 0 = Space, 1 = Feature, 2 = Sham
+attntrained = 0# 0 = Space, 1 = Feature, 2 = Sham
 settings = helper.SetupMetaData(attntrained)
 print("Analysing Data for condition train: " + settings.string_attntrained[settings.attntrained])
 
 ######## Decide which single subject analyses to do ########
 
+
 # analyse_behaviour_prepost = True # Analyse Behaviour Pre Vs. Post Training
 analyse_behaviour_prepost = False  # Analyse Behaviour Pre Vs. Post Training
+
+analyse_behaviour_prepostcuemean = True
+# analyse_behaviour_prepostcuemean = False
 #
 # analyse_behaviour_duringNF = True # Analyse Behaviour during Training
 analyse_behaviour_duringNF = False  # Analyse Behaviour duringTraining
@@ -66,7 +69,7 @@ analyse_singletrialEEG = False
 ######## Decide which group analyses to do ########
 
 # collate_behaviour_prepost = True  # Collate Behaviour Pre Vs. Post Training
-collate_behaviour_prepost = False  # Collate Behaviour Pre Vs. Post Training
+collate_behaviour_prepost =False  # Collate Behaviour Pre Vs. Post Training
 #
 # collate_behaviour_duringNF = True # Collate Behaviour during Training
 collate_behaviour_duringNF = False  # Collate Behaviour during Training
@@ -120,6 +123,10 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
     if analyse_behaviour_prepost:
         test_train = 0
         analyse_motiontask.run(settings, sub_val, test_train)
+
+    if analyse_behaviour_prepostcuemean:
+        test_train = 0
+        analyse_motiontaskcuemean.run(settings, sub_val, test_train)
 
     if analyse_behaviour_duringNF:
         test_train = 1

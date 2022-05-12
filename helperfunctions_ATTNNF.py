@@ -139,7 +139,7 @@ class SetupMetaData:
         # timing settings
         self.mon_ref = 144
         self.responseperiod = np.round(np.array([0.3, 1.2]) * self.mon_ref) # max time = 500 ms motion epoch + min 400 ms between events + 300 ms period where it would be too early to respond to the next event.
-        # self.responseperiod = np.round(np.array([0.3, 1.75]) * self.mon_ref)
+        # self.responseperiod = np.round(np.array([0.3, 1.2]) * self.mon_ref)
 
         self.directions =  np.array([0, 90, 180, 270])
 
