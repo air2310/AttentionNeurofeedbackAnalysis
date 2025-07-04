@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 import h5py
 import matplotlib.pyplot as plt
-import helperfunctions_ATTNNF as helper
+import AttentionNeurofeedbackAnalysis.helperfunctions_ATTNNF as helper
 
 
 def run(settings, sub_val):
@@ -31,7 +31,7 @@ def run(settings, sub_val):
             file2useIDX = np.argmax(filesizes)  # get the biggest file (there are often smaller shorter accidental recordings)
             file2use = possiblefiles[file2useIDX]
         else:
-            if (day_count==0):
+            if day_count==0:
                  df_behavedata=[] # assign df_behave data as empty if this happens on the first day
             continue
 
@@ -41,11 +41,10 @@ def run(settings, sub_val):
 
         ### get variables of interest
         # Feedback
-        feedback[:,:,day_count] = np.array(F['PREDICTIONS_Structured_ALL'])
-        predictedstate[:,:,day_count]  = np.array(F['PREDICTIONS_Structured'])
+        feedback[:, :, day_count] = np.array(F['PREDICTIONS_Structured_ALL']) #256 trials x 1152 samples
+        predictedstate[:, :, day_count]  = np.array(F['PREDICTIONS_Structured'])
 
         # Experiment Settings
-
         moveonsets[:,:,day_count]  = np.array(F['DATA']['MOVEONSETS'])
 
 
@@ -197,7 +196,7 @@ def run(settings, sub_val):
 
     plt.figure()
     plt.vlines(144, 0, 6)
-    plt.plot(feedback[50, :, 2], color='r') #50
+    plt.plot(feedback[50, :, :], color='r') #50
     plt.ylim([0, 6])
 
 

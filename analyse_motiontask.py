@@ -5,8 +5,8 @@ import h5py
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-import helperfunctions_ATTNNF as helper
-import CorrelationAnalyses as datacompare
+import AttentionNeurofeedbackAnalysis.helperfunctions_ATTNNF as helper
+import AttentionNeurofeedbackAnalysis.CorrelationAnalyses as datacompare
 
 def run(settings, sub_val, test_train):
     #get task specific settings

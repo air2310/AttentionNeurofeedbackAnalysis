@@ -2,19 +2,19 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-import helperfunctions_ATTNNF as helper
+import AttentionNeurofeedbackAnalysis.helperfunctions_ATTNNF as helper
 
-import analyse_EEGprepost as geegpp
-import analyse_CohMotEpochEEG_Prepost as geeg_cohmotepoch
-import analyse_EEGduringNF as geegdnf
-import analyse_visualsearchtask as avissearch
-import analyse_nbacktask as anback
-import analyse_motiontask as analyse_motiontask
-import analyse_motiontask_cuemean as analyse_motiontaskcuemean
-import analyseNeurofeedback as analyse_NF
-import analyse_EEGsingletrialwavelets as analyse_sustattn
-import CorrelationAnalyses as analyse_corr
-import RSA as RSA
+import AttentionNeurofeedbackAnalysis.analyse_EEGprepost as geegpp
+import AttentionNeurofeedbackAnalysis.analyse_CohMotEpochEEG_Prepost as geeg_cohmotepoch
+import AttentionNeurofeedbackAnalysis.analyse_EEGduringNF as geegdnf
+import AttentionNeurofeedbackAnalysis.analyse_visualsearchtask as avissearch
+import AttentionNeurofeedbackAnalysis.analyse_nbacktask as anback
+import AttentionNeurofeedbackAnalysis.analyse_motiontask as analyse_motiontask
+import AttentionNeurofeedbackAnalysis.analyse_motiontask_cuemean as analyse_motiontaskcuemean
+import AttentionNeurofeedbackAnalysis.analyseNeurofeedback as analyse_NF
+import AttentionNeurofeedbackAnalysis.analyse_EEGsingletrialwavelets as analyse_sustattn
+import AttentionNeurofeedbackAnalysis.CorrelationAnalyses as analyse_corr
+import AttentionNeurofeedbackAnalysis.RSA as RSA
 
 
 #### New Analyses
@@ -31,12 +31,11 @@ print("Analysing Data for condition train: " + settings.string_attntrained[setti
 
 ######## Decide which single subject analyses to do ########
 
-
 # analyse_behaviour_prepost = True # Analyse Behaviour Pre Vs. Post Training
 analyse_behaviour_prepost = False  # Analyse Behaviour Pre Vs. Post Training
 
-analyse_behaviour_prepostcuemean = True
-# analyse_behaviour_prepostcuemean = False
+# analyse_behaviour_prepostcuemean = True
+analyse_behaviour_prepostcuemean = False
 #
 # analyse_behaviour_duringNF = True # Analyse Behaviour during Training
 analyse_behaviour_duringNF = False  # Analyse Behaviour duringTraining
@@ -56,8 +55,8 @@ analyse_visualsearchtask = False  # Analyse Visual Search Task
 # analyse_nbacktask = True # Analyse N-back Task
 analyse_nbacktask = False  # Analyse N-back Task
 
-# analyse_Neurofeedback = True # Analyse Neurofeedback and sustained attention
-analyse_Neurofeedback = False  # Analyse Neurofeedback and sustained attention
+analyse_Neurofeedback = True # Analyse Neurofeedback and sustained attention
+# analyse_Neurofeedback = False  # Analyse Neurofeedback and sustained attention
 
 # analyse_subjectRSA = True
 analyse_subjectRSA = False
@@ -115,7 +114,7 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
 
 
-##### iterate through subjects for individual subject analyses #####
+# %% iterate through subjects for individual subject analyses #####
 
 for sub_count, sub_val in enumerate(settings.subsIDX):
     print(sub_val)
@@ -157,7 +156,7 @@ for sub_count, sub_val in enumerate(settings.subsIDX):
         analyse_sustattn.analyseEEGprepost(settings, sub_val)
 
 
-##### Collate results across all subjects analyses #####
+# %% Collate results across all subjects analyses #####
 
 # Collate pre-post motion task behaviour
 if collate_behaviour_prepost:

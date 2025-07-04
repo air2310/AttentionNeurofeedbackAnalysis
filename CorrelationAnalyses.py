@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-import helperfunctions_ATTNNF as helper
+import AttentionNeurofeedbackAnalysis.helperfunctions_ATTNNF as helper
 import h5py
 import numpy as np
 from pathlib import Path

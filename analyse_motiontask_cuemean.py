@@ -6,8 +6,8 @@ import h5py
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-import helperfunctions_ATTNNF as helper
-import CorrelationAnalyses as datacompare
+import AttentionNeurofeedbackAnalysis.helperfunctions_ATTNNF as helper
+import AttentionNeurofeedbackAnalysis.CorrelationAnalyses as datacompare
 
 def get_data(sub_val, settings, day_val, day_count):
     # get file names

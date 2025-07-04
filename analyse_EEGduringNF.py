@@ -1,7 +1,7 @@
 import numpy as np
 from pathlib import Path
 import mne
-import helperfunctions_ATTNNF as helper
+import AttentionNeurofeedbackAnalysis.helperfunctions_ATTNNF as helper
 import matplotlib.pyplot as plt
 import seaborn as sns
 

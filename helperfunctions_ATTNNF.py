@@ -7,7 +7,7 @@ class SetupMetaData:
     string_attntrained = ["Space", "Feature", "Sham"]
     string_tasknames =  ['AttnNFMotion', 'AttnNFVisualSearch', 'AttnNFnback']
     string_testday = ['Day 1', 'Day 2', 'Day 3', 'Day 4']
-    string_prepost = ['pre-training', 'post-training'];
+    string_prepost = ['pre-training', 'post-training']
     string_cuetype  = ["Space", "Feature"]
     string_testtrain = ["Test", "Train"]
     string_attd_unattd = ["Attended", "UnAttended"]
@@ -25,8 +25,8 @@ class SetupMetaData:
     num_attd_unattd = 2
 
     # Directories
-    direct_dataroot = Path("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Data/")
-    direct_resultsroot = Path("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Results/")
+    direct_dataroot = Path("/Users/angie/Nextcloud/VISATTNNF-Q1357/Data/")
+    direct_resultsroot = Path("/Users/angie/Nextcloud/VISATTNNF-Q1357/Results/")
 
 
     # colours
