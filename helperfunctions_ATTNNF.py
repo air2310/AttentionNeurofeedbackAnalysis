@@ -25,9 +25,10 @@ class SetupMetaData:
     num_attd_unattd = 2
 
     # Directories
-    direct_dataroot = Path("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Data/")
-    direct_resultsroot = Path("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Results/")
-
+    # direct_dataroot = Path("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Data/")
+    # direct_resultsroot = Path("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Results/")
+    direct_dataroot = Path("/Users/angie/Nextcloud/VISATTNNF-Q1357/Data/")
+    direct_resultsroot = Path("/Users/angie/Nextcloud/VISATTNNF-Q1357/Results/")
 
     # colours
     darkteal = [18 / 255, 47 / 255, 65 / 255]

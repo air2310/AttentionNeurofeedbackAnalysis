@@ -1,0 +1,664 @@
+clear
+clc
+close all
+
+%% Directories
+
+direct.data_base = '/Users/angie/Nextcloud/VISATTNNF-Q1357/Data/';
+direct.results_base = '/Users/angie/Nextcloud/VISATTNNF-Q1357/Results/NFComparison/';
+direct.results_figs = '/Users/angie/Nextcloud/VISATTNNF-Q1357/Results/NFComparison/figs/';
+addpath('/Users/angie/Library/CloudStorage/OneDrive-Personal/ResearchWork/Projects/Attention_Neurofeedback/Pilots/FINAL/Functions')
+
+%% Run options
+
+options.run_individuals = true;
+options.run_collate = true;
+%% Task settings
+
+options.task = 1; % 1 = Motion Detection, 2 = Visual Search, 3 = nback
+options.instructions = 0;
+
+% Run options
+options.TestTrain = 2; % 1 = test, 2 = train
+
+% experiment options
+options.traintype = 2; % Feature or Space 
+%options.traintype_compute = 2; % Feature or Space - which classifier to use. 
+
+% corresponding strings
+str.task = {'AttnNFMotion' 'AttnNFVisualSearch' 'AttnNFnback'};
+str.TestTrain = {'Test' 'Train'};
+str.traintype = {'Feature' 'Space'};
+
+%% Get base dirs
+observer.number = 1;
+options.traintype = 1;
+options.TestDay = 1;
+SetupSettings
+
+%% Get subjects to run
+subsIDX = {};
+% subsIDX{1} = [1, 2, 4, 8, 9, 18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 119, 120, 121]; %feature
+subsIDX{1} = [18, 23, 41, 47, 57, 58, 63, 66, 67, 68, 69, 70, 72, 73, 76, 77, 78, 80, 86, 87, 89, 92, 100, 101, 102, 106, 110, 116, 117, 119, 120, 121]; %feature
+subsIDX{2} =   [10, 11, 19, 22, 28, 29, 38, 43, 45, 46, 49, 52, 53, 54, 59, 60, 64, 71, 74, 79, 81, 84, 85, 90, 94, 97, 99, 104, 107, 112, 118, 123, 125, 128 ]; %space
+
+
+%% cycle through conditions
+if options.run_individuals
+    for traintype = 1:2 % Feature or Space 
+        options.traintype  = traintype; 
+    
+        %% Cycle through subjects
+    
+        subjects = dir( [direct.data_base 'Train' str.traintype{options.traintype} '/' ]);
+        
+        for sub = 1:length(subsIDX{traintype})
+            observer.number = subsIDX{traintype}(sub);
+        
+            %% Cycle though testdays
+            runner = true;
+            for testday = 1:3
+                close all;
+                options.TestDay = testday; 
+                
+                BIDS_Filenaming
+                bids.casestring_classifier = [bids.substring '_task-AttnNFMotion_day-1_phase-Test_eeg'];
+                
+                
+                %% Load classification stream
+                data_loc = [direct.data_base 'Train' str.traintype{options.traintype} '/'  bids.substring '/behave/'];
+                filname = [data_loc 'ClassificationStream' bids.casestring '_behav.mat'];
+                
+                % check for existance
+                if exist(filname) == 2
+                    try
+                        load(filname, 'AMP_exp', 'predictions_all', 'n')
+                    catch
+                        runner = false;
+                    end
+                else
+                    runner = false;
+                end
+                
+                %% Load Behave data
+                data_loc = [direct.data_base 'Train' str.traintype{options.traintype} '/'  bids.substring '/behave/'];
+                fil = dir([data_loc bids.casestring '_behav*.mat']);
+                
+                if ~isempty(fil)
+                    fsize = [];
+                    for i = 1:length(fil)
+                        fsize = [fsize, fil(i).bytes];
+                    end
+                    [~,filuse] = max(fsize);
+                    
+                    load([data_loc fil(filuse).name], 'DATA')
+                else
+                    runner = false;
+                end
+                
+                %% check on existance of classifier files
+                for classifier_type = 1:2
+                    filname = [direct.data_base 'Train' str.traintype{options.traintype} '/'  bids.substring '/eeg/Classifier_' str.traintype{classifier_type} '_' bids.casestring_classifier '.mat'];
+                    if (exist(filname) == 0)
+                        runner = false;
+                    end
+                end
+                
+                if runner == true
+                    %% Predict
+                    n.classifiers = 2;
+                    predictions_all = NaN(n.x_trial + 1, n.trials, n.classifiers);
+                    
+                    %% Load classifier
+                    for classifier_type = 1:2
+                        data_loc = [direct.data_base 'Train' str.traintype{options.traintype} '/'  bids.substring '/eeg/'];
+                        load([data_loc 'Classifier_' str.traintype{classifier_type} '_' bids.casestring_classifier '.mat'], 'classifier_LDA', 'BEST')
+                        
+                        %% Make features
+                        for TRIAL = 1:n.trials
+                            idx_amps = find(~isnan(AMP_exp(1,BEST(1),:, TRIAL)));
+                            
+                            for ii = 1:length(idx_amps)
+                                idx_amp = idx_amps(ii);
+                                % concatenate data across channels
+                                tmp = AMP_exp(1,BEST,idx_amp, TRIAL);
+                                for HH = 2:n.Hz
+                                    tmp = cat(2, tmp, AMP_exp(HH,BEST,idx_amp, TRIAL));
+                                end
+                                
+                                FEATURE = squeeze(tmp);
+                                
+                                %% predict
+                                
+                                y_predict = predict( classifier_LDA, FEATURE );
+                                
+                                predictions_all(idx_amp, TRIAL, classifier_type) = y_predict;
+                    
+                                % display
+                                %disp([y_predict])
+                            end
+                        end
+                    end
+                    
+                    %% Compare
+                    
+                    tmp1 = predictions_all(:,:,1);
+                    tmp2 = predictions_all(:,:,2);
+                    tmp1=tmp1(~isnan(tmp1));
+                    tmp2=tmp2(~isnan(tmp2));
+                    
+                    h= figure();
+                    hold on;
+                    plot(tmp1)
+                    plot(tmp2)
+                    xlim([0, 100])
+                    xlabel('Time point');
+                    ylabel('Raw prediction')
+                    title( bids.casestring )
+                    saveas(h, [direct.results_figs bids.casestring 'Classifier predictions sample.png'])
+    
+                    %% Resample data
+                    % Original signal and sampling frequency
+                    fs_original = 1200;
+                    fs_new = 144;
+                    signal = predictions_all(:, TRIAL, classifier_type);
+                    
+                    % Compute time vector
+                    t = (0:length(signal)-1)' / fs_original;
+                    
+                    % Duration of one new sample
+                    bin_duration = 1 / fs_new;
+                    
+                    % Number of bins
+                    n_bins = floor(t(end) / bin_duration);
+                    t_d = (0:n_bins-1)' / fs_new;
+                    
+                    predictions_all_framerate = nan(n_bins, n.trials, n.classifiers);
+                    
+                    for classifier_type = 1:2
+                        for TRIAL = 1:n.trials
+                            signal = predictions_all(:, TRIAL, classifier_type);
+                    
+                            % Preallocate
+                            downsampled = nan(n_bins, 1);
+                            
+                            % Loop over each bin and compute nanmean
+                            iprev=3;
+                            for i = 1:n_bins
+                                bin_start = (i-1) * bin_duration;
+                                bin_end = i * bin_duration;
+                                idx = (t >= bin_start) & (t < bin_end);
+                                tmp = nanmean(signal(idx));
+                                if isnan(tmp)
+                                    predictions_all_framerate(i, TRIAL, classifier_type) = iprev;
+                                else
+                                    predictions_all_framerate(i, TRIAL, classifier_type) = tmp;
+                                    iprev=tmp;
+                                end
+                            end
+                    
+                        end
+                    end
+                    
+                    % figure;
+                    % hold on;
+                    % TRIAL=3;
+                    % plot(t, predictions_all(:, TRIAL, classifier_type), '-x')
+                    % plot(t_d, predictions_all_framerate(:, TRIAL, classifier_type), '-o')
+                    % xlabel('Time (s)')
+                    % ylabel('Neurofeedback')
+                    % legend('orig', 'downsampled')
+                    % 
+                    % title( [bids.casestring ' example trial feedback'])
+                    % saveas(h, [direct.results_figs bids.casestring 'NF sample trial.png'])
+    
+    
+                    
+                    %% Compute NF for both streams
+                    predictions_all_framerate_attn = nan(size(predictions_all_framerate));
+                    
+                    for classifier_type = 1:2
+                        for TRIAL = 1:n.trials
+                    
+                            % get classifier
+                            switch classifier_type % feature of space
+                                case 1
+                                    correct = DATA.Feat__Attd_UnAttd(TRIAL, 1);
+                                    incorrect = DATA.Feat__Attd_UnAttd(TRIAL, 2);
+                                case 2
+                                    correct = DATA.Space__Attd_UnAttd(TRIAL, 1);
+                                    incorrect = DATA.Space__Attd_UnAttd(TRIAL, 2);
+                            end
+                            
+                            % get neurofeedback - if NaN sent through, it'll just continue
+                            % with previous feedback
+                            idx_c = predictions_all_framerate(:, TRIAL, classifier_type) == correct;
+                            idx_ic = predictions_all_framerate(:, TRIAL, classifier_type) == incorrect;
+                            predictions_all_framerate_attn(idx_c, TRIAL, classifier_type) = 1;
+                            predictions_all_framerate_attn(idx_ic, TRIAL, classifier_type) = 2;
+                            
+                            prevattn = predictions_all_framerate_attn(1, TRIAL, classifier_type);
+                            for FRAME = 1:n_bins
+                                ATTN = predictions_all_framerate_attn(FRAME, TRIAL, classifier_type);
+                    
+                                % track how long we've been in one attentional state
+                                if ATTN ~= prevattn
+                                    attntimer = FRAME;
+                                    prevattn = ATTN;
+                                    superattn = 0;
+                                end
+                    
+                                % engage super attn state if in one mode for longer
+                                if (FRAME - attntimer) > f.feedbackthreshold
+                                    superattn = 1;
+                                end
+                                
+                                
+                                % make structured predictions based on super attn
+                                if superattn % super attention state - really low or really high contrast
+                                    switch ATTN
+                                        case 1
+                                            predictions_all_framerate_attn(FRAME, TRIAL, classifier_type) = 1;
+                                        case 2
+                                            predictions_all_framerate_attn(FRAME, TRIAL, classifier_type) = 5;
+                                    end
+                                
+                                else
+                                    switch ATTN
+                                        case 1
+                                            predictions_all_framerate_attn(FRAME, TRIAL, classifier_type) = 2;
+                                        case 2
+                                            predictions_all_framerate_attn(FRAME, TRIAL, classifier_type) = 4;
+                                        case 3
+                                            predictions_all_framerate_attn(FRAME, TRIAL, classifier_type) = 3;
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    
+                    %% Visualise results
+                    
+                    % Visualise example timecourses
+                    TRIAL = 2;
+                    h=figure;
+                    hold on;
+                    classifier_type=1;
+                    plot(predictions_all_framerate_attn(:,TRIAL,classifier_type))
+                    classifier_type=2;
+                    plot(predictions_all_framerate_attn(:,TRIAL,classifier_type))
+                    xlabel('Time (frames)')
+                    ylabel('Feedback')
+                    
+                    title( [bids.casestring ' example trial feedback'])
+                    saveas(h, [direct.results_figs bids.casestring 'NF sample trial.png'])
+    
+                    % Scatter plot to visualise variability
+                    figure;
+                    for TRIAL = 1:10
+                        hold on;
+                        scatter(predictions_all_framerate_attn(:,TRIAL,1), predictions_all_framerate_attn(:,TRIAL,2))
+                    end
+                    xlabel(str.traintype{1})
+                    ylabel(str.traintype{2})
+                    title('Space vs. Feature feedback generated for example trial')
+                    
+                    % Difference between space and feature feedback for example trial
+                    h=figure; 
+                    TRIAL = 2;
+                    plot(predictions_all_framerate_attn(:,TRIAL,1)-predictions_all_framerate_attn(:,TRIAL,2))
+                    xlabel('Time (frames)')
+                    ylabel('Feedback diff (Feature - Space')
+                    title('Feedback difference timecourse for example trial')
+                    saveas(h, [direct.results_figs bids.casestring 'NF diff sample trial.png'])
+                    saveas(h, [direct.results_figs bids.casestring 'NF diff sample trial.eps'], 'epsc')
+                    %% Euclidean distance between space and feature feedback signals
+                    % 
+                    % % Calculate real euclid distance
+                    % dat = predictions_all_framerate_attn(100:end,:,1)-predictions_all_framerate_attn(100:end,:,2);
+                    % dat = sqrt(nansum(dat.^2, 1));
+                    % 
+                    % figure;
+                    % plot(dat)
+                    % 
+                    % % Calculate distance between two random signals
+                    % randat = round(rand(n_bins-100, n.trials, n.classifiers)*3)+1;
+                    % randat(ismember(randat, [4,3])) = randat(ismember(randat, [4,3]))+1;
+                    % 
+                    % hold on;
+                    % dat = randat(:,:,1)-randat(:,:,2);
+                    % dat = sqrt(nansum(dat.^2, 1));
+                    % plot(dat)
+                    % 
+                    % % Calculate shuffled trial difference
+                    % shuffdat = predictions_all_framerate_attn;
+                    % for trial = 1:n.trials
+                    %     r= rand;
+                    %     ii = round(r)+1;
+                    %     jj = abs(1-round(r))+1;
+                    %     shuffdat(:,trial, ii) = predictions_all_framerate_attn(:,trial, 1);
+                    %     shuffdat(:,trial, jj) = predictions_all_framerate_attn(:,trial, 2);
+                    % 
+                    % end
+                    % 
+                    % idx = randperm(n.trials);
+                    % idx2 = randperm(n.trials);
+                    % shuffdat(:,:, 1) = shuffdat(:,idx, 1);
+                    % shuffdat(:,:, 2) = shuffdat(:,idx2, 2);
+                    % 
+                    % dat = shuffdat(100:end,:,1)-shuffdat(100:end,:,2);
+                    % dat = sqrt(nansum(dat.^2, 1));
+                    % 
+                    % plot(dat)
+                    % 
+                    % % annotate
+                    % legend({'Real distance', 'Random signal difference', 'Shuffled trials distance'})
+                    % xlabel('Frame')
+                    % ylabel('Euclidean distance')
+                    % 
+                    %% modify percentages of the data
+                    
+                    % get baseline
+                    dat = predictions_all_framerate_attn(:,:,1) - predictions_all_framerate_attn(:,:,2);
+                    baseline = sqrt(nansum(dat.^2, 1));
+                    
+                    % preallocate
+                    datmod = nan(n.trials, 50, n.classifiers);
+                    n_samp = n_bins*n.trials;
+                    
+                    % loop through percentages
+                    difs = 2:2:100;
+                    for percentdif = 1:50
+                    
+                        % get rawdata
+                        pred1 = predictions_all_framerate_attn(:,:,1);
+                        pred2 = predictions_all_framerate_attn(:,:,2);
+                        pred1 = pred1(:);
+                        pred2 = pred2(:);
+                    
+                        % get indices for change
+                        sigchange = randsample(n_samp, round((n_samp * difs(percentdif))/100), false);
+                    
+                        % generate new samples    
+                        randat = round(rand(n_bins-100, n.trials, n.classifiers)*3)+1;
+                        randat(ismember(randat, [4,3])) = randat(ismember(randat, [4,3]))+1;
+                        
+                        %shuffle
+                        pred1(sigchange) = randsample(pred1(sigchange), length(sigchange), false);
+                        pred2(sigchange) = randsample(pred2(sigchange), length(sigchange), false);
+                    
+                        % reorder
+                        predscorrect1 = reshape(pred1,[n_bins, n.trials]);
+                        predscorrect2 = reshape(pred2,[n_bins, n.trials]);
+                    
+                        % compute & store
+                        dat = predscorrect1 - predictions_all_framerate_attn(:,:,1);
+                        datmod(:,percentdif,1) = sqrt(nansum(dat.^2, 1));
+                    
+                        dat = predscorrect2 - predictions_all_framerate_attn(:,:,2);
+                        datmod(:,percentdif,2) = sqrt(nansum(dat.^2, 1));
+                    
+                    end
+                    
+                    % plot
+                    % figure;
+                    % hold on;
+                    % for percentdif = 1:50
+                    %     plot(datmod(:,percentdif,1))
+                    % end
+                    % plot(baseline, 'k')
+                    
+                    % plot bar-wise
+                    datmod_m = squeeze(mean(datmod,1));
+                    datmod_sd = squeeze(std(datmod,1));
+                    
+                    h = figure();
+                    hold on;
+                    errorbar(difs, datmod_m, datmod_sd)
+                    yline(mean(baseline))
+                    yline(mean(baseline) - std(baseline), '--k')
+                    yline(mean(baseline) + std(baseline), '--k')
+                    legend({'Feature', 'Space', 'True mean', 'True std', 'True std'}, 'Location', 'NorthWest')
+                    ylabel('Euclidean distance')
+                    xlabel('Percentage of shuffled datapoints')
+                    title('Euclid diff by trial shuffle')
+                    saveas(h, [direct.results_figs bids.casestring 'Euclid diff by trial shuffle.png'])
+                    saveas(h, [direct.results_figs bids.casestring 'Euclid diff by trial shuffle.eps'], 'epsc')
+
+                    suffledat.datmod_m = datmod_m;
+                    suffledat.datmod_sd = datmod_sd;
+                    suffledat.baseline = baseline;
+    
+                    %% Proper permutation test
+                    
+                    % Parameters
+                    n_perm = 1000;
+                    n.trials = size(predictions_all_framerate_attn, 2);
+                    classifier_types = [1, 2]; % 1 = Feature, 2 = Space
+                    
+                    % Preallocate
+                    baseline_dist = [];
+                    perm_dists_all = NaN(n_perm, 1);
+                    pval_overall = [];
+                
+                    % implement random flipping
+                    flip_map = containers.Map([1, 2, 3, 4, 5], [5, 4, 3, 2, 1]);
+                    remap = [NaN, 5, 4, 3, 2, 1];  % remap(i) gives flipped value
+                
+                    % Compute baseline: distance between each trial and itself
+                    true_diff = predictions_all_framerate_attn(:,:,1) - predictions_all_framerate_attn(:,:,2);
+                    baseline_dist = mean(sqrt(nansum(true_diff.^2, 1)));  
+                    
+                    % Permutation test
+                    for p = 1:n_perm
+                        disp( p)
+                        % Shuffle trial indices within this classifier type
+                        
+                        shuffled_idx = randperm(n.trials);
+                        
+                        % Ensure no self-pairing: force at least 1 mismatch
+                        while any(shuffled_idx == 1:n.trials)
+                            shuffled_idx = randperm(n.trials);
+                        end
+                
+                        % Get permuted data
+                        class_switch = randperm(2);
+                        dat = predictions_all_framerate_attn(:,:,class_switch(1));
+                        perm_data = predictions_all_framerate_attn(:, shuffled_idx,class_switch(2));
+                
+                        for t = 1:n.trials
+                            if rand < 0.5
+                                perm_data(:,t) = flipud(perm_data(:,t));  % horizontal
+                            else
+                                % vertical (feedback value flip)
+                                vec = perm_data(:,t);
+                                flipped_vec = vec;  % initialize
+                        
+                                % Find valid (non-NaN) indices
+                                valid_idx = ~isnan(vec);
+                        
+                                % Flip only valid feedback values
+                                flipped_vec(valid_idx) = remap(vec(valid_idx) + 1);  
+                                
+                                % Store flipped vector back
+                                perm_data(:,t) = flipped_vec;
+                            end
+                        end
+                
+                        
+                        dat_perm = dat - perm_data;
+                        perm_dists_all(p) = mean(sqrt(nansum(dat_perm.^2, 1)));
+                    end
+                    
+                    % Step 3: p-value for this classifier
+                    pval_overall = mean(perm_dists_all >= baseline_dist);
+        
+                    
+                    %% Figures
+                    h= figure;
+      
+                    histogram(perm_dists_all, 'Normalization', 'probability')
+                    hold on
+                    xline(baseline_dist, 'r', 'LineWidth', 2)
+                    title(['Classifier Mean Distance'])
+                    xlabel('Mean Euclidean distance')
+                    ylabel('Probability')
+                    legend('Null', 'Observed')
+                    text(baseline_dist, 0.9*max(ylim), ...
+                        ['p = ' num2str(pval_overall, '%.4f')], ...
+                        'Color', 'r', 'FontSize', 10)
+                
+                    saveas(h, [direct.results_figs bids.casestring 'Permutation test results.png'])
+                    saveas(h, [direct.results_figs bids.casestring 'Permutation test results.eps'], 'epsc')
+                    %% save results
+                    save([direct.results_base bids.casestring '_NFCompareRes.mat'], 'perm_dists_all', 'baseline_dist', 'predictions_all_framerate_attn', 'suffledat')
+                end
+            end
+        end
+    end
+end
+
+% to save
+% Feedback, true euclid distance, permuted euclid distance, subject num,
+% cond, testday
+
+%% Colate results
+
+% setup
+num_perms = 1000;
+
+% BIDS_Filenaming
+if options.run_collate
+    %% get files 
+    files = dir([direct.results_base '*.mat']);
+
+    % preallocate
+    PERM = NaN(num_perms, length(files));
+    truedist = NaN(1, length(files));
+    subnums = NaN(1, length(files));
+    testdays = NaN(1, length(files));
+    traintypes = NaN(1, length(files));
+    pvals = NaN(1, length(files));
+    
+    for filenum = 1:length(files)
+        disp(files(filenum).name)
+        % get file details
+
+        file = files(filenum).name;
+        file_split = strsplit(file, '_');
+
+        observer.number   = str2double(file_split{1}(5:end));
+        options.TestDay   = str2double(file_split{3}(5));
+        options.traintype = find([any(ismember(subsIDX{1}, observer.number)), any(ismember(subsIDX{2}, observer.number))]);
+        
+        % Load
+        load([direct.results_base file], 'perm_dists_all', 'baseline_dist', 'predictions_all_framerate_attn', 'suffledat')
+        
+        %% store data
+        PERM(:, filenum)   = perm_dists_all;
+        truedist(filenum)  = baseline_dist;
+        subnums(filenum)   = observer.number;
+        testdays(filenum)  = options.TestDay;
+        traintypes(filenum)= options.traintype;
+        pvals(filenum) = mean(perm_dists_all >= baseline_dist);
+    
+
+    end
+end
+
+%% sig 
+idx=find(pvals<.025)
+testdays(idx)
+traintypes(idx)
+subnums(idx)
+pvals(idx)/2
+%% Plot results
+
+pval_overall = mean(mean(PERM,2) >= mean(truedist));
+
+% Grand average
+h= figure;
+
+histogram(PERM, 'Normalization', 'probability')
+hold on
+xline(truedist, 'r', 'LineWidth', 2)
+title(['Classifier Mean Distance'])
+xlabel('Mean Euclidean distance')
+ylabel('Probability')
+legend('Null', 'Observed')
+text(baseline_dist, 0.9*max(ylim), ...
+    ['p = ' num2str(pval_overall, '%.4f')], ...
+    'Color', 'r', 'FontSize', 10)
+
+saveas(h, [direct.results_figs  'GROUP MEAN Permutation test results.png'])
+
+% Split by testday and traintypes
+h = figure;
+hold on;
+xvals = testdays + (traintypes-1)*0.5 ;
+xvals=5*(xvals-1)/2.5 +1
+groups = [1,2,1,2,1,2];
+
+boxplot(pvals, xvals, 'ColorGroup', groups,'PlotStyle','compact' )
+
+Cdata = subnums;
+cmap = gray;
+cmin = min(Cdata(:));
+cmax = max(Cdata(:));
+m = length(cmap)-1;
+index = fix((Cdata-cmin)/(cmax-cmin)*m)+1; %A
+RGB = cmap(index,:);
+
+swarmchart(xvals , pvals, [], RGB, 'filled')
+yline(0.025)
+yline(0.975)
+
+set(gca, 'xtick', [1,2,3,4,5,6])
+set(gca, 'xticklabel', {'Day1 Feature', 'Day1 Space', 'Day2 Feature', 'Day2 Space', 'Day3 Feature', 'Day3 Space'})
+
+saveas(h, [direct.results_figs  'GROUP MEAN Permutation test results by cond.png'])
+saveas(h, [direct.results_figs  'GROUP MEAN Permutation test results by cond.eps'], 'epsc')
+
+%% Load EEG data
+% 
+% addpath('/Users/angie/Documents/MATLAB/eeglab2024.0')
+% eeglab
+% eeg_fname = [bids.casestring '_eeg*.eeg'];
+% vhdr_fname = [bids.casestring '_eeg*.vhdr'];
+% 
+% % find biggest
+% d_vhdr = dir([data_loc vhdr_fname]);
+% if length(d_vhdr)>1
+%     d = dir([data_loc eeg_fname]);
+%     fsize = [];
+%     for f = 1:length(d)
+%         fsize = [fsize, d(f).bytes];
+%     end
+%     [~,filuse] = max(fsize);
+% 
+%     eeg_fname = d(filuse).name;
+%     vhdr_fname = [eeg_fname(1:end-4) '.vhdr'];
+% else
+%     vhdr_fname = d_vhdr.name;
+%     eeg_fname = [vhdr_fname(1:end-5) '.eeg'];
+% 
+% end
+% 
+% % Load
+% dat = pop_loadbv(data_loc, vhdr_fname );
+% 
+% % Separate trigs
+% trigdat = dat.data(10,:);
+% idx_trigs = find(diff([0,trigdat])>0);
+% id_trigs = trigdat(idx_trigs);
+% TRIG = [idx_trigs', id_trigs'];
+% 
+% % separate EEG
+% EEG = dat.data(1:9,:);
+% 
+% %% Vis
+% figure()
+% plot(dat.data(10,:))
+
+
+% LOAD AMP_exp

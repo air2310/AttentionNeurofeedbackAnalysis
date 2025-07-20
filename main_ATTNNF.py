@@ -15,6 +15,7 @@ import analyseNeurofeedback as analyse_NF
 import analyse_EEGsingletrialwavelets as analyse_sustattn
 import CorrelationAnalyses as analyse_corr
 import RSA as RSA
+import analyseAlphaPrePost as alpha
 
 
 #### New Analyses
@@ -24,19 +25,17 @@ import RSA as RSA
 # TODO: individual trial independance of spatial and feature based-attention neurofeedback - how correlated are they really?
 # TODO: look at differences between classifiable and unclassifiable participants.
 
-# setup generic settings
-attntrained = 0# 0 = Space, 1 = Feature, 2 = Sham
-settings = helper.SetupMetaData(attntrained)
-print("Analysing Data for condition train: " + settings.string_attntrained[settings.attntrained])
-
 ######## Decide which single subject analyses to do ########
 
+
+analyse_alpha_prepost = True # Analyse Behaviour Pre Vs. Post Training
+# analyse_alpha_prepost = False  # Analyse Behaviour Pre Vs. Post Training
 
 # analyse_behaviour_prepost = True # Analyse Behaviour Pre Vs. Post Training
 analyse_behaviour_prepost = False  # Analyse Behaviour Pre Vs. Post Training
 
-analyse_behaviour_prepostcuemean = True
-# analyse_behaviour_prepostcuemean = False
+# analyse_behaviour_prepostcuemean = True
+analyse_behaviour_prepostcuemean = False
 #
 # analyse_behaviour_duringNF = True # Analyse Behaviour during Training
 analyse_behaviour_duringNF = False  # Analyse Behaviour duringTraining
@@ -116,45 +115,57 @@ pd.set_option('display.max_columns', None)
 
 
 ##### iterate through subjects for individual subject analyses #####
+attntrained = 0  # 0 = Space, 1 = Feature, 2 = Sham
+settings = helper.SetupMetaData(attntrained)
+print("Analysing Data for condition train: " + settings.string_attntrained[settings.attntrained])
 
-for sub_count, sub_val in enumerate(settings.subsIDX):
-    print(sub_val)
-    plt.close('all')
-    if analyse_behaviour_prepost:
-        test_train = 0
-        analyse_motiontask.run(settings, sub_val, test_train)
+# setup generic settings
+for attntrained in [0, 1,2]:# 0 = Space, 1 = Feature, 2 = Sham
+    settings = helper.SetupMetaData(attntrained)
+    print("Analysing Data for condition train: " + settings.string_attntrained[settings.attntrained])
 
-    if analyse_behaviour_prepostcuemean:
-        test_train = 0
-        analyse_motiontaskcuemean.run(settings, sub_val, test_train)
+    for sub_count, sub_val in enumerate(settings.subsIDX):
+        print(sub_val)
+        plt.close('all')
 
-    if analyse_behaviour_duringNF:
-        test_train = 1
-        analyse_motiontask.run(settings, sub_val, test_train)
+        if analyse_alpha_prepost:
+            alpha.analyseprepost(settings, sub_val)
 
-    if analyse_Neurofeedback:
-        analyse_NF.run(settings, sub_val)
+        if analyse_behaviour_prepost:
+            test_train = 0
+            analyse_motiontask.run(settings, sub_val, test_train)
 
-    if analyse_EEG_prepost:
-        geegpp.analyseEEGprepost(settings, sub_val)
+        if analyse_behaviour_prepostcuemean:
+            test_train = 0
+            analyse_motiontaskcuemean.run(settings, sub_val, test_train)
 
-    if analyse_EEG_prepost_motepochs:
-        geeg_cohmotepoch.analyseEEGprepost(settings, sub_val)
+        if analyse_behaviour_duringNF:
+            test_train = 1
+            analyse_motiontask.run(settings, sub_val, test_train)
 
-    if analyse_EEG_duringNF:
-        geegdnf.analyseEEG_duringNF(settings, sub_val)
+        if analyse_Neurofeedback:
+            analyse_NF.run(settings, sub_val)
 
-    if analyse_visualsearchtask:
-        avissearch.analyse_visualsearchtask(settings, sub_val)
+        if analyse_EEG_prepost:
+            geegpp.analyseEEGprepost(settings, sub_val)
 
-    if analyse_nbacktask:
-        anback.analyse_nbacktask(settings, sub_val)
+        if analyse_EEG_prepost_motepochs:
+            geeg_cohmotepoch.analyseEEGprepost(settings, sub_val)
 
-    if analyse_subjectRSA:
-        RSA.participantRSA(settings, sub_val)
+        if analyse_EEG_duringNF:
+            geegdnf.analyseEEG_duringNF(settings, sub_val)
 
-    if analyse_singletrialEEG:
-        analyse_sustattn.analyseEEGprepost(settings, sub_val)
+        if analyse_visualsearchtask:
+            avissearch.analyse_visualsearchtask(settings, sub_val)
+
+        if analyse_nbacktask:
+            anback.analyse_nbacktask(settings, sub_val)
+
+        if analyse_subjectRSA:
+            RSA.participantRSA(settings, sub_val)
+
+        if analyse_singletrialEEG:
+            analyse_sustattn.analyseEEGprepost(settings, sub_val)
 
 
 ##### Collate results across all subjects analyses #####
@@ -210,3 +221,4 @@ if classification_acc_correlations:
 if collate_RSA:
     RSA.collate_RSA(settings)
     RSA.collate_RSA_bybehave(settings)
+#%%
