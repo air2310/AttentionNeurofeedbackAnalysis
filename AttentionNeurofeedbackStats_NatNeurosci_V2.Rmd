@@ -1,0 +1,2034 @@
+---
+title: "Neurofeedback training of spatial and feature-based attention: Statistical analysis"
+author: "Angela I. Renton"
+fig_caption: TRUE
+output:
+ html_document:
+ theme:
+ bootswatch: solar
+---
+
+## Setup
+
+```{r Import_packages, message=FALSE, warning=FALSE}
+# Import packages
+library(BayesFactor)
+library(tidyverse)
+library(ggplot2)
+library("rjags")
+
+# Set seed
+set.seed(82)
+```
+
+## Overview
+
+The past decade has witnessed a dramatic rise in "decoded" neurofeedback protocols, which aim to train multivariate patterns of neural activity with the aim of investigating and enhancing cognitive function. These protocols establish real-time feedback loops, directly translating decoded patterns of neural activity into sensory feedback with the aim of training participants to regulate specific cognitive processes. The advent of implicit neurofeedback protocols, in which participants are unaware of the target of neurofeedback training, has allowed decoded neurofeedback protocols to gain popularity as a causal research method. Implicit neurofeedback paradigms rule out placebo effects and likely result in training specific to the targeted pattern of neural activity. However, interpreting the results of such studies requires a better understanding of the degree to which decoded patterns of neural activity may represent unaccounted-for cognitive processes which merely correlate with the target. Here, we investigated whether decoded neurofeedback could be applied to enhance spatial and feature-based selective attention and tested the cognitive specificity of such training by evaluating whether any training effects transferred to the untrained attentional property.
+
+## Statistical Methods
+
+### Statement on statistical approach
+
+Our primary objective in developing the statistical approach used in this study was to convey a clear, thorough and intuitive picture of the nature of the effects of neurofeedback training on our neural and behavioural measures. As such, we chose to report Bayes Factors representing the ratio of evidence in favour of the alternative vs. null hypothesis for each of our effects of interest. Bayes Factors were interpreted according to Jeffrey's criterion:
+
+Jarosz, A. F., & Wiley, J. (2014). What are the odds? A practical guide to computing and reporting Bayes factors. *The Journal of Problem Solving*, *7*(1), 2. doi: 10.7771/1932-6246.1167
+
+| Bayes Factor | Inverse of Bayes Factor | Support for H1 |
+|:------------:|:-----------------------:|:--------------:|
+|   1 - .33    |          1 - 3          |   Anecdotal    |
+|  .33 - .10   |         3 - 10          |  Substantial   |
+|  .10 - .03   |         10 - 30         |     Strong     |
+|  .03 - .01   |        30 - 100         |  Very Strong   |
+|    \<.01     |          \>100          |    Decisive    |
+
+This approach was outlined thoroughly in the pre-registration document for this study: <https://osf.io/q4whu/>.
+
+### JZS t-tests
+
+When evaluating whether or not any two groups shared the same mean on any measure of interest, we applied a Bayesian "JZS" t-test, as outlined here:
+
+Rouder, J. N., Speckman, P. L., Sun, D., Morey, R. D., & Iverson, G. (2009). Bayesian t tests for accepting and rejecting the null hypothesis. *Psychonomic Bulletin & Review*, *16*(2), 225--237. doi: 10.3758/PBR.16.2.225
+
+### Bayesian ANOVAs
+
+When evaluating whether or not the levels of our experimental factors affected any measure of interest (main effects) or interacted with each other (interactions) we applied the Bayesian ANOVA approach outlined here:
+
+Rouder, J. N., Morey, R. D., Speckman, P. L., & Province, J. M. (2012). Default Bayes factors for ANOVA designs. *Journal of mathematical psychology*, *56*(5), 356-374.
+
+In line with the recommendations of Rouder et al. (2012), bayes factors for main effects and interactions in Bayesian ANOVA models were assessed by comparing the full model (main effects + interaction + random effects) with the model containing all effects bar the effect of interest.
+
+We'll use this function to run and reports the results of 2x2 Bayesian ANOVAs below:
+
+```{r ANOVA_report_Function}
+DisplayANOVAResults2X2 <- function(formula, data, maineffectstringA, maineffectstringB) {
+  # Run ANOVA
+  bf = anovaBF(formula , data=data, whichRandom="SubID",  whichModels="all")
+  
+  # extract effects of interest
+  bfInteraction = bf[7]/bf[4] # is the full model better than just strait main effects?
+  bf_main_A = bf[7]/bf[5] # is the full model better than the main effect A knock out?
+  bf_main_B = bf[7]/bf[6] # is the full model better than the main effect B knock out?
+  
+  # display results
+  print(bf)
+  cat('\n\nInteraction:\n\n')
+  print(bfInteraction)
+  
+  cat(paste('\n\n', maineffectstringA, '\n\n'))
+  print(bf_main_A)
+  
+  cat(paste('\n\n', maineffectstringB, '\n\n'))
+  print(bf_main_B)
+
+}
+
+```
+
+### Markov Chain Monte-Carlo (MCMC) Gibbs Sampling
+
+Bayes Factors represent the ratio of evidence in favour of the alternative vs. null hypothesis; which may be more intuitive to readers than frequentist statistics. Bayesian methods rely on modelling the posterior distribution of effects in the population using the data in combination with informed priors for the effect of interest. Plotting these posterior distributions allows us to visualise our beliefs about how neurofeedback would effect our measures of interest in the population, and calculate the posterior probabilities for specific effects. To this end, we applied a Markov Chain Monte-Carlo Gibbs sampling approach to visualise the posteriors over each or our measures, as described here:
+
+van Ravenzwaaij, D., Cassey, P. & Brown, S.D. A simple introduction to Markov Chain Monte--Carlo sampling. *Psychon Bull Rev* **25**, 143--154 (2018). doi: 10.3758/s13423-016-1015-8
+
+I recommend this article for a practicle tutorial and description of the benefits of this approach: <https://medium.com/swlh/bayesian-analysis-based-on-mcmc-gibbs-algorithm-d5b0cfd5e2dd>
+
+## Evaluating Training Efficacy
+
+### Representational Similarity Analysis (RSA)
+
+#### Methodological background
+
+We measured the efficacy of neurofeedback at altering multidimensional neural activity by applying a representational similarity analysis (RSA) approach; quantifying the dissimilarity between the patterns of neural activity evoked by pre- and post-training attention tests. RSA applies a correlational approach to characterise high-dimensional neural responses within a low-dimensional embedding known as a representational dissimilarity matrix (RDM). To implement this analysis, we followed the method outlined here:
+
+Kriegeskorte, N., Mur, M., & Bandettini, P. A. (2008). Representational similarity analysis-connecting the branches of systems neuroscience. *Frontiers in systems neuroscience*, 4. doi: 10.3389/neuro.06.004.2008F
+
+[![](images/RSA.png){width="592"}](https://doi.org/10.3389/neuro.06.004.2008)
+
+***Figure 1. Computation of the representational dissimilarity matrix (adapted from Kriegeskorte et al. (2008)).** For each pair of experimental conditions, the associated activity patterns (in a brain region or model) are compared by spatial correlation. The dissimilarity between them is measured as 1 minus the correlation (0 for perfect correlation, 1 for no correlation, 2 for perfect anticorrelation). These dissimilarities for all pairs of conditions are assembled in the RDM. Each cell of the RDM, thus, compares the response patterns elicited by two images. As a consequence, an RDM is symmetric about a diagonal of zeros.*
+
+#### Load Data
+
+We begin by loading in the RSA results. These data show the bootstrapped representational dissimilarity from before to after neurofeedback training for each neurofeedback group (Space, Feature, Sham).
+
+We'll add a new factor ("NFTraining") with two just two levels (Neurofeedback, Sham), so that we have the option to evaluate the effect of getting active neurofeedback , regardless of what type of attention the feedback represented.
+
+```{r Load_RSA_data}
+
+# load data
+#RSAdata = read.csv("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Results/CompareSpaceFeat/group/RSA_results.csv")
+RSAdata = read.csv("/Users/angie/Nextcloud/VISATTNNF-Q1357/Results/CompareSpaceFeat/group/RSA_results.csv")
+
+# factorise existing factors
+RSAdata$Bootstrap = factor(RSAdata$Bootstrap)
+RSAdata$TrainingGroup = factor(RSAdata$TrainingGroup, levels=c("Space", "Feature", "Sham"))
+
+# Create NFTraining factor
+RSAdata$NFTraining = RSAdata$TrainingGroup
+levels(RSAdata$NFTraining) = c( "Neurofeedback","Neurofeedback", "Sham")
+
+# Show table data in markdown output
+data <- RSAdata[1:10, ]
+knitr::kable(data, caption = "Sample of RSA Data")
+ 
+```
+
+Before we proceed, lets visualise these data.
+
+```{r plot_RSA_data, fig.height=5, fig.width=7}
+
+boxplot(RDM_Score ~ TrainingGroup, col="#69b3a2", boxwex=0.4, data=RSAdata)
+```
+
+#### Main effect of training type
+
+First, we evaluate whether there is a main effect of neurofeedback training group (Space, Feature, Sham) on representational dissimilarity. E.g. did the type of neurofeedback that participants received affect how much they shifted their patterns of neural activity in respone to the attention task over the course of training?
+
+```{r Run_RSA_ANOVA}
+bf = anovaBF(RDM_Score ~ TrainingGroup , data=RSAdata, whichRandom="bootstrap",  whichModels="all")
+print(bf)
+```
+
+We find decisive evidence for a main effect of training group. Specifically, there is much more evidence for models in which our representational dissimilarity data varies according to neurofeedback type, than for models without this main effect. We'll follow this main effect up by evaluating how each of our two active neurofeedback groups compared to the sham group.
+
+#### Follow-up JZS t-tests
+
+Firstly, how did the space training group compare to the sham group?
+
+```{r run_RSA_ttests_Space}
+datuse = RSAdata[RSAdata$TrainingGroup == "Space" | RSAdata$TrainingGroup == "Sham",]
+datuse$TrainingGroup = factor(datuse$TrainingGroup)
+print(ttestBF(formula = RDM_Score ~ TrainingGroup, data=datuse))
+```
+
+We find decisive evidence that the space neurofeedback group changed their neural representation of the attention task more than the sham neurofeedback group after training.
+
+Next, how did the Feature training group compare to the sham group?
+
+```{r run_RSA_ttests_Feature}
+
+datuse = RSAdata[RSAdata$TrainingGroup == "Feature" | RSAdata$TrainingGroup == "Sham",]
+datuse$TrainingGroup = factor(datuse$TrainingGroup)
+print(ttestBF(formula = RDM_Score ~ TrainingGroup, data=datuse))
+```
+
+We also find decisive evidence that the feature neurofeedback group changed their neural representation of the attention task more than the sham neurofeedback group after training. Lets export some summary statistics to help up report these results.
+
+```{r get_RSA_summarystats}
+dat = RSAdata  %>% group_by(TrainingGroup)
+dat = dat %>% summarise(M=mean(RDM_Score), SD=sd(RDM_Score)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "Representational Dissimilarity")
+```
+
+#### MCMC modelling
+
+We've established that neurofeedback affected representational dissimilarity for the attention test task, such that groups who received neurofeedback representing both spatial and feature-based attention shifted the patterns of neural activity evoked by the task more than participants who received sham neurofeedback. To model what the distributions of these effects might look like in the population, we applied an MCMC Gibbs sampling approach.
+
+We'll begin by setting up Gibbs sampling models using rjags (just another gibbs sampler). We'll compare two different models. A simple model in which we allow the mean to differ across groups, but use a common variance, and a more complicated model with unique variances for each group. We'll compute both and evaluate which fits best (penalising for model complexity).
+
+```{r MCMC_RDM_define}
+
+# set model strings for how model parameters will be updated on each iteration. Model means will be sampled from a normal distribution, and precision will be sampled from a gamma distribution
+
+# Simpler model
+mod_string1 = " model {
+    for (i in 1:length(y)) {
+        y[i] ~ dnorm(mu[grp[i]], prec)
+    }
+    
+    for (j in 1:3) {
+        mu[j] ~ dnorm(0.0, 1.0/1.0e6)
+    }
+    
+    prec ~ dgamma(5/2.0, 5*1.0/2.0)
+    sig = sqrt( 1.0 / prec )
+} "
+
+# more complex model
+
+mod_string2 = " model {
+    for (i in 1:length(y)) {
+        y[i] ~ dnorm(mu[grp[i]], prec[grp[i]])
+    }
+    
+    for (j in 1:3) {
+        mu[j] ~ dnorm(0.0, 1.0/1.0e6)
+        prec[j] ~ dgamma(5/2.0, 5*1.0/2.0)
+    
+    }
+    sig = sqrt( 1.0 / prec )
+} "
+  
+
+# set and initialise the model parameters with broad, non-informative priors. 
+params = c("mu", "sig")
+inits1 = function() {
+  inits = list("mu"=rnorm(3,0.0,100.0), "prec"=rgamma(1,1.0,1.0))
+}
+
+inits2 = function() {
+  inits = list("mu"=rnorm(3,0.0,100.0), "prec"=rgamma(3,1.0,1.0))
+}
+
+# the data we'll use - in this case the RSA scores grouped by neurofeedback training type. 
+data_jags = list(y=RSAdata$RDM_Score, 
+                 grp=as.numeric(RSAdata$TrainingGroup))
+
+
+# Pass the parameters and models to jags. 
+#simpler model
+mod1 = jags.model(textConnection(mod_string1), data=data_jags, inits=inits1, n.chains=3)
+
+#more complex model
+mod2 = jags.model(textConnection(mod_string2), data=data_jags, inits=inits2, n.chains=3)
+```
+
+Next, lets evaluate the fit on each of these two models. For this, we'll use the Deviance Information Criterion (DIC).
+
+```{r MCMC_RDM_update}
+# update model 1000 times
+update(mod1, 1e3)
+update(mod2, 1e3)
+
+# compute the DIC - the smaller the dic the better the fit
+cat("simpler model DIC:")
+(dic1=dic.samples(mod1, n.iter=1e3))
+cat("more complex model DIC:")
+(dic2=dic.samples(mod2, n.iter=1e3))
+
+# Set the model
+mod = mod1
+
+```
+
+It looks like model 1 (the simpler model) had the better fit (when penalising for complexity). Next, we'll run our simulation, using the winning model to sample from our 3 chains 5000 times each:
+
+```{r MCMC_RDM_modelsample}
+# sample from model.
+mod_sim = coda.samples(model=mod, variable.names=params, n.iter=5e3)
+mod_csim = as.mcmc(do.call(rbind, mod_sim)) # combined chains
+
+# display sample
+summary(mod_sim)
+```
+
+It looks like on a whole, our model has recovered the means and standard deviations pretty well. Let's plot the chains:
+
+```{r MCMC_RDM_plotchains, fig.height=3, fig.width=5}
+
+# plot chains
+traceplot(mod_sim)
+```
+
+The chains look to have converged well and don't look auto correlated. Let's run some diagnosics to be sure:
+
+```{r MCMC_RDM_diagnostics}
+gelman.diag(mod_sim)
+autocorr.diag(mod_sim)
+cat('\n Effective sample sizes:\n')
+effectiveSize(mod_sim)
+```
+
+The Gelman statistics for all of our parameters are 1, suggesting the model has converged. The chains are not autocorrelated, suggesting we've thinned them enough, and the effective sample sizes are very close to the true sample size of 3 chains \* 5000 samples = 15000. Thus, there are no major issues with our model fitting.
+
+Finally, lets look at the residuals to evaluate if there are any obvious problems with the model choice:
+
+```{r MCMC_RDM_resids, fig.height=3, fig.width=4}
+
+# calculate parameter means
+pm_params = colMeans(mod_csim)
+yhat = pm_params[1:3][data_jags$grp]
+
+# calculate reisduals
+resid = data_jags$y - yhat
+
+# plot the residuals
+plot(resid)
+plot(yhat, resid) # need to allow different variances across groups. 
+
+```
+
+The residuals seem a little correlated with index, which is why we fit a more complex model which included individual variance for each group. However, ultimately, this did not meaningfully improve the model fit, so we have kept this simpler model.
+
+Now that we're satisfied that our model has fit the data well, lets plot the posterior distributions over mean training effect for each group.
+
+```{r MCMC_RDM_plots, fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
+
+darkteal = rgb(18 / 255, 47 / 255, 65 / 255)
+medteal = rgb(5 / 255, 133 / 255, 134 / 255)
+grey = rgb(208 / 255, 210 / 255, 211 / 255)
+
+#Sample data
+datplot <- data.frame(valuse = c(mod_csim[,1],mod_csim[,2],mod_csim[,3]), chain = c(rep("Space", 15000), rep("Feature", 15000), rep("Sham", 15000)))
+#Plot.
+plt=ggplot(datplot, aes(x = valuse, fill = chain)) + geom_density(alpha = 0.5)+ scale_fill_manual( values = c(darkteal, grey,medteal))
+plt+ xlim(0,0.4) + theme_classic()
+
+```
+
+It's clear that the representational dissimilarity across test days differed by neurofeedback type, but there is still some overlap. Lets use these to compute some meaningful statistics.
+
+```{r MCMC_RDMstats, echo=FALSE}
+#highest posterior density for each parameter
+cat("HPD interval by parameter:\n")
+(HPDinterval(mod_csim))
+
+# what is the likelihood of a larger shift in representation in each of our NF training conditions?
+cat("Posterior likelihood that Space training shifts representation more than sham:\n")
+(mean(mod_csim[,1] > mod_csim[,3])) # space v sham
+cat("Posterior likelihood that Feature training shifts representation  more than sham:\n")
+(mean(mod_csim[,2] > mod_csim[,3])) # feat v sham
+
+```
+
+This represents compelling evidence that neurofeedback training is likely to lead to larger shifts in the neural representation of the attention task than sham neurofeedback. This effect is decisive for the space neurofeedback group. For the feature neurofeedback group, 95% of new samples from the population are likely to have a larger mean behavioural training effect for neurofeedback than for sham feedback.
+
+### Steady State Visual Evoked Potentials (SSVEPs) - Following up on training efficacy
+
+#### Methodological background
+
+The RSA analysis revealed that Neurofeedback influenced the multivariate pattern of neural activity with which participants represented the task. One candidate shift in neural activity which could contribute to this effect would be a change in the amplitude of the SSVEP attentional selectivity affect.
+
+In the attention task used for this experiment, visual stimuli for each of the unique combinations of features and spatial locations flickered at unique frequencies (e.g. white dots might flicker at 8 Hz in one spatial location and 12 Hz at another spatial location). Flickering visual stimuli such as this evoke rhythmic responses in participants' visual cortices, which can be recorded with EEG. These "steady-state visual evoked potentials" (SSVEPs) vary in strength with attention, such that attended visual information evokes stronger SSVEPs than unattended visual information. We hypothesised that the strength of this "attentional selectivity" affect might change after neurofeedback training.
+
+Sanity checks of the data revealed that SSVEPs were present at all flicker frequencies for all training groups (Figure 2a), and that the topological distribution of these SSVEPs was similar across all training groups (Figure 2b).
+
+![Frequency tagging results](images/Freqtag1.png){width="496"}
+
+***Figure 2. Frequency tagging results.** a.) Frequency spectrums. (**a**) Frequency spectra generated by submitting the average trial ERP for each neurofeedback group (Space, Feature, Sham) to FFTs (averaged across all recorded electrodes). SSVEPs at the fundamental flicker frequencies (f~0~^1^ = 4.5 Hz, f~0~^2^= 8.0 Hz, f~0~^3^= 12.0 Hz, f~0~^4^ = 14.4 Hz) are marked by red asterisks. (**b**) Bar plots showing SSVEP amplitudes at each electrode (1: Iz, 2: Oz, 3: POz, 4: O1, 5: O2, 6: PO3, 7: PO4 8: PO7, 9: PO8) for each flicker frequency (4.5 Hz, 8.0 Hz, 12.0 Hz, 14.4 Hz) across the three neurofeedback groups (Space, Feature, Sham).*
+
+#### Load Data
+
+We begin by loading in the SSVEP results. These data show the SSVEP amplitudes for attended (cued) and unattended (uncued) stimuli, as well as attentional selectivity (attended - unattend SSVEP) from before to after neurofeedback training for each neurofeedback group (Space, Feature, Sham).
+
+We'll also add a new factor ("NFTraining") with two just two levels (Neurofeedback, Sham), so that we have the option to evaluate the effect of getting active neurofeedback , regardless of what type of attention the feedback represented.
+
+```{r Load_SSVEP_data}
+
+# load data
+SSVEPdata = read.csv("/Users/angie/Nextcloud/VISATTNNF-Q1357/Results/CompareSpaceFeat/group/motiondiscrim_SelectivityResults_ALL.csv")
+#SSVEPdata = read.csv("Users/angie/Nextcloud/VISATTNNF-Q1357/Results/CompareSpaceFeat/group/motiondiscrim_SelectivityResults_ALL.csv")
+
+
+# Account for formatting issues when saving out pandas dataframe. 
+colnames(SSVEPdata)[5] ="SSVEPSelectivity"
+
+# factorise existing factors
+SSVEPdata$Attention.Trained = factor(SSVEPdata$Attention.Trained, levels=c("Space", "Feature", "Sham"))
+SSVEPdata$Attention.Type = factor(SSVEPdata$Attention.Type, levels=c("Space", "Feature"))
+SSVEPdata$Testday = factor(SSVEPdata$Testday, levels=c( "pre-training", "post-training"))
+
+# edit stored sham condition Subjectids to be unique
+SSVEPdata[SSVEPdata$Attention.Trained=="Sham",]$SubID = SSVEPdata[SSVEPdata$Attention.Trained=="Sham",]$SubID + 1000
+SSVEPdata$SubID = factor(SSVEPdata$SubID)
+
+# Create NFTraining factor
+SSVEPdata$NFTraining = SSVEPdata$Attention.Trained
+levels(SSVEPdata$NFTraining) = c( "Neurofeedback","Neurofeedback", "Sham")
+
+# Show table data in markdown output
+data <- SSVEPdata[1:10, ]
+knitr::kable(data, caption = "Sample of SSVEP Data")
+
+```
+
+The key effect we're interested in is whether attentional selectivity changes from pre-training to post-training, so we'll calculate this difference for each of our participants and conditions.
+
+```{r calculate_SSVEP_trainingeffects}
+
+## Preallocate
+SSVEPdata_train = SSVEPdata[SSVEPdata$Testday=="pre-training",]
+
+## Calculate training effects
+SSVEPdata_train$SSVEP_TrEfct = SSVEPdata[SSVEPdata$Testday=="post-training",]$SSVEPSelectivity - SSVEPdata[SSVEPdata$Testday=="pre-training",]$SSVEPSelectivity
+```
+
+#### Sanity check: Attention Selectivity
+
+Before we proceed with evaluating whether attentional selectivity changed over time, we need to confirm that all groups of participants did show attentional selectivity (i.e. stronger SSVEPs to attended information than unattended information).
+
+We'll start by defining a function that extracts the data for each of our conditions of interest from the big data frame.
+
+```{r set_data_reduction_function}
+
+getdata <- function(SSVEPdata, attntrained) {
+  # get data for this condition
+  data <- SSVEPdata[SSVEPdata['Attention.Trained']==attntrained,]
+  
+  # Average across test days
+  data <- data %>% group_by(SubID) %>% summarise(M_attd=mean(SSVEPs_attd), M_unattd=mean(SSVEPs_unattd)) %>% as.data.frame()
+  
+  # pivot so that attention condition (attended, unattended) can be used for t-test
+  data <-pivot_longer(data, cols=c(M_attd, M_unattd), names_to="attncond", values_to ='SSVEPamp')%>% as.data.frame()
+  
+  # return data
+  return(data)
+}
+
+```
+
+Now lets run our tests:
+
+```{r SSVEP_Sanity checks, fig.height=4, fig.width=5}
+
+# First run for all training groups
+cat(paste('\nAll Training Groups\n'))
+
+# gather data for anova result
+data <-pivot_longer(SSVEPdata, cols=c(SSVEPs_attd, SSVEPs_unattd), names_to="attncond", values_to ='SSVEPamp')%>% as.data.frame()
+data$attncond = factor(data$attncond, levels=c("SSVEPs_attd","SSVEPs_unattd"))
+
+dataFeat = data[data['Attention.Type']=='Feature',]
+dataSpace = data[data['Attention.Type']=='Space',]
+
+# Run anovas
+cat(paste('\nANOVA Feature data\n'))
+DisplayANOVAResults2X2(formula = SSVEPamp ~ attncond * NFTraining, data=dataFeat, maineffectstringA = "attncond:", maineffectstringB = "NFTraining:")
+
+cat(paste('\nANOVA Space data\n'))
+DisplayANOVAResults2X2(formula = SSVEPamp ~ attncond * NFTraining, data=dataSpace, maineffectstringA = "attncond:", maineffectstringB = "NFTraining:")
+
+cat(paste('\nANOVA all data\n'))
+DisplayANOVAResults2X2(formula = SSVEPamp ~ attncond * NFTraining, data=data, maineffectstringA = "attncond:", maineffectstringB = "NFTraining:")
+
+# Data for cue type comparison
+data <- SSVEPdata %>% group_by(SubID) %>% summarise(M_attd=mean(SSVEPs_attd), M_unattd=mean(SSVEPs_unattd)) %>% as.data.frame()
+  
+# pivot so that attention condition (attended, unattended) can be used for t-test
+data <-pivot_longer(data, cols=c(M_attd, M_unattd), names_to="attncond", values_to ='SSVEPamp')%>% as.data.frame()
+
+# visualise data
+boxplot(SSVEPamp ~ attncond, main=paste('NF Training Group: ', attntrained), col="#69b3a2", boxwex=0.4, data=data)
+
+# display result
+cat(paste('\nttest by cue relevance\n'))
+print(ttestBF(formula = SSVEPamp ~ attncond, random=SubID, data = data))
+
+# for (attntype in c("Space", "Feature")){
+for (attntrained in c("Space", "Feature", "Sham")){
+  # display condition
+  cat(paste('\nTraining Group: ', attntrained, '\n'))
+  
+  # get data
+  data = getdata(SSVEPdata, attntrained)
+  
+  # visualise data
+  boxplot(SSVEPamp ~ attncond, main=paste('NF Training Group: ', attntrained), col="#69b3a2", boxwex=0.4, data=data)
+  
+  # display result
+  print(ttestBF(formula = SSVEPamp ~ attncond, random=SubID, data = data))
+
+}
+
+```
+
+```{r get_SSVEP_summarystats}
+
+dat = SSVEPdata  %>% group_by(Attention.Trained)
+dat = dat %>% summarise(M_attd=mean(SSVEPs_attd), SD_attd=sd(SSVEPs_attd), M_unattd=mean(SSVEPs_unattd), SD_unattd=sd(SSVEPs_unattd)) %>% as.data.frame()
+datall = SSVEPdata %>% summarise(M_attd=mean(SSVEPs_attd), SD_attd=sd(SSVEPs_attd), M_unattd=mean(SSVEPs_unattd), SD_unattd=sd(SSVEPs_unattd)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "SSVEP training effects (Post training & Pre training")
+# Show table data in markdown output
+knitr::kable(datall, caption = "SSVEP total training effects (Post training & Pre training")
+```
+
+Thus, there is evidence that all training groups displayed the expected attentional selectivity effect.
+
+#### SSVEP attentional selectivity training effects ANOVA
+
+Having established that participants showed attentional selectivity effects overall, we can now assess whether this attentional selectivity changed between test-days, and whether any such changes interacted with the neurofeedback factor.
+
+First, lets visualise the attentional selectivity data for each of our neurofeedback training groups, on each of the test days.
+
+```{r plot_SSVEP_data, fig.height=5, fig.width=10}
+
+# group data
+data <- SSVEPdata %>% group_by(SubID, Testday, NFTraining) %>% summarise(SSVEPSelectivity=mean(SSVEPSelectivity)) %>% as.data.frame()
+
+# Plot
+boxplot(SSVEPSelectivity ~ Testday*NFTraining  , data = data, col=c("#69b3a2","#003366"),
+       xlab = "Selectivity data: Selectivity vs attention trained, given testday", ylab = "SSVEP Selectivity (attd - unattd)")
+```
+
+Here, we're interested in whether there is a main effect of test day overall (aka, did attentional selectivity change from before to after training?) and whether any effects of test day interacted with the Neurofeedback training type that participants recieved.
+
+```{r Run_SSVEP_ANOVA}
+
+# group data
+data <- SSVEPdata %>% group_by(SubID, Testday, NFTraining) %>% summarise(SSVEPSelectivity=mean(SSVEPSelectivity)) %>% as.data.frame()
+
+# Run ANOVA
+DisplayANOVAResults2X2(formula = SSVEPSelectivity ~ Testday * NFTraining  , data=data, maineffectstringA = "Test day:", maineffectstringB = "Neurofeedback training group:")
+
+
+```
+
+It looks like there's very strong evidence for a null effect of test day on attentional selectivity. Indeed, there is also strong evidence that this null effect did not interact with neurofeedback. In summary, attentional selectivity remained stable across training days, regardless of whether or not participants received real neurofeedback. Let's export some descriptive summary statistics to help us report this effect:
+
+```{r get_SSVEP_summarystats}
+ #%>% group_by(SubID) 
+dat = SSVEPdata  %>% group_by(Testday)#_train  %>% group_by(NFTraining)
+dat = dat %>% summarise(M=mean(SSVEPSelectivity), SD=sd(SSVEPSelectivity)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "SSVEP Selectivity training effect (Post training - Pre training")
+
+```
+
+#### SSVEP Amplitude training effects ANOVA - NB needs some tlc in description and flow
+
+```{r are there training effect?}
+
+# Get amp
+#data <-pivot_longer(SSVEPdata, cols=c(SSVEPs_attd, SSVEPs_unattd), names_to="attncond", #values_to ='SSVEPamp')%>% as.data.frame()
+#data$attncond = factor(data$attncond, levels=c("SSVEPs_attd", "SSVEPs_unattd"))
+data <- SSVEPdata
+data$TotalAttn = data$SSVEPs_attd + data$SSVEPs_unattd
+
+data <- data %>% group_by(SubID, Testday, NFTraining) 
+
+DisplayANOVAResults2X2(formula = TotalAttn ~ NFTraining * Testday, data=data, maineffectstringA = "NFTraining:", maineffectstringB = "Test Day:")
+```
+
+```{r - compute SSVEP Amp training effect}
+
+# Get amp
+data <-pivot_longer(SSVEPdata, cols=c(SSVEPs_attd, SSVEPs_unattd), names_to="attncond", values_to ='SSVEPamp')%>% as.data.frame()
+data$attncond = factor(data$attncond, levels=c("SSVEPs_attd", "SSVEPs_unattd"))
+
+## Preallocate
+SSVEPdata_train = data[SSVEPdata$Testday=="pre-training",]
+
+## Calculate training effects
+SSVEPdata_train$SSVEPamp_TrEfct = data[SSVEPdata$Testday=="post-training",]$SSVEPamp - data[data$Testday=="pre-training",]$SSVEPamp
+
+```
+
+```{r - Amplitude training effects anova}
+
+## Run ANOVA
+#data <- data %>% group_by(SubID, Testday, attncond,  Attention.Trained) 
+data <- SSVEPdata_train %>% group_by(SubID, Attention.Trained, attncond) 
+#dat_attd = data[data['attncond']=='SSVEPs_attd',]
+#dat_unattd = data[data['attncond']=='SSVEPs_unattd',]
+
+DisplayANOVAResults2X2(formula = SSVEPamp_TrEfct ~ attncond * Attention.Trained  , data=data, maineffectstringA = "attn cond (attd vs unattd):", maineffectstringB = "Neurofeedback training group:")
+
+```
+
+Lets look at the metadata for that
+
+```{r - ssvep amp training metadata}
+ #%>% group_by(SubID) 
+dat <- SSVEPdata_train %>% group_by(attncond) 
+
+dat = dat %>% summarise(M=mean(SSVEPamp_TrEfct), SD=sd(SSVEPamp_TrEfct)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "SSVEP amp training effect (Post training - Pre training")
+```
+
+#### MCMC Gibbs Sampling
+
+To get a more intuitive understanding of this result, we'll use an MCMC Gibbs sampling approach to estimate the likely distributions of training effects for each type of neurofeedback in the population.
+
+We'll begin by setting up Gibbs sampling models using rjags (just another gibbs sampler). We'll compare two different models. A simple model in which we allow the mean to differ across groups, but use a common variance, and a more complicated model with unique variances for each group. We'll compute both and evaluate which fits best (penalising for model complexity).
+
+```{r MCMC_SSVEP_define}
+
+# set model strings for how model parameters will be updated on each iteration. Model means will be sampled from a normal distribution, and precision will be sampled from a gamma distribution
+
+# Simpler model
+mod_string1 = " model {
+    for (i in 1:length(y)) {
+        y[i] ~ dnorm(mu[grp[i]], prec)
+    }
+    
+    for (j in 1:3) {
+        mu[j] ~ dnorm(0.0, 1.0/1.0e6)
+    }
+    
+    prec ~ dgamma(5/2.0, 5*1.0/2.0)
+    sig = sqrt( 1.0 / prec )
+} "
+
+# more complex model
+
+mod_string2 = " model {
+    for (i in 1:length(y)) {
+        y[i] ~ dnorm(mu[grp[i]], prec[grp[i]])
+    }
+    
+    for (j in 1:3) {
+        mu[j] ~ dnorm(0.0, 1.0/1.0e6)
+        prec[j] ~ dgamma(5/2.0, 5*1.0/2.0)
+    
+    }
+    sig = sqrt( 1.0 / prec )
+} "
+  
+
+# set and initialise the model parameters with broad, non-informative priors. 
+params = c("mu", "sig")
+inits1 = function() {
+  inits = list("mu"=rnorm(3,0.0,100.0), "prec"=rgamma(1,1.0,1.0))
+}
+
+inits2 = function() {
+  inits = list("mu"=rnorm(3,0.0,100.0), "prec"=rgamma(3,1.0,1.0))
+}
+
+# the data we'll use - in this case the training effects for sensitivity. 
+data_jags = list(y=SSVEPdata_train$SSVEP_TrEfct, 
+                 grp=as.numeric(SSVEPdata_train$Attention.Trained))
+
+
+# Pass the parameters and models to jags. 
+#simpler model
+mod1 = jags.model(textConnection(mod_string1), data=data_jags, inits=inits1, n.chains=3)
+
+#more complex model
+mod2 = jags.model(textConnection(mod_string2), data=data_jags, inits=inits2, n.chains=3)
+```
+
+Next, lets evaluate the fit on each of these two models. For this, we'll use the Deviance Information Criterion (DIC).
+
+```{r MCMC_SSVEP_update}
+# update model 1000 times
+update(mod1, 1e3)
+update(mod2, 1e3)
+
+# compute the DIC - the smaller the dic the better the fit
+cat("simpler model DIC:")
+(dic1=dic.samples(mod1, n.iter=1e3))
+cat("more complex model DIC:")
+(dic2=dic.samples(mod2, n.iter=1e3))
+
+# Set the model
+mod = mod1
+
+```
+
+It looks like model 1 has the better fit (when penalising for complexity). Next, we'll run our simulation, using the winning model to sample from our 3 chains 5000 times each:
+
+```{r MCMC_SSVEPmodelsample}
+# sample from model.
+mod_sim = coda.samples(model=mod, variable.names=params, n.iter=5e3)
+mod_csim = as.mcmc(do.call(rbind, mod_sim)) # combined chains
+
+# display sample
+summary(mod_sim)
+```
+
+It looks like on a whole, our model has recovered the means and standard deviations pretty well. Let's plot the chains:
+
+```{r MCMC_SSVEPplotchains, fig.height=3, fig.width=5}
+
+# plot chains
+traceplot(mod_sim)
+```
+
+The chains look to have converged well and don't look auto correlated. Let's run some diagnosics to be sure:
+
+```{r MCMC_SSVEPdiagnostics}
+gelman.diag(mod_sim)
+autocorr.diag(mod_sim)
+cat('\n Effective sample sizes:\n')
+effectiveSize(mod_sim)
+```
+
+The Gelman statistics for all of our parameters are 1, suggesting the model has converged. The chains are not autocorrelated, suggesting we've thinned them enough, and the effective sample sizes are very close to the true sample size of 3 chains \* 5000 samples = 15000. Thus, there are no major issues with our model fitting.
+
+Finally, lets look at the residuals to evaluate if there are any obvious problems with the model choice:
+
+```{r MCMC_SSVEP_resids, fig.height=3, fig.width=4}
+
+# calculate parameter means
+pm_params = colMeans(mod_csim)
+yhat = pm_params[1:3][data_jags$grp]
+
+# calculate reisduals
+resid = data_jags$y - yhat
+
+# plot the residuals
+plot(resid)
+plot(yhat, resid) # need to allow different variances across groups. 
+
+```
+
+The residuals don't look correlated with index, so there really don't seem to be any issues with the fit.
+
+Now that we're satisfied that our model has fit the data well, lets plot the posterior distributions over mean training effect for each group.
+
+```{r MCMC_SSVEPplots, fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
+
+darkteal = rgb(18 / 255, 47 / 255, 65 / 255)
+medteal = rgb(5 / 255, 133 / 255, 134 / 255)
+grey = rgb(208 / 255, 210 / 255, 211 / 255)
+
+#Sample data
+datplot <- data.frame(valuse = c(mod_csim[,1],mod_csim[,2],mod_csim[,3]), chain = c(rep("Space", 15000), rep("Feature", 15000), rep("Sham", 15000)))
+#Plot.
+plt=ggplot(datplot, aes(x = valuse, fill = chain)) + geom_density(alpha = 0.5)+ scale_fill_manual( values = c(darkteal, grey,medteal))
+plt+ xlim(-0.1, 0.1) + theme_classic()
+
+ggsave("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Results/CompareSpaceFeat/group/SSVEPtrain_Gibbsmeandensity.png")
+ggsave("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Results/CompareSpaceFeat/group/SSVEPtrain_Gibbsmeandensity.eps")
+
+
+```
+
+It's clear that training effects overlap across groups. Lets use these to compute some meaningful statistics.
+
+```{r MCMCSSVEPstats, echo=FALSE}
+#highest posterior density for each parameter
+cat("HPD interval by parameter:\n")
+(HPDinterval(mod_csim))
+
+# what is the likelihood of making larger gains in each of our NF training conditions?
+cat("nPosterior likelihood that Space training increases SSVEP selectivity more than sham:\n")
+(mean(mod_csim[,1] > mod_csim[,3])) # space v sham
+cat("Posterior likelihood that Feature training increases SSVEP selectivity  more than sham:\n")
+(mean(mod_csim[,2] > mod_csim[,3])) # feat v sham
+
+
+```
+
+This represents compelling evidence that neurofeedback training is not likely to increase ssvep selectivity compared with sham neurofeedback, which actually shows the largest shift.
+
+### Behavioural Results Analysis - Evaluating Training efficacy
+
+#### Methodological background
+
+Before and after neurofeedback training, participants performed attention tests which involved monitoring fields of moving dots for target events, while ignoring distractor events. To evaluate participants to selectively attend to the cued targets in this task, we computed the sensitivity (*d'*) of their responses. Sensitivity is a measure of participants' response selectivity, which describes how well they were able to identify targets and reject distractors. The method used to calculate sensitivity is described here:
+
+Macmillan, N. A. (2002). Signal detection theory. *Stevens' handbook of experimental psychology*, *4*, 43-90.
+
+#### Load Data
+
+We'll start by loading in the behavioral data. We'll load our data regarding participants performance across a number of measures, for each experimental condition.
+
+```{r load_behave_data}
+# load in data
+behavedata = read.csv("/Users/angie/Nextcloud/VISATTNNF-Q1357/Results/CompareSpaceFeat/group/motiondiscrim_behaveresults_HighClassificationAcc.csv")
+
+# factorise existing factors
+behavedata$Testday = factor(behavedata$Testday, levels=c( "Day 1", "Day 4"))
+levels(behavedata$Testday) = c( "pre-training", "post-training")
+behavedata$AttentionTrained = factor(behavedata$AttentionTrained, levels=c("Space", "Feature", "Sham"))
+behavedata$Attention.Type = factor(behavedata$Attention.Type, levels=c("Space", "Feature"))
+behavedata$SubID = factor(behavedata$SubID)
+
+# Create new factor to describe the difference between NF and sham. 
+behavedata$NFTraining = behavedata$AttentionTrained
+levels(behavedata$NFTraining) = c( "Neurofeedback","Neurofeedback", "Sham")
+
+
+# Show table data in markdown output
+data <- behavedata[1:10, ]
+knitr::kable(data, caption = "Sample of Behavioural Data")
+```
+
+The key effect we're interested in is whether changes in sensitivity (d') from pre-training to post-training depend on Neurofeedback training, so we'll calculate this difference for each of our participants and conditions.
+
+```{r calculate_behave_trainingeffects}
+## Preallocate
+behavedata_train = behavedata[behavedata$Testday=="pre-training",]
+
+## Calculate training effects
+behavedata_train$Sensitivity_TrEfct = behavedata[behavedata$Testday=="post-training",]$Sensitivity - behavedata[behavedata$Testday=="pre-training",]$Sensitivity
+
+behavedata_train$RT_TrEfct = behavedata[behavedata$Testday=="post-training",]$RT - behavedata[behavedata$Testday=="pre-training",]$RT
+
+behavedata_train$IE_TrEfct = behavedata[behavedata$Testday=="post-training",]$InverseEfficiency - behavedata[behavedata$Testday=="pre-training",]$InverseEfficiency
+```
+
+#### Behavioural sensitivity training effects ANOVA
+
+First, lets visualise the attentional selectivity data for each of our neurofeedback training groups, on each of the test days.
+
+```{r plot_Sensitivity_data, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
+
+# group data
+data <- behavedata %>% group_by(SubID, Testday, NFTraining) %>% summarise(Sensitivity=mean(Sensitivity)) %>% as.data.frame()
+
+# Plot
+boxplot(Sensitivity ~ Testday*NFTraining , data = data, col=c("#69b3a2","#003366"), xlab = "Sensitivity data: Sensitivity vs attention trained, given testday", ylab = "Sensitivity (d')")
+```
+
+Here, we're interested in whether there is a main effect of test day overall (aka, did sensitivity (d') change from before to after training?) and whether any effects of test day interacted with the neurofeedback training type that participants recieved (active, sham).
+
+```{r behave_ANOVA}
+
+# group data
+data <- behavedata %>% group_by(SubID, Testday, NFTraining) %>% summarise(Sensitivity=mean(Sensitivity)) %>% as.data.frame()
+
+
+# tests
+DisplayANOVAResults2X2(formula = Sensitivity ~ NFTraining*Testday + SubID, data=data, maineffectstringA = "Neurofeedback training group:", maineffectstringB = "Test day:")
+
+```
+
+We find decisive evidence for a main effect of test day, so participants improved on the attention task with training, overall. There is also anecdotal evidence that behavioural training effects depend on the neurofeedback condition (active, sham). In the graph above, training effects appear to be larger for the active neurofeedback condition (compared to sham), so we will follow that up evaluating the strength of the evidence for this effect. First through, let's export some summary statistics to help us report this result:
+
+```{r get_behave_summarystats}
+
+# average
+dat = behavedata  %>% group_by(NFTraining, Testday)
+dat = dat %>% summarise(M=mean(Sensitivity), SD=sd(Sensitivity)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "Sensitivity (d') training effect (Post training - Pre training")
+```
+
+#### Follow-up JZS t-tests
+
+We found evidence that the effect of test day on behavioural performance interacted with neurofeedback. Let's follow this up by directly investigating whether training effects differed across groups:
+
+```{r sensitivity_ttest_NF, message=FALSE, warning=FALSE}
+
+# group data
+data <- behavedata_train %>% group_by(SubID, NFTraining, Attention.Type) %>% summarise(Sensitivity_TrEfct=mean(Sensitivity_TrEfct)) %>% as.data.frame()
+
+# run test
+print(ttestBF(formula = Sensitivity_TrEfct ~ NFTraining , data = data))
+
+```
+
+Thus, we find substantial evidence that participants receiving active neurofeedback improved more than participants receiving sham neurofeedback. Let's break this down by type of active neurofeedback:
+
+```{r sensitivity_ttest_SpaceFeat, message=FALSE, warning=FALSE}
+
+# group data
+data <- behavedata_train %>% group_by(SubID, AttentionTrained, Attention.Type) %>% summarise(Sensitivity_TrEfct=mean(Sensitivity_TrEfct)) %>% as.data.frame()
+
+# run test Space
+cat("Space Vs. Sham\n")
+tmpdat = data[data$AttentionTrained %in% c("Space" ,"Sham"),]
+tmpdat$AttentionTrained = factor(tmpdat$AttentionTrained)
+print(ttestBF(formula = Sensitivity_TrEfct ~ AttentionTrained, data = tmpdat))
+
+# run test Feature
+cat("Feature Vs. Sham\n")
+tmpdat = data[data$AttentionTrained %in% c("Feature" ,"Sham"),]
+tmpdat$AttentionTrained = factor(tmpdat$AttentionTrained)
+print(ttestBF(formula = Sensitivity_TrEfct ~ AttentionTrained, data = tmpdat))
+```
+
+Thus, we find anecdotal evidence that both the space and feature neurofeedback groups improved more on the attention task overall than participants who recieved sham neurofeedback. Let's export some summary statistics to help report these results:
+
+```{r get_behavetraing_summarystats}
+
+# average
+dat = behavedata_train  %>% group_by(AttentionTrained)
+dat = dat %>% summarise(M=mean(Sensitivity_TrEfct), SD=sd(Sensitivity_TrEfct)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "SSVEP Selectivity training effect (Post training - Pre training")
+
+# average based on NFtraining
+dat = behavedata_train  %>% group_by(NFTraining)
+dat = dat %>% summarise(M=mean(Sensitivity_TrEfct), SD=sd(Sensitivity_TrEfct)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "Sensitivity (d') training effect (Post training - Pre training")
+
+```
+
+#### MCMC Gibbs Sampling
+
+Overall, it looks as though receiving active neurofeedback was associated with larger training effects on the attention task than sham neurofeedback. Indeed we're about 3 times more confident that neurofeedback has an effect than that it doesn't. Is this a meaningful result? To get a more intuitive understanding of the scale of the effect of neurofeedback, we'll use an MCMC Gibbs sampling approach to estimate the likely distributions of training effects for each type of neurofeedbackin the population.
+
+We'll begin by setting up Gibbs sampling models using rjags (just another gibbs sampler). We'll compare two different models. A simple model in which we allow the mean to differ across groups, but use a common variance, and a more complicated model with unique variances for each group. We'll compute both and evaluate which fits best (penalising for model complexity).
+
+```{r MCMC_behave_define}
+
+# set model strings for how model parameters will be updated on each iteration. Model means will be sampled from a normal distribution, and precision will be sampled from a gamma distribution
+
+# Simpler model
+mod_string1 = " model {
+    for (i in 1:length(y)) {
+        y[i] ~ dnorm(mu[grp[i]], prec)
+    }
+    
+    for (j in 1:3) {
+        mu[j] ~ dnorm(0.0, 1.0/1.0e6)
+    }
+    
+    prec ~ dgamma(5/2.0, 5*1.0/2.0)
+    sig = sqrt( 1.0 / prec )
+} "
+
+# more complex model
+
+mod_string2 = " model {
+    for (i in 1:length(y)) {
+        y[i] ~ dnorm(mu[grp[i]], prec[grp[i]])
+    }
+    
+    for (j in 1:3) {
+        mu[j] ~ dnorm(0.0, 1.0/1.0e6)
+        prec[j] ~ dgamma(5/2.0, 5*1.0/2.0)
+    
+    }
+    sig = sqrt( 1.0 / prec )
+} "
+  
+
+# set and initialise the model parameters with broad, non-informative priors. 
+params = c("mu", "sig")
+inits1 = function() {
+  inits = list("mu"=rnorm(3,0.0,100.0), "prec"=rgamma(1,1.0,1.0))
+}
+
+inits2 = function() {
+  inits = list("mu"=rnorm(3,0.0,100.0), "prec"=rgamma(3,1.0,1.0))
+}
+
+# the data we'll use - in this case the training effects for sensitivity. 
+data_jags = list(y=behavedata_train$Sensitivity_TrEfct, 
+                 grp=as.numeric(behavedata_train$AttentionTrained))
+
+
+# Pass the parameters and models to jags. 
+#simpler model
+mod1 = jags.model(textConnection(mod_string1), data=data_jags, inits=inits1, n.chains=3)
+
+#more complex model
+mod2 = jags.model(textConnection(mod_string2), data=data_jags, inits=inits2, n.chains=3)
+```
+
+Next, lets evaluate the fit on each of these two models. For this, we'll use the Deviance Information Criterion (DIC).
+
+```{r MCMC_behave_update}
+# update model 1000 times
+update(mod1, 1e3)
+update(mod2, 1e3)
+
+# compute the DIC - the smaller the dic the better the fit
+cat("simpler model DIC:")
+(dic1=dic.samples(mod1, n.iter=1e3))
+cat("more complex model DIC:")
+(dic2=dic.samples(mod2, n.iter=1e3))
+
+# Set the model
+mod = mod1
+
+```
+
+It looks like model 1 has the better fit (when penalising for complexity). Next, we'll run our simulation, using the winning model to sample from our 3 chains 5000 times each:
+
+```{r MCMC_modelsample}
+# sample from model.
+mod_sim = coda.samples(model=mod, variable.names=params, n.iter=5e3)
+mod_csim = as.mcmc(do.call(rbind, mod_sim)) # combined chains
+
+# display sample
+summary(mod_sim)
+```
+
+It looks like on a whole, our model has recovered the means and standard deviations pretty well. Let's plot the chains:
+
+```{r MCMC_plotchains, fig.height=3, fig.width=5}
+
+# plot chains
+traceplot(mod_sim)
+```
+
+The chains look to have converged well and don't look auto correlated. Let's run some diagnosics to be sure:
+
+```{r MCMC_diagnostics}
+gelman.diag(mod_sim)
+autocorr.diag(mod_sim)
+cat('\n Effective sample sizes:\n')
+effectiveSize(mod_sim)
+```
+
+The Gelman statistics for all of our parameters are 1, suggesting the model has converged. The chains are not autocorrelated, suggesting we've thinned them enough, and the effective sample sizes are very close to the true sample size of 3 chains \* 5000 samples = 15000. Thus, there are no major issues with our model fitting.
+
+Finally, lets look at the residuals to evaluate if there are any obvious problems with the model choice:
+
+```{r MCMC_behave_resids, fig.height=3, fig.width=4}
+
+# calculate parameter means
+pm_params = colMeans(mod_csim)
+yhat = pm_params[1:3][data_jags$grp]
+
+# calculate reisduals
+resid = data_jags$y - yhat
+
+# plot the residuals
+plot(resid)
+plot(yhat, resid) # need to allow different variances across groups. 
+
+```
+
+The residuals seem a little correlated with index, which is why we fit a more complex model which included individual variance for each group. However, ultimately, this did not meaningfully improve the model fit, so we have kept this simpler model.
+
+Now that we're satisfied that our model has fit the data well, lets plot the posterior distributions over mean training effect for each group.
+
+```{r MCMC_plots, fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
+
+darkteal = rgb(18 / 255, 47 / 255, 65 / 255)
+medteal = rgb(5 / 255, 133 / 255, 134 / 255)
+grey = rgb(208 / 255, 210 / 255, 211 / 255)
+
+#Sample data
+datplot <- data.frame(valuse = c(mod_csim[,1],mod_csim[,2],mod_csim[,3]), chain = c(rep("Space", 15000), rep("Feature", 15000), rep("Sham", 15000)))
+#Plot.
+plt=ggplot(datplot, aes(x = valuse, fill = chain)) + geom_density(alpha = 0.5)+ scale_fill_manual( values = c(darkteal, grey,medteal))
+plt+ xlim(0,1) + theme_classic()
+
+```
+
+It's clear that training effects are likely to be larger for space and feature training than sham, but there is still some overlap. Lets use these to compute some meaningful statistics.
+
+```{r MCMCstats, echo=FALSE}
+#highest posterior density for each parameter
+cat("HPD interval by parameter:\n")
+(HPDinterval(mod_csim))
+
+# what is the likelihood of making larger gains in each of our NF training conditions?
+cat("nPosterior likelihood that Space training improves performance more than sham:\n")
+(mean(mod_csim[,1] > mod_csim[,3])) # space v sham
+cat("Posterior likelihood that Feature training improves performance more than sham:\n")
+(mean(mod_csim[,2] > mod_csim[,3])) # feat v sham
+
+# what is the chance that training effects will be 50% larger for neurofeedback (compared with sham)?
+cat("Posterior likelihood that Space training improves performance by more than 50% more than sham :\n")
+mean(mod_csim[,1] > 1.5*mod_csim[,3]) # space v sham
+cat("Posterior likelihood that Feature training improves performance by more than 50% more than sham :\n")
+mean(mod_csim[,2] > 1.5*mod_csim[,3]) # feat v sham
+
+```
+
+This represents compelling evidence that neurofeedback training is likely to lead to larger increases in performance on the attention task than sham neurofeedback. To be precise, approximately 98% of samples of the population are likely to have a larger mean behavioural training effect for neurofeedback than for sham feedback.
+
+### Behavioural RT training effects ANOVA
+
+We can do the same thing for reaction time. First, lets visualise the reaction time data for each of our neurofeedback training groups, on each of the test days.
+
+```{r plot_Sensitivity_data, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
+
+# group data
+data <- behavedata %>% group_by(SubID, Testday, NFTraining) %>% summarise(RT=mean(RT)) %>% as.data.frame()
+
+# Plot
+boxplot(RT ~ Testday*NFTraining , data = data, col=c("#69b3a2","#003366"), xlab = "Reaction time data: RT vs attention trained, given testday", ylab = "Reaction time (ms)")
+```
+
+Here, we're interested in whether there is a main effect of test day overall (aka, did reaction time change from before to after training?) and whether any effects of test day interacted with the neurofeedback training type that participants recieved (active, sham).
+
+```{r behave_ANOVA}
+
+# group data
+data <- behavedata %>% group_by(SubID, Testday, NFTraining) %>% summarise(RT=mean(RT)) %>% as.data.frame()
+
+
+# tests
+DisplayANOVAResults2X2(formula = RT ~ NFTraining*Testday + SubID, data=data, maineffectstringA = "Neurofeedback training group:", maineffectstringB = "Test day:")
+
+```
+
+We find decisive evidence for a main effect of test day, so participants sped up their accurate responses to the attention task with training, overall. Let's export some summary statistics to help us report this result:
+
+```{r get_behave_summarystats}
+
+# average
+dat = behavedata  %>% group_by(NFTraining, Testday)
+dat = dat %>% summarise(M=mean(RT), SD=sd(RT)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "Sensitivity (d') training effect (Post training - Pre training")
+```
+
+There was no interaction between sham and neurofeedback, but what about when we examine each individual neurofeedback condition?
+
+```{r - ANOVA RT all conditions}
+
+# group data
+data <- behavedata %>% group_by(SubID, Testday, AttentionTrained) %>% summarise(RT=mean(RT)) %>% as.data.frame()
+
+# Plot
+boxplot(RT ~ Testday*AttentionTrained , data = data, col=c("#69b3a2","#003366"), xlab = "Reaction time data: RT vs attention trained, given testday", ylab = "Reaction time (ms)")
+
+# tests
+DisplayANOVAResults2X2(formula = RT ~ AttentionTrained*Testday + SubID, data=data, maineffectstringA = "Neurofeedback training group:", maineffectstringB = "Test day:")
+```
+
+#### Follow-up JZS t-tests
+
+```         
+```
+
+Thus, we find substantial evidence that training effects differed by neurofeedback. Let's break those differences down by type of active neurofeedback:
+
+```{r sensitivity_ttest_SpaceFeat, message=FALSE, warning=FALSE}
+
+# group data
+data <- behavedata_train %>% group_by(SubID, AttentionTrained, Attention.Type) %>% summarise(RT_TrEfct=mean(RT_TrEfct)) %>% as.data.frame()
+
+# run test Space
+cat("Space Vs. Sham\n")
+tmpdat = data[data$AttentionTrained %in% c("Space" ,"Sham"),]
+tmpdat$AttentionTrained = factor(tmpdat$AttentionTrained)
+print(ttestBF(formula = RT_TrEfct ~ AttentionTrained, random= SubID, data = tmpdat))
+
+# run test Feature
+cat("Feature Vs. Sham\n")
+tmpdat = data[data$AttentionTrained %in% c("Feature" ,"Sham"),]
+tmpdat$AttentionTrained = factor(tmpdat$AttentionTrained)
+print(ttestBF(formula = RT_TrEfct ~ AttentionTrained, random= SubID, data = tmpdat))
+```
+
+Thus, we find evidence that both the space and feature neurofeedback groups differed from participants who recieved sham neurofeedback. Let's export some summary statistics to help report these results:
+
+```{r get_behavetraing_summarystats}
+
+# average
+dat = behavedata_train  %>% group_by(AttentionTrained)
+dat = dat %>% summarise(M=mean(RT_TrEfct), SD=sd(RT_TrEfct)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "RT training effect (Post training - Pre training")
+
+# average based on NFtraining
+dat = behavedata_train  %>% group_by(NFTraining)
+dat = dat %>% summarise(M=mean(RT_TrEfct), SD=sd(RT_TrEfct)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "RT training effect (Post training - Pre training")
+
+```
+
+#### Inverse Efficiency ANOVA
+
+Hmm - looks like the space group increased their reaction time more than sham, but the feature-based group increased less than sham. Do we have some speed-accuracy trade-off effects? Let's have a look at inverse efficiency.
+
+```{r - ANOVA inverse efficienc}
+
+# group data
+data <- behavedata %>% group_by(SubID, Testday, AttentionTrained) %>% summarise(InverseEfficiency=mean(InverseEfficiency)) %>% as.data.frame()
+
+# Plot
+boxplot(InverseEfficiency ~ Testday*AttentionTrained , data = data, col=c("#69b3a2","#003366"), xlab = "InverseEfficiency data: InverseEfficiency vs attention trained, given testday", ylab = "InverseEfficiency")
+
+# tests
+DisplayANOVAResults2X2(formula = InverseEfficiency ~ AttentionTrained*Testday + SubID, data=data, maineffectstringA = "Neurofeedback training group:", maineffectstringB = "Test day:")
+```
+
+```{r IE - medatdata summary statistics}
+
+# average
+dat = behavedata  %>% group_by(AttentionTrained, Testday)
+dat = dat %>% summarise(M=mean(InverseEfficiency ), SD=sd(InverseEfficiency)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "Sensitivity (d') training effect (Post training - Pre training")
+```
+
+#### Inverse efficiency followup JZS T-tests
+
+Ok, so inverse efficiency training effects are changing by neurofeedback condition! let's follow that up.
+
+```{r IE_ttest_SpaceFeat, message=FALSE, warning=FALSE}
+
+# group data
+data <- behavedata_train %>% group_by(SubID, AttentionTrained, Attention.Type) %>% summarise(IE_TrEfct=mean(IE_TrEfct)) %>% as.data.frame()
+
+# run test Space
+cat("Space Vs. Sham\n")
+tmpdat = data[data$AttentionTrained %in% c("Space" ,"Sham"),]
+tmpdat$AttentionTrained = factor(tmpdat$AttentionTrained)
+print(ttestBF(formula = IE_TrEfct ~ AttentionTrained, random= SubID, data = tmpdat))
+
+# run test Feature
+cat("Feature Vs. Sham\n")
+tmpdat = data[data$AttentionTrained %in% c("Feature" ,"Sham"),]
+tmpdat$AttentionTrained = factor(tmpdat$AttentionTrained)
+print(ttestBF(formula = IE_TrEfct ~ AttentionTrained, random= SubID, data = tmpdat))
+
+# run test Space vs Feature
+cat("Feature Vs. Space\n")
+tmpdat = data[data$AttentionTrained %in% c("Feature" ,"Space"),]
+tmpdat$AttentionTrained = factor(tmpdat$AttentionTrained)
+print(ttestBF(formula = IE_TrEfct ~ AttentionTrained, random= SubID, data = tmpdat))
+```
+
+```{r get_behavetraing_summarystats}
+
+# average
+dat = behavedata_train  %>% group_by(AttentionTrained)
+dat = dat %>% summarise(M=mean(IE_TrEfct), SD=sd(IE_TrEfct)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "IE training effect (Post training - Pre training")
+
+# average based on NFtraining
+dat = behavedata_train  %>% group_by(NFTraining)
+dat = dat %>% summarise(M=mean(IE_TrEfct), SD=sd(IE_TrEfct)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "IE training effect (Post training - Pre training")
+
+```
+
+So there's a significant improvement in inverse efficiency for the active neurofeedback groups, but not for sham!
+
+### Behavioural Results Analysis - Trying something different (to remove section)
+
+#### Methodological background
+
+Before and after neurofeedback training, participants performed attention tests which involved monitoring fields of moving dots for target events, while ignoring distractor events. To evaluate participants to selectively attend to the cued targets in this task, we computed the sensitivity (*d'*) of their responses. Sensitivity is a measure of participants' response selectivity, which describes how well they were able to identify targets and reject distractors. The method used to calculate sensitivity is described here:
+
+Macmillan, N. A. (2002). Signal detection theory. *Stevens' handbook of experimental psychology*, *4*, 43-90.
+
+#### Load Data
+
+We'll start by loading in the behavioral data. We'll load our data regarding participants performance across a number of measures, for each experimental condition.
+
+```{r load_behave_data}
+# load in data
+behavedata = read.csv("/Users/angie/Nextcloud/VISATTNNF-Q1357/Results/CompareSpaceFeat/group/motiondiscrim_behaveresults_HighClassificationAcc.csv")
+
+# factorise existing factors
+behavedata$Testday = factor(behavedata$Testday, levels=c( "Day 1", "Day 4"))
+levels(behavedata$Testday) = c( "pre-training", "post-training")
+behavedata$SubID = factor(behavedata$SubID)
+
+# Specificity
+tmpsp= behavedata[behavedata$AttentionTrained=="Space",] 
+tmpft= behavedata[behavedata$AttentionTrained=="Feature",] 
+tmpsh= behavedata[behavedata$AttentionTrained=="Sham",] 
+
+tmpsp = tmpsp[tmpsp$Attention.Type=="Space",]
+tmpft = tmpft[tmpft$Attention.Type=="Feature",]
+
+tmpshsp = tmpsh[tmpsh$Attention.Type=="Space",]
+tmpshsp$AttentionTrained = "Sham_Space"
+tmpshft = tmpsh[tmpsh$Attention.Type=="Feature",]
+tmpshft$AttentionTrained = "Sham_Feature"
+
+behavedata = do.call("rbind", list(tmpsp, tmpft, tmpshsp, tmpshft))
+
+# Factorise again
+behavedata$AttentionTrained = factor(behavedata$AttentionTrained) #, levels=c("Feature", "Sham_Feature", "Sham_Space", "Space")
+behavedata$Attention.Type = factor(behavedata$Attention.Type) #, levels=c("Space", "Feature")
+
+
+# Create new factor to describe the difference between NF and sham. 
+behavedata$NFTraining = behavedata$AttentionTrained
+levels(behavedata$NFTraining) = c( "Neurofeedback", "Sham", "Sham","Neurofeedback")
+
+
+# Show table data in markdown output
+data <- behavedata[1:10, ]
+knitr::kable(data, caption = "Sample of Behavioural Data")
+```
+
+The key effect we're interested in is whether changes in sensitivity (d') from pre-training to post-training depend on Neurofeedback training, so we'll calculate this difference for each of our participants and conditions.
+
+```{r calculate_behave_trainingeffects}
+## Preallocate
+behavedata_train = behavedata[behavedata$Testday=="pre-training",]
+
+## Calculate training effects
+behavedata_train$Sensitivity_TrEfct = behavedata[behavedata$Testday=="post-training",]$Sensitivity - behavedata[behavedata$Testday=="pre-training",]$Sensitivity
+
+behavedata_train$RT_TrEfct = behavedata[behavedata$Testday=="post-training",]$RT - behavedata[behavedata$Testday=="pre-training",]$RT
+
+behavedata_train$IE_TrEfct = behavedata[behavedata$Testday=="post-training",]$InverseEfficiency - behavedata[behavedata$Testday=="pre-training",]$InverseEfficiency
+```
+
+#### Behavioural sensitivity training effects ANOVA
+
+First, lets visualise the attentional selectivity data for each of our neurofeedback training groups, on each of the test days.
+
+```{r plot_Sensitivity_data, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
+
+# group data
+data <- behavedata %>% group_by(SubID, Testday, NFTraining) %>% summarise(Sensitivity=mean(Sensitivity)) %>% as.data.frame()
+
+# Plot
+boxplot(Sensitivity ~ Testday*NFTraining , data = data, col=c("#69b3a2","#003366"), xlab = "Sensitivity data: Sensitivity vs attention trained, given testday", ylab = "Sensitivity (d')")
+
+# group data
+data <- behavedata %>% group_by(SubID, Testday, AttentionTrained) %>% summarise(Sensitivity=mean(Sensitivity)) %>% as.data.frame()
+
+# Plot
+boxplot(Sensitivity ~ Testday*AttentionTrained , data = data, col=c("#69b3a2","#003366"), xlab = "Sensitivity data: Sensitivity vs attention trained, given testday", ylab = "Sensitivity (d')")
+```
+
+Here, we're interested in whether there is a main effect of test day overall (aka, did sensitivity (d') change from before to after training?) and whether any effects of test day interacted with the neurofeedback training type that participants recieved (active, sham).
+
+```{r behave_ANOVA}
+# group data
+data <- behavedata %>% group_by(SubID, Testday, NFTraining) %>% summarise(Sensitivity=mean(Sensitivity)) %>% as.data.frame()
+
+# tests
+DisplayANOVAResults2X2(formula = Sensitivity ~ NFTraining*Testday + SubID, data=data, maineffectstringA = "Neurofeedback training group:", maineffectstringB = "Test day:")
+
+
+for (attntype in c('Space', 'Feature')){
+  cat(attntype)
+  # group data
+  data = behavedata[behavedata$Attention.Type==attntype, ]
+  data <- data %>% group_by(SubID, Testday, AttentionTrained) %>% summarise(Sensitivity=mean(Sensitivity)) %>% as.data.frame()
+
+  # tests
+  DisplayANOVAResults2X2(formula = Sensitivity ~ AttentionTrained*Testday + SubID, data=data, maineffectstringA = "Neurofeedback training group:", maineffectstringB = "Test day:")
+}
+```
+
+We find decisive evidence for a main effect of test day, so participants improved on the attention task with training, overall. There is also anecdotal evidence that behavioural training effects depend on the neurofeedback condition (active, sham). In the graph above, training effects appear to be larger for the active neurofeedback condition (compared to sham), so we will follow that up evaluating the strength of the evidence for this effect. First through, let's export some summary statistics to help us report this result:
+
+```{r get_behave_summarystats}
+
+# average
+dat = behavedata  %>% group_by(NFTraining, Testday)
+dat = dat %>% summarise(M=mean(Sensitivity), SD=sd(Sensitivity)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "Sensitivity (d') training effect (Post training - Pre training")
+```
+
+#### Follow-up JZS t-tests
+
+We found evidence that the effect of test day on behavioural performance interacted with neurofeedback. Let's follow this up by directly investigating whether training effects differed across groups:
+
+```{r sensitivity_ttest_NF, message=FALSE, warning=FALSE}
+
+# group data
+data <- behavedata_train %>% group_by(SubID, NFTraining, Attention.Type) %>% summarise(Sensitivity_TrEfct=mean(Sensitivity_TrEfct)) %>% as.data.frame()
+
+# run test
+print(ttestBF(formula = Sensitivity_TrEfct ~ NFTraining , data = data))
+
+```
+
+Thus, we find substantial evidence that participants receiving active neurofeedback improved more than participants receiving sham neurofeedback. Let's break this down by type of active neurofeedback:
+
+```{r sensitivity_ttest_SpaceFeat, message=FALSE, warning=FALSE}
+
+# group data
+data <- behavedata_train %>% group_by(SubID, AttentionTrained, Attention.Type) %>% summarise(Sensitivity_TrEfct=mean(Sensitivity_TrEfct)) %>% as.data.frame()
+
+# run test Space
+cat("Space Vs. Sham\n")
+tmpdat = data[data$AttentionTrained %in% c("Space" ,"Sham_Space"),]
+tmpdat$AttentionTrained = factor(tmpdat$AttentionTrained)
+print(ttestBF(formula = Sensitivity_TrEfct ~ AttentionTrained, data = tmpdat))
+
+# run test Feature
+cat("Feature Vs. Sham\n")
+tmpdat = data[data$AttentionTrained %in% c("Feature" ,"Sham_Feature"),]
+tmpdat$AttentionTrained = factor(tmpdat$AttentionTrained)
+print(ttestBF(formula = Sensitivity_TrEfct ~ AttentionTrained, data = tmpdat))
+```
+
+Thus, we find anecdotal evidence that both the space and feature neurofeedback groups improved more on the attention task overall than participants who recieved sham neurofeedback. Let's export some summary statistics to help report these results:
+
+```{r get_behavetraing_summarystats}
+
+# average
+dat = behavedata_train  %>% group_by(AttentionTrained)
+dat = dat %>% summarise(M=mean(Sensitivity_TrEfct), SD=sd(Sensitivity_TrEfct)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "SSVEP Selectivity training effect (Post training - Pre training")
+
+# average based on NFtraining
+dat = behavedata_train  %>% group_by(NFTraining)
+dat = dat %>% summarise(M=mean(Sensitivity_TrEfct), SD=sd(Sensitivity_TrEfct)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "Sensitivity (d') training effect (Post training - Pre training")
+
+```
+
+#### Behavioural RT training effects ANOVA
+
+First, lets visualise the attentional selectivity data for each of our neurofeedback training groups, on each of the test days.
+
+```{r RT, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
+
+# group data
+data <- behavedata %>% group_by(SubID, Testday, NFTraining) %>% summarise(RT=mean(RT)) %>% as.data.frame()
+
+# Plot
+boxplot(RT ~ Testday*NFTraining , data = data, col=c("#69b3a2","#003366"), xlab = "Sensitivity data: Sensitivity vs attention trained, given testday", ylab = "Sensitivity (d')")
+
+# group data
+data <- behavedata %>% group_by(SubID, Testday, AttentionTrained) %>% summarise(RT=mean(RT)) %>% as.data.frame()
+
+# Plot
+boxplot(RT ~ Testday*AttentionTrained , data = data, col=c("#69b3a2","#003366"), xlab = "Sensitivity data: Sensitivity vs attention trained, given testday", ylab = "Sensitivity (d')")
+```
+
+Here, we're interested in whether there is a main effect of test day overall (aka, did sensitivity (d') change from before to after training?) and whether any effects of test day interacted with the neurofeedback training type that participants recieved (active, sham).
+
+```{r behave_ANOVA}
+# group data
+data <- behavedata %>% group_by(SubID, Testday, NFTraining) %>% summarise(RT=mean(RT)) %>% as.data.frame()
+
+# tests
+DisplayANOVAResults2X2(formula = RT ~ NFTraining*Testday + SubID, data=data, maineffectstringA = "Neurofeedback training group:", maineffectstringB = "Test day:")
+
+
+for (attntype in c('Space', 'Feature')){
+  cat(attntype)
+  # group data
+  data = behavedata[behavedata$Attention.Type==attntype, ]
+  data <- data %>% group_by(SubID, Testday, AttentionTrained) %>% summarise(RT=mean(RT)) %>% as.data.frame()
+
+  # tests
+  DisplayANOVAResults2X2(formula = RT ~ AttentionTrained*Testday + SubID, data=data, maineffectstringA = "Neurofeedback training group:", maineffectstringB = "Test day:")
+}
+```
+
+We find decisive evidence for a main effect of test day, so participants improved on the attention task with training, overall. There is also anecdotal evidence that behavioural training effects depend on the neurofeedback condition (active, sham). In the graph above, training effects appear to be larger for the active neurofeedback condition (compared to sham), so we will follow that up evaluating the strength of the evidence for this effect. First through, let's export some summary statistics to help us report this result:
+
+```{r get_behave_summarystats}
+
+# average
+dat = behavedata  %>% group_by(NFTraining, Testday)
+dat = dat %>% summarise(M=mean(RT), SD=sd(RT)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "RT (d') training effect (Post training - Pre training")
+```
+
+#### Follow-up JZS t-tests
+
+We found evidence that the effect of test day on behavioural performance interacted with neurofeedback. Let's follow this up by directly investigating whether training effects differed across groups:
+
+```{r sensitivity_ttest_NF, message=FALSE, warning=FALSE}
+
+# group data
+data <- behavedata_train %>% group_by(SubID, NFTraining, Attention.Type) %>% summarise(RT_TrEfct=mean(RT_TrEfct)) %>% as.data.frame()
+
+# run test
+print(ttestBF(formula = RT_TrEfct ~ NFTraining , data = data))
+
+```
+
+Thus, we find substantial evidence that participants receiving active neurofeedback improved more than participants receiving sham neurofeedback. Let's break this down by type of active neurofeedback:
+
+```{r sensitivity_ttest_SpaceFeat, message=FALSE, warning=FALSE}
+
+# group data
+data <- behavedata_train %>% group_by(SubID, AttentionTrained, Attention.Type) %>% summarise(RT_TrEfct=mean(RT_TrEfct)) %>% as.data.frame()
+
+# run test Space
+cat("Space Vs. Sham\n")
+tmpdat = data[data$AttentionTrained %in% c("Space" ,"Sham_Space"),]
+tmpdat$AttentionTrained = factor(tmpdat$AttentionTrained)
+print(ttestBF(formula = RT_TrEfct ~ AttentionTrained, data = tmpdat))
+
+# run test Feature
+cat("Feature Vs. Sham\n")
+tmpdat = data[data$AttentionTrained %in% c("Feature" ,"Sham_Feature"),]
+tmpdat$AttentionTrained = factor(tmpdat$AttentionTrained)
+print(ttestBF(formula = RT_TrEfct ~ AttentionTrained, data = tmpdat))
+```
+
+Thus, we find anecdotal evidence that both the space and feature neurofeedback groups improved more on the attention task overall than participants who recieved sham neurofeedback. Let's export some summary statistics to help report these results:
+
+```{r get_behavetraing_summarystats}
+
+# average
+dat = behavedata_train  %>% group_by(AttentionTrained)
+dat = dat %>% summarise(M=mean(Sensitivity_TrEfct), SD=sd(Sensitivity_TrEfct)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "SSVEP Selectivity training effect (Post training - Pre training")
+
+# average based on NFtraining
+dat = behavedata_train  %>% group_by(NFTraining)
+dat = dat %>% summarise(M=mean(Sensitivity_TrEfct), SD=sd(Sensitivity_TrEfct)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "Sensitivity (d') training effect (Post training - Pre training")
+
+```
+## Evaluate Training Specificity
+
+It was evident that active neurofeedback training resulted in a greater overall change in patterns of neural activity than sham. However, it is unclear from this finding alone whether the change was specific to the decoded cognitive function. We therefore next evaluated whether neural and behavioural measures of attention improved in a manner that was specific to the type of active neurofeedback (targetting spatial vs. feature-based attention) that participants received.
+
+### Representational Similarity Analysis (RSA)
+
+The RSA analysis above demonstrated that active neurofeedback groups shifted their task representation more than the sham neurofeedback group. We next asked whether these shifts in task representation were toward a more or less optimal state for spatial or feature-based attention.
+
+To this end, we identified the two groups of participants who performed in the top tenth percentile (when averaging across all test days) when cued to excerpt spatial and feature-based attentional selection, respectively. We computed RDMs for each of these two groups (Space experts, feature-based experts), and then evaluated how similarly the remaining participants represented the task to these experts before vs. after neurofeedback training.
+
+#### Load Data
+
+We begin by loading in the RSA results for this analysis. These data show the bootstrapped representational dissimilarity data to experts at each cue type (space, feature) for each neurofeedback group (Space, Feature, Sham). Data represent a difference score from before to after neurofeedback training (i.e. similarity post-training - similarity pre-training)
+
+We'll add a new factor ("NFTraining") with two just two levels (Neurofeedback, Sham), so that we have the option to evaluate the effect of getting active neurofeedback , regardless of what type of attention the feedback represented.
+
+```{r Load_RSA_data_specific}
+
+# load data
+RSAdata = read.csv("//data.qbi.uq.edu.au/VISATTNNF-Q1357/Results/CompareSpaceFeat/group/RSA_bybehave_results.csv")
+
+# factorise existing factors
+RSAdata$TrainingGroup = factor(RSAdata$TrainingGroup)
+RSAdata$Cuetype = factor(RSAdata$Cuetype)
+
+# Show table data in markdown output
+data <- RSAdata[1:10, ]
+knitr::kable(data, caption = "Sample of RSA Data")
+ 
+```
+
+Let's visualise these data before we test our hypotheses.
+
+```{r plot_RSAspecific_data, fig.height=5, fig.width=10}
+
+# Plot
+boxplot(RDM_Score_effect ~ TrainingGroup*Cuetype  , data = RSAdata, col=c("#69b3a2","#003366"),
+       xlab = "Training group x cue expertise", ylab = "RSA training effect (post - pre training)")
+```
+
+#### Bayesian ANOVA
+
+We're curious about whether there was any interaction between the type of training participants received (space, feature) and the type of shift in task representation they shifted toward after training (space experts, feature experts). We therefore run a 2x2 Bayesian anova to evaluate the strength of evidence for an interaction between these two factors.
+
+```{r Run_RSASpecific_ANOVA}
+
+# Run ANOVA
+DisplayANOVAResults2X2(formula = RDM_Score_effect ~ TrainingGroup*Cuetype, data=RSAdata, maineffectstringA = "Training group:", maineffectstringB = "Cue expertise:")
+```
+
+We find decisive evidence for an interaction between neurofeedback training type (Space, Feature) and cue expertise (space, feature), suggesting that the direction of the shift in task representation depended on the type of active neurofeedback training that participants received.
+
+#### Follow-up JZS t-tests
+
+To follow up this interaction, let's evaluate the effect of cue expertise separately for each of our active neurofeedback training groups, starting with space:
+
+```{r Run_RSASpecific_ttests_space}
+
+# Space group
+datuse = RSAdata[RSAdata$TrainingGroup == "Space",]
+print(ttestBF(formula = RDM_Score_effect ~ Cuetype, data=datuse))
+
+# print out result
+dat = datuse   %>% group_by(Cuetype)
+dat = dat %>% summarise(M=mean(RDM_Score_effect), SD=sd(RDM_Score_effect)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "Space groups Representational dissimilarity to each group of experts")
+
+```
+
+There is decisive evidence the active neurofeedback group trained on spatial attention shifted to represent the task more similarly to experts at the space cue, compared with experts on the feature cue.
+
+How about the feature training group?
+
+```{r Run_RSASpecific_ttests_Feature}
+
+# Feature group
+datuse = RSAdata[RSAdata$TrainingGroup == "Feature",]
+print(ttestBF(formula = RDM_Score_effect ~ Cuetype, data=datuse))
+
+# print out result
+dat = datuse   %>% group_by(Cuetype)
+dat = dat %>% summarise(M=mean(RDM_Score_effect), SD=sd(RDM_Score_effect)) %>% as.data.frame()
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "Feature groups Representational dissimilarity to each group of experts")
+
+
+```
+
+Here, there is decisive evidence the active neurofeedback group trained on feature-based attention shifted to represent the task more similarly to experts at the feature cue, compared with experts on the space cue.
+
+Thus, it appears that there was a specific training effect, such that active neurofeedback training shifted the patterns of neural activity evoked by the attention task in a direction specifically associated with optimal performance on the trained cue-type.
+
+#### MCMC Gibbs Sampling
+
+To get a more intuitive understanding of the scale of this specific training effect, we'll use an MCMC Gibbs sampling approach to estimate the likely distributions of the shift toward "congruent" (space training group toward space cue experts & feature training group toward feature cue experts) vs. "incongruent" (space training group toward feature cue experts & feature training group toward space cue experts) expert's representations in the populations.
+
+We'll begin by setting up Gibbs sampling models using rjags. We'll compare two different models. A simple model in which we allow the mean to differ across groups, but use a common variance, and a more complicated model with unique variances for each group. We'll compute both and evaluate which fits best (penalising for model complexity).
+
+let's begin by organising the data to create the new congruency factor.
+
+```{r MCMC_RSAspecific_dataorg}
+
+# Rename levels of cue type factor so that they'll match the training group factor names
+datause = RSAdata
+levels(datause$Cuetype) = c("Feature", "Space")
+
+# Define the congruence factor based on whether training group and cue type match
+datause$trainingcongruence = factor(datause$TrainingGroup == datause$Cuetype)
+levels(datause$trainingcongruence) = c("incongruent","congruent")
+
+```
+
+Let's visualise these data to make sure they look as we'd expect from the result above:
+
+```{r visualise_RSAspecific_congruence, fig.height=4, fig.width=6}
+
+boxplot(RDM_Score_effect ~ trainingcongruence, data=datause, col="#69b3a2")
+```
+
+Looks good! Let's set up our models.
+
+```{r MCMC_RSASpecific_define}
+
+# set model strings for how model parameters will be updated on each iteration. Model means will be sampled from a normal distribution, and precision will be sampled from a gamma distribution
+
+# Simpler model
+mod_string1 = " model {
+    for (i in 1:length(y)) {
+        y[i] ~ dnorm(mu[grp[i]], prec)
+    }
+    
+    for (j in 1:2) {
+        mu[j] ~ dnorm(0.0, 1.0/1.0e6)
+    }
+    
+    prec ~ dgamma(5/2.0, 5*1.0/2.0)
+    sig = sqrt( 1.0 / prec )
+} "
+
+# more complex model
+
+mod_string2 = " model {
+    for (i in 1:length(y)) {
+        y[i] ~ dnorm(mu[grp[i]], prec[grp[i]])
+    }
+    
+    for (j in 1:2) {
+        mu[j] ~ dnorm(0.0, 1.0/1.0e6)
+        prec[j] ~ dgamma(5/2.0, 5*1.0/2.0)
+    
+    }
+    sig = sqrt( 1.0 / prec )
+} "
+  
+
+# set and initialise the model parameters with broad, non-informative priors. 
+params = c("mu", "sig")
+inits1 = function() {
+  inits = list("mu"=rnorm(2,0.0,100.0), "prec"=rgamma(1,1.0,1.0))
+}
+
+inits2 = function() {
+  inits = list("mu"=rnorm(2,0.0,100.0), "prec"=rgamma(2,1.0,1.0))
+}
+
+# the data we'll use - in this case the RDM Scores grouped by congruence. 
+data_jags = list(y=datause$RDM_Score_effect, 
+                 grp=as.numeric(datause$trainingcongruence))
+
+
+# Pass the parameters and models to jags. 
+#simpler model
+mod1 = jags.model(textConnection(mod_string1), data=data_jags, inits=inits1, n.chains=3)
+
+#more complex model
+mod2 = jags.model(textConnection(mod_string2), data=data_jags, inits=inits2, n.chains=3)
+```
+
+Next, let's compare the fits of the two models:
+
+```{r MCMC_RSASpecific_update}
+# update model 1000 times
+update(mod1, 1e3)
+update(mod2, 1e3)
+
+# compute the DIC - the smaller the dic the better the fit
+cat("simpler model DIC:")
+(dic1=dic.samples(mod1, n.iter=1e3))
+cat("more complex model DIC:")
+(dic2=dic.samples(mod2, n.iter=1e3))
+
+# Set the model
+mod = mod1
+
+```
+
+Once again, it looks like model 1 (the simpler model with matched variance across levels of congruence) has the better fit (when penalising for complexity). Next, we'll run our simulation, using the winning model to sample from our 3 chains 5000 times each:
+
+```{r MCMC_RDM_specific_modelsample}
+# sample from model.
+mod_sim = coda.samples(model=mod, variable.names=params, n.iter=5e3)
+mod_csim = as.mcmc(do.call(rbind, mod_sim)) # combined chains
+
+# display sample
+summary(mod_sim)
+```
+
+It looks like on a whole, our model has recovered the means and standard deviations pretty well. Let's plot the chains:
+
+```{r MCMC_RDM_plotchains_specific, fig.height=3, fig.width=5}
+
+# plot chains
+traceplot(mod_sim)
+```
+
+The chains look to have converged well and don't look auto correlated. Let's run some diagnosics to be sure:
+
+```{r MCMC_RDM_diagnostics_specific}
+gelman.diag(mod_sim)
+autocorr.diag(mod_sim)
+cat('\n Effective sample sizes:\n')
+effectiveSize(mod_sim)
+```
+
+The Gelman statistics for all of our parameters are 1, suggesting the model has converged. The chains are not autocorrelated, suggesting we've thinned them enough, and the effective sample sizes are the same as the true sample size of 3 chains \* 5000 samples = 15000. Thus, there are no major issues with our model fitting.
+
+Finally, lets look at the residuals to evaluate if there are any obvious problems with the model choice:
+
+```{r MCMC_RDM_resids_specific, fig.height=3, fig.width=4}
+
+# calculate parameter means
+pm_params = colMeans(mod_csim)
+yhat = pm_params[1:3][data_jags$grp]
+
+# calculate reisduals
+resid = data_jags$y - yhat
+
+# plot the residuals
+plot(resid)
+plot(yhat, resid) # need to allow different variances across groups. 
+
+```
+
+The residuals don't seem correlated with index, everything looks great!
+
+Now that we're satisfied that our model has fit the data well, lets plot the posterior distributions over mean training effect for each group.
+
+```{r MCMC_RDM_plot_specifics, fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
+
+darkteal = rgb(18 / 255, 47 / 255, 65 / 255)
+medteal = rgb(5 / 255, 133 / 255, 134 / 255)
+
+#Sample data
+lightteal=rgb(0.298, 0.725,0.624)
+medteal=rgb(0.09, 0.349, 0.388)
+datplot <- data.frame(valuse = c(mod_csim[,1],mod_csim[,2]), chain = c(rep("incongruent", length(mod_csim[,1])), rep("congruent", length(mod_csim[,1]))))
+
+#Plot.
+plt=ggplot(datplot, aes(x = valuse, fill = chain)) + geom_density(alpha = 0.5) + scale_fill_manual( values = c(lightteal,medteal))
+plt+ xlim(-0.2,0.2) + theme_classic()
+
+```
+
+It's clear that participant's task representations shifted toward the congruent experts' and away from the incongruent experts. Lets get some metrics on this.
+
+```{r MCMC_RDMstats_specific, echo=FALSE}
+#highest posterior density for each parameter
+cat("HPD interval by parameter:\n")
+(HPDinterval(mod_csim))
+
+# what is the likelihood of getting a shift closer toward congruent experts than incongruent experts?
+(mean(mod_csim[,2] < mod_csim[,1])) # space v sham
+
+
+```
+
+This represents extremely compelling evidence that active neurofeedback training is likely to lead to a shift toward the specific neural representation associated with good performance on the trained mode of attention.
+
+### Specificity of behavioural training effects
+
+Our analysis of the RSA data suggested that patterns of neural activity shifted in a manner that was specific to the type of neurofeedback training that was applied. Did this translate to specific behavioural training effects?
+
+#### Select Data
+
+To find out, we'll begin by getting the data from our two active neurofeedback training conditions.
+
+```{r Select_specific_behave_data}
+
+behavedata_train_spft = behavedata_train[behavedata_train["AttentionTrained"]=="Space" | behavedata_train["AttentionTrained"]=="Feature", ]
+behavedata_train_spft$AttentionTrained = factor(behavedata_train_spft$AttentionTrained)
+```
+
+Before we run any analysis, we'll visualise the data:
+
+```{r plot_behavespecific_data, fig.height=5, fig.width=10}
+
+# Plot
+boxplot(Sensitivity_TrEfct ~ AttentionTrained*Attention.Type  , data = behavedata_train_spft, col=c("#69b3a2","#003366"), xlab = "Training group x attentional cue", ylab = "Sensitivity training effect (d' | post - pre training)")
+```
+
+It doesn't look like there is any interaction between attentional cue-type and neurofeedback training type. Lets test that out statistically:
+
+#### Specific behavioural training effects ANOVA
+
+```{r behave_specific_ANOVA}
+
+# group data
+data <- behavedata_train_spft %>% group_by(SubID, AttentionTrained, Attention.Type) %>% summarise(Sensitivity_TrEfct=mean(Sensitivity_TrEfct)) %>% as.data.frame()
+
+
+# tests
+DisplayANOVAResults2X2(formula = Sensitivity_TrEfct ~ AttentionTrained * Attention.Type, data=data, maineffectstringB = "Neurofeedback training group:", maineffectstringA = "Attention cue type:")
+
+```
+
+Thus, there is decisive evidence for a main effect of attentional cue type, such that participants improved more on the space cue than the feature cue. However, there is anecdotal evidence that this factor did not interact with the type of training participants received.
+
+It therefore appears that while neurofeedback training had a specific effect on task-evoked neural activity, this did not translate to a specific behavioural training effect on the attentional task.
+
+We'll finish off by exporting some descriptive statistics to help us report this result.
+
+```{r get_behavespecific_summarystats}
+
+dat <- behavedata_train_spft %>% group_by(Attention.Type) 
+dat = dat %>% summarise(M=mean(Sensitivity_TrEfct), SD=sd(Sensitivity_TrEfct)) %>% as.data.frame()
+
+
+# Show table data in markdown output
+knitr::kable(dat, caption = "Specific sensitivity training effect (d' | Post training - Pre training)")
+
+```
+
+## Alpha Analysis
+
+Words on background 
+
+#### Load Data
+
+More words
+
+```{r Load_RSA_data_specific}
+
+# load data
+alphadata = read.csv("/Users/angie/Nextcloud/VISATTNNF-Q1357/Results/CompareSpaceFeat/group/EEGAlphaResults.csv")
+
+# factorise existing factors
+alphadata$AttentionTrained = factor(alphadata$AttentionTrained)
+alphadata$Attention_Type = factor(alphadata$Attention_Type)
+alphadata$TestDay = factor(alphadata$TestDay)
+alphadata$SubID = factor(alphadata$SubID)
+
+# Create new factor to describe the difference between NF and sham. 
+alphadata$NFTraining = alphadata$AttentionTrained
+levels(alphadata$NFTraining) = c( "Neurofeedback", "Sham","Neurofeedback")
+
+# Show table data in markdown output
+data <- alphadata[1:10, ]
+knitr::kable(data, caption = "Sample of Alpha  Data")
+ 
+```
+
+## Preallocate
+```{r Get training dataframe}
+tmp = alphadata %>% group_by(SubID, NFTraining, TestDay)
+alphadata_train = tmp[tmp$TestDay=="pre-training",]
+
+## Calculate training effects
+alphadata_train$Alpha_TrEfct = tmp[tmp$TestDay=="post-training",]$Alpha.Peak - tmp[tmp$TestDay=="pre-training",]$Alpha.Peak
+alphadata_train$Exponent_TrEfct = tmp[tmp$TestDay=="post-training",]$FOOOF.Exponent - tmp[tmp$TestDay=="pre-training",]$FOOOF.Exponent
+alphadata_train$Offset_TrEfct = tmp[tmp$TestDay=="post-training",]$FOOOF.Offset - tmp[tmp$TestDay=="pre-training",]$FOOOF.Offset
+```
+
+Let's visualise these data before we test our hypotheses.
+
+```{r plot_RSAspecific_data, fig.height=5, fig.width=10}
+
+# Plot
+boxplot(Alpha.Peak ~ TestDay*AttentionTrained  , data = alphadata, col=c("#69b3a2","#003366"),
+       xlab = "AttentionTrained*TestDay", ylab = "Alpha Power")
+
+boxplot(FOOOF.rsquared~ TestDay*AttentionTrained  , data = alphadata, col=c("#69b3a2","#003366"),
+       xlab = "AttentionTrained*TestDay", ylab = "FOOOF.rsquared")
+
+boxplot(FOOOF.Exponent~ TestDay*AttentionTrained  , data = alphadata, col=c("#69b3a2","#003366"),
+       xlab = "AttentionTrained*TestDay", ylab = "FOOOF.Exponent")
+
+boxplot(FOOOF.Offset~ TestDay*AttentionTrained  , data = alphadata, col=c("#69b3a2","#003366"),
+       xlab = "AttentionTrained*TestDay", ylab = "FOOOF.Offset")
+```
+
+#### Bayesian ANOVA
+ Look for training effects overall
+
+```{r Run_RSASpecific_ANOVA}
+
+# Run ANOVA
+DisplayANOVAResults2X2(formula = Alpha.Peak ~ TestDay*NFTraining + SubID, data=alphadata, maineffectstringA = "Test Day:", maineffectstringB = "NF Group:")
+DisplayANOVAResults2X2(formula = FOOOF.Exponent ~ TestDay*NFTraining + SubID, data=alphadata, maineffectstringA = "Test Day:", maineffectstringB = "NF Group:")
+DisplayANOVAResults2X2(formula = FOOOF.Offset ~ TestDay*NFTraining + SubID, data=alphadata, maineffectstringA = "Test Day:", maineffectstringB = "NF Group:")
+
+```
+
+Ok, so there seems to be an interaction for each of these. Lets get some summary stats
+
+```{r get_alpha_summarystats}
+
+# average
+dat = alphadata  %>% group_by(NFTraining, TestDay)
+
+
+# Alpha
+datsum = dat %>% summarise(M=mean(Alpha.Peak), SD=sd(Alpha.Peak)) %>% as.data.frame()
+knitr::kable(datsum, caption = "Alpha.Peak training effect (Post training - Pre training)")
+
+
+# Exponent
+datsum = dat %>% summarise(M=mean(FOOOF.Exponent), SD=sd(FOOOF.Exponent)) %>% as.data.frame()
+knitr::kable(datsum, caption = "FOOOF.Exponent training effect (Post training - Pre training)")
+# interestingly, these guys find a higher slope for higher temporal processing efficiency https://www.sciencedirect.com/science/article/pii/S0361923024001436 
+# and these guys find this: https://www.jneurosci.org/content/44/40/e2308232024.abstract
+#In other words, participants with flatter EEG spectra (i.e., greater neural excitation) exhibited increased sensory noise, resulting in shallower psychometric curves. Our #finding suggests that aperiodic EEG is linked to sensory integration processes usually attributed to the rhythmic inhibition of neural oscillations.
+
+# it also seems to be linked to the excitation/inhibition balance. 
+
+# Offset
+datsum = dat %>% summarise(M=mean(FOOOF.Offset), SD=sd(FOOOF.Offset)) %>% as.data.frame()
+knitr::kable(datsum, caption = "FOOOF.Offset training effect (Post training - Pre training)")
+```
+
+```{r Alpha_ttest_SpaceFeat, message=FALSE, warning=FALSE}
+
+# average
+dat = alphadata_train  %>% group_by(NFTraining, TestDay)
+
+# Alpha
+datsum = dat %>% summarise(M=mean(Alpha_TrEfct), SD=sd(Alpha_TrEfct)) %>% as.data.frame()
+knitr::kable(datsum, caption = "Alpha.Peak training effect (Post training - Pre training)")
+
+# Exponent
+datsum = dat %>% summarise(M=mean(Exponent_TrEfct), SD=sd(Exponent_TrEfct)) %>% as.data.frame()
+knitr::kable(datsum, caption = "FOOOF.Exponent training effect (Post training - Pre training)")
+
+dat = alphadata_train  %>% group_by(AttentionTrained, TestDay)
+datsum = dat %>% summarise(M=mean(Exponent_TrEfct), SD=sd(Exponent_TrEfct)) %>% as.data.frame()
+knitr::kable(datsum, caption = "FOOOF.Exponent training effect (Post training - Pre training)")
+
+```
+
+#### Follow-up JZS t-tests
+
+We found evidence that the effect of test day on behavioural performance interacted with neurofeedback. Let's follow this up by directly investigating whether training effects differed across groups:
+
+Thus, we find substantial evidence that participants receiving active neurofeedback improved more than participants receiving sham neurofeedback. Let's break this down by type of active neurofeedback:
+
+```{r Alpha_ttest_SpaceFeat, message=FALSE, warning=FALSE}
+
+# group data
+data <- alphadata_train %>% group_by(SubID, NFTraining, Attention_Type) 
+data = data %>% summarise(Alpha_TrEfct=mean(Alpha_TrEfct), Exponent_TrEfct=mean(Exponent_TrEfct), Offset_TrEfct=mean(Offset_TrEfct)) %>% as.data.frame()
+
+# run test Space
+print(ttestBF(formula = Alpha_TrEfct ~ NFTraining, random=SubID, data = data))
+print(ttestBF(formula = Offset_TrEfct ~ NFTraining, random=SubID, data = data))
+print(ttestBF(formula = Exponent_TrEfct ~ NFTraining, random=SubID, data = data))
+```
+A different, perhaps better? way of putting it (without the training effects)
+
+```{r Alpha_ttest_SpaceFeat, message=FALSE, warning=FALSE}
+
+# group data
+data <- alphadata %>% group_by(SubID, NFTraining, Attention_Type) 
+
+# run test Space
+cat("NF\n")
+tmpdat = data[data$NFTraining =="Neurofeedback" ,]
+print(ttestBF(formula = Alpha.Peak ~ TestDay, random=SubID, data = tmpdat))
+print(ttestBF(formula = FOOOF.Exponent ~ TestDay, random=SubID, data = tmpdat))
+print(ttestBF(formula = FOOOF.Offset ~ TestDay, random=SubID, data = tmpdat))
+
+cat("Sham\n")
+tmpdat = data[data$NFTraining =="Sham" ,]
+print(ttestBF(formula = Alpha.Peak ~ TestDay, random=SubID, data = tmpdat))
+print(ttestBF(formula = FOOOF.Exponent ~ TestDay, random=SubID, data = tmpdat))
+print(ttestBF(formula = FOOOF.Offset ~ TestDay, random=SubID, data = tmpdat))
+
+# group data
+data <- alphadata %>% group_by(SubID, AttentionTrained, Attention_Type) 
+
+# run test Space
+cat("Space\n")
+tmpdat = data[data$AttentionTrained =="Space" ,]
+print(ttestBF(formula = Alpha.Peak ~ TestDay, random=SubID, data = tmpdat))
+print(ttestBF(formula = FOOOF.Exponent ~ TestDay, random=SubID, data = tmpdat))
+print(ttestBF(formula = FOOOF.Offset ~ TestDay, random=SubID, data = tmpdat))
+
+
+# run test Space
+cat("Feature\n")
+tmpdat = data[data$AttentionTrained =="Feature" ,]
+print(ttestBF(formula = Alpha.Peak ~ TestDay, random=SubID, data = tmpdat))
+print(ttestBF(formula = FOOOF.Exponent ~ TestDay, random=SubID, data = tmpdat))
+print(ttestBF(formula = FOOOF.Offset ~ TestDay, random=SubID, data = tmpdat))
+
+
+# run test Space cue
+data <- alphadata %>% group_by(SubID, AttentionTrained, Attention_Type) 
+
+
+tmpdat = data[(data$Attention_Type =="Space")& (data$AttentionTrained =="Space"),]
+print(ttestBF(formula = Alpha.Peak ~ TestDay, random=SubID, data = tmpdat))
+print(ttestBF(formula = FOOOF.Exponent ~ TestDay, random=SubID, data = tmpdat))
+print(ttestBF(formula = FOOOF.Offset ~ TestDay, random=SubID, data = tmpdat))
+
+
+
