@@ -5,9 +5,10 @@ import pandas as pd
 
 import helperfunctions_ATTNNF as helper
 
-import fooof
+import seaborn as sns
 import matplotlib.pyplot as plt
 from collections import defaultdict
+
 from fooof import FOOOF
 from fooof.utils import trim_spectrum, interpolate_spectrum
 
@@ -155,19 +156,105 @@ def CollateEEGprepost(settings, sub_val):
 
             filename = bids.direct_results / Path(bids.substring + "EEG_alpha_results.pkl")
             alpha_results_pd = pd.read_pickle(filename)
-            alpha_results_all = pd.concat((alpha_results_all, alpha_results_pd))
+
+            # fix up
+            if (len(alpha_results_pd)>0):
+                # threshold
+                alpha_results_pd = alpha_results_pd.loc[alpha_results_pd['FOOOF rsquared'] > .8, :]
+
+                # make sure we have an even sample across testdays
+                a = len(alpha_results_pd.loc[alpha_results_pd['TestDay'] == 'pre-training', :])>0
+                b = len(alpha_results_pd.loc[alpha_results_pd['TestDay'] == 'post-training', :])>0
+                if a & b:
+                    alpha_results_all = pd.concat((alpha_results_all, alpha_results_pd))
+
+    alpha_results_all = alpha_results_all.reset_index()
 
     # Fill nans
-    alpha_results_all.loc[np.isnan(alpha_results_all['Alpha Peak']),'Alpha Peak'] = 0
-    alpha_results_all = alpha_results_all.loc[alpha_results_all['FOOOF rsquared']>.95, :]
+    alpha_results_all.loc[np.isnan(alpha_results_all['Alpha Peak']), 'Alpha Peak'] = 0
+    alpha_results_all.loc[:, 'SubID'] = alpha_results_all.loc[:, 'SubID'] + '_' + alpha_results_all.loc[:, 'AttentionTrained']
+
+    # Save to csv
+    alpha_results_all.to_csv(bids.direct_results_group_compare / Path("EEGAlphaResults.csv"), index=False)
+
+    #
+
     # Show results!
-    import seaborn as sns
     for var in ['Alpha Peak', 'FOOOF Offset', 'FOOOF Exponent', 'FOOOF rsquared']:
         plt.figure()
-        sns.boxplot(alpha_results_all, y=var, x='TestDay', hue='Attention_Type')
+        sns.barplot(alpha_results_all, y=var, x='TestDay', hue='Attention_Type')
         plt.figure()
-        sns.boxplot(alpha_results_all, y=var, x='TestDay', hue='AttentionTrained')
+        sns.barplot(alpha_results_all, y=var, x='TestDay', hue='AttentionTrained')
+
+    # Remove subject mean
+    alpha_results_all_bc =  alpha_results_all.copy()
+    alpha_results_all_bc.loc[:,'SubID_training'] = alpha_results_all_bc.loc[:,'SubID'] + '_' + alpha_results_all_bc.loc[:,'AttentionTrained']
+    vars = ['Alpha Peak', 'FOOOF Offset', 'FOOOF Exponent', 'FOOOF rsquared', 'Alpha Band Width', 'Centre Freq.']
+
+    for attntype in ['Space', 'Feat']:
+        for subid in alpha_results_all_bc.loc[:,'SubID_training'].unique():
+            idx = (alpha_results_all_bc['SubID_training'] == subid)&(alpha_results_all_bc['Attention_Type'] == attntype)
+            dattmp = alpha_results_all_bc.loc[idx, :]
+
+            tmp = (dattmp.loc[dattmp['TestDay']=='pre-training', vars].mean().values +
+                   dattmp.loc[dattmp['TestDay']=='post-training', vars].mean().values)/2
+            alpha_results_all_bc.loc[idx & (alpha_results_all['TestDay']=='pre-training'), vars] -=  tmp
+            alpha_results_all_bc.loc[idx & (alpha_results_all['TestDay'] == 'post-training'), vars] -= tmp
+
+  # Show results!
+    for var in ['Alpha Peak',  'FOOOF Exponent']: #'FOOOF Offset', , 'FOOOF rsquared'
+        plt.figure()
+        sns.barplot(alpha_results_all_bc, y=var, x='TestDay', hue='Attention_Type')
+
+        plt.figure()
+        sns.barplot(alpha_results_all_bc, y=var, x='TestDay', hue='AttentionTrained')
+        # sns.stripplot(alpha_results_all_bc, y=var, x='TestDay', hue='AttentionTrained', dodge=True)
+        plt.savefig(bids.direct_results_group_compare / Path(var + ' FOOOF results.png'), format='png')
+        plt.savefig(bids.direct_results_group_compare / Path(var + ' FOOOF results.eps'), format='eps')
+
+        # Show results!
+    for var in ['Alpha Peak', 'FOOOF Exponent']:  # 'FOOOF Offset', , 'FOOOF rsquared'
+
+        difdat = alpha_results_all_bc.loc[alpha_results_all_bc['TestDay']=='pre-training', :]
+        difdat.loc[:,var] = (alpha_results_all_bc.loc[alpha_results_all_bc['TestDay']=='post-training', var].values -
+                   alpha_results_all_bc.loc[alpha_results_all_bc['TestDay']=='pre-training', var].values)
+        plt.figure()
+        sns.violinplot(difdat, y=var, x='AttentionTrained', hue='AttentionTrained')
+        sns.stripplot(difdat, y=var, x='AttentionTrained', hue='AttentionTrained')
+        plt.savefig(bids.direct_results_group_compare / Path(var + ' FOOOF results dif.png'), format='png')
+        plt.savefig(bids.direct_results_group_compare / Path(var + ' FOOOF results dif.eps'), format='eps')
+
+    # Plot average results and then apply fooof to that.
+
+    datplot=alpha_spectrums_all.groupby(['Freqs', 'TestDay'])['Amp'].mean().reset_index()
+    plt.figure()
+    sns.lineplot(datplot, x='Freqs', y='Amp', hue='TestDay')
 
 
-    tmp = alpha_results_all.loc[alpha_results_all['TestDay']=='post-training', 'Alpha Peak'].mean() - alpha_results_all.loc[alpha_results_all['TestDay']=='pre-training', 'Alpha Peak'].mean()..values
-    # compute training differences and then export for analysis in r.
+
+    # Setup interpolations
+    freq_range = [2, 80]
+    tmp = settings.hz_attn.flatten()
+    interp_freqs = tmp.tolist() + (tmp * 2).tolist() + [18, 13.5, 20]  # + (tmp*3).tolist()
+    interp_ranges = [[freq - .5, freq + .5] for freq in interp_freqs]
+
+    # cycle through conds
+    for testday in ['pre-training', 'post-training']:
+        dat = datplot.loc[datplot['TestDay']==testday, :]
+        # Initialize a FOOOF object
+        fm = FOOOF()
+
+        # Interpolate over tags
+        freqs_int2, powers_int2 = interpolate_spectrum(dat['Freqs'].values,dat['Amp'].values, interp_ranges)
+
+        # Fit spectrum
+
+        fm.fit(freqs_int2, powers_int2, freq_range)
+
+        # Check results
+        fm.plot(plot_peaks='shade')
+        plt.savefig(bids.direct_results_group_compare / Path(testday + ' FOOOF.png'), format='png')
+        plt.savefig(bids.direct_results_group_compare / Path(testday + ' FOOOF.eps'), format='eps')
+        fm.print_results()
+        ap_params, peak_params, r_squared, fit_error, gauss_params = fm.get_results()  # apparams  (offset, exponent):
+

@@ -736,10 +736,13 @@ def plotbehavetrainingeffects_combined(df_behtraineffects, measurestring, titles
     datplot = df_behtraineffects
     i=0
 
-    sns.stripplot(x="AttentionTrained", y=measurestring, data=datplot, color="0", alpha=0.3, ax=ax[i])
-    sns.boxplot(x="AttentionTrained", y=measurestring, data=datplot, boxprops={'zorder': 2}, ax=ax[i], palette=sns.color_palette( colors))
-    sns.violinplot(x="AttentionTrained", y=measurestring, data=datplot, palette=sns.color_palette(colors), style="ticks",
+    sns.stripplot(x="AttentionTrained", hue="AttentionTrained", order=['Space', 'Feature', 'Sham'], y=measurestring, data=datplot, color="0", alpha=0.3, ax=ax[i])
+    # sns.boxplot(x="AttentionTrained", hue="AttentionTrained", order=['Space', 'Feature', 'Sham'], y=measurestring, data=datplot, boxprops={'zorder': 2}, ax=ax[i], palette=sns.color_palette( colors))
+    sns.violinplot(x="AttentionTrained", y=measurestring, hue="AttentionTrained", order=['Space', 'Feature', 'Sham'], data=datplot, palette=sns.color_palette(colors),
                     ax=ax[i], inner="box", alpha=0.6)
+    sns.pointplot(x="AttentionTrained", y=measurestring, order=['Space', 'Feature', 'Sham'],
+                   data=datplot.groupby("AttentionTrained")[measurestring].mean().reset_index(),
+                   ax=ax[i])
 
     i=1
     colors = [settings.medteal, settings.darkteal ]
@@ -747,10 +750,13 @@ def plotbehavetrainingeffects_combined(df_behtraineffects, measurestring, titles
     datplot.loc[datplot['Training Group'].isin(["Space", "Feature"]),'Training Group'] = "Neurofeedback"
 
     
-    sns.stripplot(x="Training Group", y=measurestring, data=datplot, color="0", alpha=0.3, ax=ax[i])
-    sns.boxplot(x="Training Group", y=measurestring, data=datplot, boxprops={'zorder': 2}, ax=ax[i], palette=sns.color_palette( colors))
-    sns.violinplot(x="Training Group", y=measurestring, data=datplot, palette=sns.color_palette(colors), style="ticks",
+    sns.stripplot(x="Training Group", hue="Training Group", y=measurestring, data=datplot, color="0", alpha=0.3, ax=ax[i])
+    # sns.boxplot(x="Training Group", hue="Training Group", y=measurestring, data=datplot, boxprops={'zorder': 2}, ax=ax[i], palette=sns.color_palette( colors))
+    sns.violinplot(x="Training Group", hue="Training Group", y=measurestring, data=datplot, palette=sns.color_palette(colors),
                     ax=ax[i], inner="box", alpha=0.6)
+    sns.pointplot(x="Training Group", y=measurestring,
+                  data=datplot.groupby("Training Group")[measurestring].mean().reset_index(),
+                  ax=ax[i], color='k')
 
 
     for i in np.arange(2):

@@ -51,8 +51,8 @@ if options.run_individuals
         %% Cycle through subjects
     
         subjects = dir( [direct.data_base 'Train' str.traintype{options.traintype} '/' ]);
-        
-        for sub = 1:length(subsIDX{traintype})
+   
+        for sub = 2%1:length(subsIDX{traintype})
             observer.number = subsIDX{traintype}(sub);
         
             %% Cycle though testdays
@@ -156,6 +156,7 @@ if options.run_individuals
                     ylabel('Raw prediction')
                     title( bids.casestring )
                     saveas(h, [direct.results_figs bids.casestring 'Classifier predictions sample.png'])
+                    saveas(h, [direct.results_figs bids.casestring 'Classifier predictions sample.eps'], 'epsc')
     
                     %% Resample data
                     % Original signal and sampling frequency
@@ -292,7 +293,8 @@ if options.run_individuals
                     
                     title( [bids.casestring ' example trial feedback'])
                     saveas(h, [direct.results_figs bids.casestring 'NF sample trial.png'])
-    
+                    saveas(h, [direct.results_figs bids.casestring 'NF sample trial.eps'], 'epsc')
+
                     % Scatter plot to visualise variability
                     figure;
                     for TRIAL = 1:10
@@ -312,6 +314,7 @@ if options.run_individuals
                     title('Feedback difference timecourse for example trial')
                     saveas(h, [direct.results_figs bids.casestring 'NF diff sample trial.png'])
                     saveas(h, [direct.results_figs bids.casestring 'NF diff sample trial.eps'], 'epsc')
+
                     %% Euclidean distance between space and feature feedback signals
                     % 
                     % % Calculate real euclid distance
@@ -399,7 +402,18 @@ if options.run_individuals
                         datmod(:,percentdif,2) = sqrt(nansum(dat.^2, 1));
                     
                     end
+                    TRIAL = 2;
+                    h=figure;
+                    hold on;
+                    classifier_type=1;
+                    plot( predscorrect1(:, TRIAL) - predictions_all_framerate_attn(:,TRIAL,1))
+                    xlabel('Time (frames)')
+                    ylabel('Feedback')
                     
+                    title( [bids.casestring ' example trial feedback permute'])
+                    saveas(h, [direct.results_figs bids.casestring 'example trial feedback permute.png'])
+                    saveas(h, [direct.results_figs bids.casestring 'example trial feedback permute.eps'], 'epsc')
+
                     % plot
                     % figure;
                     % hold on;

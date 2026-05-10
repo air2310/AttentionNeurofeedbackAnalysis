@@ -50,22 +50,26 @@ def load_classifierdata(settings):
                 for filesfound in bids.direct_data_eeg.glob(
                         "Classifier_" + attn_val + '_' + bids.filename_eeg + ".mat"):
                     possiblefiles.append(filesfound)
-                file2use = possiblefiles[0]
+                try:
+                    file2use = possiblefiles[0]
 
-                # load data
-                F = h5py.File(file2use, 'r')  # print(list(F.keys()))
+                    # load data
+                    F = h5py.File(file2use, 'r')  # print(list(F.keys()))
 
-                # get Accuracy
-                tmp_acc = np.array(F['ACCURACY_ALL']) * 100
+                    # get Accuracy
+                    tmp_acc = np.array(F['ACCURACY_ALL']) * 100
 
-                if attntrained == 'Sham':
-                    attntrained_vec.append(settings.string_attntrained[int(matchedsample_traintype[sub_val - 1][0])])
-                else:
-                    attntrained_vec.append(attntrained)
-                traingroup_vec.append(attntrained)
-                sub_vec.append(attntrained + str(sub_val))
-                classifiertype_vec.append(attn_val)
-                classifieracc_vec.append(np.nanmean(tmp_acc))
+                    if attntrained == 'Sham':
+                        attntrained_vec.append(settings.string_attntrained[int(matchedsample_traintype[sub_val - 1][0])])
+                    else:
+                        attntrained_vec.append(attntrained)
+                    traingroup_vec.append(attntrained)
+                    sub_vec.append(attntrained + str(sub_val))
+                    classifiertype_vec.append(attn_val)
+                    classifieracc_vec.append(np.nanmean(tmp_acc))
+                except IndexError:
+                    print('file missing:', "Classifier_" + attn_val + '_' + bids.filename_eeg + ".mat")
+
 
     # Stack data into a dataframe
     data = {'SubID': sub_vec, 'TrainingGroup': traingroup_vec, 'AttentionTrained': attntrained_vec, 'ClassifierType': classifiertype_vec,

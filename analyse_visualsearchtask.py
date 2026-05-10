@@ -280,7 +280,7 @@ def collate_visualsearchtask(settings):
 
     for size, setsize in enumerate(settings.string_setsize):
         sns.swarmplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", dodge=True, data=df_rt[df_rt["Set Size"].isin([setsize])], color="0", alpha=0.3, ax=ax1[size])
-        sns.violinplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", data=df_rt[df_rt["Set Size"].isin([setsize])], palette=sns.color_palette(colors), style="ticks", ax=ax1[size], split=False)
+        sns.violinplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", data=df_rt[df_rt["Set Size"].isin([setsize])], palette=sns.color_palette(colors),ax=ax1[size], split=False)
 
         handles, labels = ax1[size].get_legend_handles_labels()
         ax1[size].legend(handles[:2], labels[:2])
@@ -318,7 +318,7 @@ def collate_visualsearchtask(settings):
     colors = [settings.lightteal, settings.medteal]
     sns.swarmplot(x="Attention Trained", y="Accuracy (%)", hue="Testday", dodge=True, data=df_acc_SSmean, color="0", alpha=0.3, ax=ax1)
     sns.violinplot(x="Attention Trained", y="Accuracy (%)", hue="Testday", data=df_acc_SSmean,
-                   palette=sns.color_palette(colors), style="ticks", ax=ax1, split=False)
+                   palette=sns.color_palette(colors),ax=ax1, split=False)
     handles, labels = ax1.get_legend_handles_labels()
     ax1.legend(handles[:2], labels[:2])
 
@@ -335,7 +335,7 @@ def collate_visualsearchtask(settings):
     colors = [settings.lightteal, settings.medteal]
     sns.swarmplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", dodge=True, data=df_acc_SSmean, color="0", alpha=0.3, ax=ax1)
     sns.violinplot(x="Attention Trained", y="Reaction Time (s)", hue="Testday", data=df_acc_SSmean,
-                   palette=sns.color_palette(colors), style="ticks", ax=ax1, split=False)
+                   palette=sns.color_palette(colors),  ax=ax1, split=False)
     handles, labels = ax1.get_legend_handles_labels()
     ax1.legend(handles[:2], labels[:2])
 
@@ -366,7 +366,7 @@ def collate_visualsearchtask(settings):
     measurestrings = ["∆Accuracy (%)", "∆Reaction Time (s)"]
     for i in np.arange(2):
         sns.swarmplot(x="Attention Trained", y=measurestrings[i], data=df_behtraineffects, color="0", alpha=0.3, ax=ax[i])
-        sns.violinplot(x="Attention Trained", y=measurestrings[i], data=df_behtraineffects, palette=sns.color_palette(colors), style="ticks",
+        sns.violinplot(x="Attention Trained", y=measurestrings[i], data=df_behtraineffects, palette=sns.color_palette(colors), #style="ticks",
                        ax=ax[i], inner="box", alpha=0.6)
 
         sns.lineplot(x="Attention Trained", y=measurestrings[i], data=df_behtraineffects, markers=True, dashes=False, color="k", err_style="bars", ci=68, ax=ax[i])
@@ -423,3 +423,84 @@ def collate_visualsearchtask(settings):
 # save out
     # df_rt_SSmean.to_pickle(bids.direct_results_group / Path("group_visualsearch.pkl"))
 
+
+
+
+
+    # %% New analysesJuly 2025
+    # create the data frames for accuracy and reaction time data
+    data = {'SubID': substring.astype(int), 'Testday': daystrings, 'Attention Trained': attnstrings,
+            'Set Size': setsizestrings,
+            'Accuracy (%)': accuracy_compare, 'Reaction Time (s)': rt_compare}
+    df_acc = pd.DataFrame(data)
+
+    # correct for missing data
+    df_acc.loc[df_acc['Reaction Time (s)']<0.01, 'Reaction Time (s)'] = np.nan
+
+    # reject subjects from behave analsis
+    toreject = ['Space22','Space22','Space28','Space38','Space38','Space43','Space46','Space49','Space53','Space53']
+    df_acc = df_acc[~df_acc['SubID'].isin(toreject)]
+
+    # %% Compute training matrix
+
+    df_acc_train = df_acc.loc[df_acc['Testday'] == 'pre-training', :].reset_index()
+    df_acc_train.loc[:, 'Acc Tr'] = (df_acc.loc[df_acc['Testday'] == 'post-training', 'Accuracy (%)'].values -
+                                  df_acc.loc[df_acc['Testday'] == 'pre-training', 'Accuracy (%)'].values)
+    df_acc_train.loc[:, 'RT Tr'] = (df_acc.loc[df_acc['Testday'] == 'post-training', 'Reaction Time (s)'].values -
+                                  df_acc.loc[df_acc['Testday'] == 'pre-training', 'Reaction Time (s)'].values)
+
+
+    # Plot accuracy and reaction time training effects
+    colors = [settings.yellow, settings.orange, settings.red]
+    fig, ax = plt.subplots(1, 2, figsize=(15, 6))
+
+
+    sns.swarmplot(hue="Attention Trained", y="Acc Tr", x = 'Set Size', data=df_acc_train, color="0", alpha=0.3, ax=ax[0], dodge=True)
+    sns.violinplot(hue="Attention Trained", y="Acc Tr", x = 'Set Size', data=df_acc_train, palette=sns.color_palette(colors),
+                   ax=ax[0], alpha=0.6)
+
+    sns.swarmplot(x="Attention Trained", y="RT Tr", hue = 'Set Size', data=df_acc_train, color="0", alpha=0.3, ax=ax[1], dodge=True)
+    sns.violinplot(x="Attention Trained", y="RT Tr", hue = 'Set Size', data=df_acc_train, palette=sns.color_palette(colors),
+                   ax=ax[1], alpha=0.6)
+
+
+    [a.spines['top'].set_visible(False) for a in ax]
+    [a.spines['right'].set_visible(False) for a in ax]
+
+    [a.set_title(tit ) for a, tit in zip(ax, ['Acc', 'RT'])]
+
+        # ax[i].set_ylim([-0.6, 0.2])
+    titlestring = "Visual Search task training effects by setsize II"
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
+
+    # Plot grouped across set size
+    colors = [settings.yellow, settings.orange, settings.red]
+    datplot = df_acc_train.groupby(['Attention Trained', 'SubID'])[['Acc Tr', 'RT Tr']].mean()
+    fig, ax = plt.subplots(1, 2, figsize=(15, 6))
+
+    sns.swarmplot(x="Attention Trained", order=['Space', 'Feature', 'Sham'], y="Acc Tr",  data=datplot, color="0", alpha=0.3, ax=ax[0],
+                  dodge=True)
+    sns.violinplot(x="Attention Trained", y="Acc Tr", order=['Space', 'Feature', 'Sham'], data=datplot,
+                   palette=sns.color_palette(colors),
+                   ax=ax[0], alpha=0.6)
+
+    sns.swarmplot(x="Attention Trained", y="RT Tr", order=['Space', 'Feature', 'Sham'], data=datplot, color="0", alpha=0.3, ax=ax[1],
+                  dodge=True)
+    sns.violinplot(x="Attention Trained",  y="RT Tr", order=['Space', 'Feature', 'Sham'], data=datplot,
+                   palette=sns.color_palette(colors),
+                   ax=ax[1], alpha=0.6)
+
+    [a.spines['top'].set_visible(False) for a in ax]
+    [a.spines['right'].set_visible(False) for a in ax]
+
+    [a.set_title(tit) for a, tit in zip(ax, ['Acc', 'RT'])]
+
+    # ax[i].set_ylim([-0.6, 0.2])
+    titlestring = "Visual Search task training effects II"
+    plt.suptitle(titlestring)
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.png'), format='png')
+    plt.savefig(bids.direct_results_group_compare / Path(titlestring + '.eps'), format='eps')
+
+# save out

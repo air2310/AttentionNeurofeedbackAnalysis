@@ -683,4 +683,16 @@ def collate_behaviour_prepost_compare(settings):
     
     ##########################################  plottraining effects ##########################################
     datplot = pd.DataFrame(df_behavetrain.reset_index().to_dict())
-    mottaskanal.plotbehavetrainingeffects_combined(datplot,  "sensitivity", 'Motion Task Sensitivity training effect combined cuemean', bids, settings, [-1, 1])
+    mottaskanal.plotbehavetrainingeffects_combined(df_behtraineffects=datplot,  measurestring="sensitivity",
+                                                   titlestring='Motion Task Sensitivity training effect combined cuemean',
+                                                   bids=bids, settings=settings, ylims=[-1, 2])
+
+    datplot = pd.DataFrame(df_behavetrain.reset_index().to_dict())
+    mottaskanal.plotbehavetrainingeffects_combined(df_behtraineffects=datplot,  measurestring="RT",
+                                                   titlestring='Motion Task RT training effect combined cuemean',
+                                                   bids=bids, settings=settings, ylims=[-0.35, 0.15])
+
+    datplot = pd.DataFrame(df_behavetrain.reset_index().to_dict())
+    mottaskanal.plotbehavetrainingeffects_combined(df_behtraineffects=datplot,  measurestring="InverseEfficiency",
+                                                   titlestring='Motion Task InverseEfficiency training effect combined cuemean',
+                                                   bids=bids, settings=settings, ylims=[-3.25, 1.25])

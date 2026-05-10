@@ -17,6 +17,9 @@ import CorrelationAnalyses as analyse_corr
 import RSA as RSA
 import analyseAlphaPrePost as alpha
 
+# for next time
+# conda install --name=base nb_conda_kernels
+# conda create --channel=conda-forge --strict-channel-priority --name=mne mne seaborn fooof
 
 #### New Analyses
 
@@ -28,8 +31,8 @@ import analyseAlphaPrePost as alpha
 ######## Decide which single subject analyses to do ########
 
 
-analyse_alpha_prepost = True # Analyse Behaviour Pre Vs. Post Training
-# analyse_alpha_prepost = False  # Analyse Behaviour Pre Vs. Post Training
+# analyse_alpha_prepost = True # Analyse Behaviour Pre Vs. Post Training
+analyse_alpha_prepost = False  # Analyse Behaviour Pre Vs. Post Training
 
 # analyse_behaviour_prepost = True # Analyse Behaviour Pre Vs. Post Training
 analyse_behaviour_prepost = False  # Analyse Behaviour Pre Vs. Post Training
